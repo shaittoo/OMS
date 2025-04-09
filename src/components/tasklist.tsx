@@ -20,6 +20,8 @@ const TaskList: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("All"); 
+  
 
   useEffect(() => {
     const fetchUserTasks = async () => {
@@ -100,6 +102,25 @@ const TaskList: React.FC = () => {
     }
   };
 
+  const filteredTasks = tasks.filter((task) => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Completed") return task.completed;
+    if (activeTab === "Not Completed") return !task.completed;
+    return true;
+  });
+
+  const noTasksMessage = () => {
+    if (activeTab === "Completed" && filteredTasks.length === 0) {
+      return <p className="text-gray-700">No completed tasks yet.</p>;
+    }
+    if (activeTab === "Not Completed" && filteredTasks.length === 0) {
+      return <p className="text-gray-700">All tasks completed.</p>;
+    }
+    if (activeTab === "All" && filteredTasks.length === 0) {
+      return <p className="text-gray-700">No tasks assigned yet.</p>;
+    }
+  };
+
   return (
     <div
       className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto"
@@ -110,9 +131,34 @@ const TaskList: React.FC = () => {
         gap: "8px",
       }}
     >
-      <h1 className="font-bold text-2xl text-purple-700 bg-gray-100 z-10">
-        Pending Tasks
-      </h1>
+        <div className="header flex justify-between items-center mb-4" style={{ position: 'relative' }}>
+        <h1 className="font-bold text-2xl text-purple-700 bg-gray-100 z-10">
+          Assigned Tasks
+        </h1>
+ 
+        {/* Filter Dropdown */}
+        <div
+          className="filter-dropdown"
+          style={{
+            position: 'absolute',
+            right: 0, 
+            zIndex: 20,  
+          }}
+        >
+          <select
+            className="border border-purple-700 rounded p-2"
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            style={{ padding: "8px", width: "auto" }}
+          >
+            <option value="All">All</option>
+            <option value="Completed">Completed</option>
+            <option value="Not Completed">Not Completed</option>
+          </select>
+        </div>
+      </div>
+
+
       <hr className="border-purple-700 border-1" />
       <div className="task-list flex flex-col gap-2">
         {loading && 
@@ -120,8 +166,9 @@ const TaskList: React.FC = () => {
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                   </div>}
         {error && <p className="text-gray-700">{error}</p>}
-        {!loading && tasks.length === 0 && <p className="text-gray-700">No tasks available.</p>}
-        {!loading && !error && tasks.map((task) => (
+        {noTasksMessage()}
+        {!loading && filteredTasks.length === 0 && <p className="text-gray-700">No tasks available.</p>}
+        {!loading && !error && filteredTasks.map((task) => (
           <div
             key={task.id}
             className="task-item bg-gray-100 p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
@@ -137,7 +184,7 @@ const TaskList: React.FC = () => {
                 type="checkbox"
                 checked={task.completed}
                 onChange={() => handleCheckbox(task.id, task.completed)}
-                className="cursor-pointer"
+                className="cursor-pointer transform scale-125"
               />
               <h3 className="font-semibold text-md text-purple-700">{task.taskName}</h3>
             </div>
