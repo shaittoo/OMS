@@ -13,7 +13,6 @@ import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import EventIcon from "@mui/icons-material/Event";
-import MemberSidebar from "../components/membersidebar";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 
 interface Event {
@@ -249,9 +248,8 @@ const EventsView: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-screen">
-      <MemberSidebar />
-      <div className="flex-grow p-6 bg-white overflow-y-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Header />
         <SearchAndFilter />
         <div className="mt-6">

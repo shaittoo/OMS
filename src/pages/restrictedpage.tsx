@@ -1,4 +1,7 @@
-const RestrictedPage = () => {
+import React from 'react';
+import Link from 'next/link';
+
+const RestrictedPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full px-6 py-8 bg-white shadow-lg rounded-lg">
@@ -34,7 +37,7 @@ const RestrictedPage = () => {
             </div>
   
             {/* Back to Home Button */}
-            <a
+            <Link
               href="/"
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
             >
@@ -50,7 +53,7 @@ const RestrictedPage = () => {
                 <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               Back to Home
-            </a>
+            </Link>
           </div>
         </div>
       </div>
