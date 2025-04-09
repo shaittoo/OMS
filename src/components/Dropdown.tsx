@@ -14,23 +14,33 @@ export default function Dropdown() {
       <MenuItems
         className="absolute w-full justify-center px-3 py-3 mt-2 rounded-full bg-black"
       >
-        <div className="py-1">
-          <Link href="/" passHref legacyBehavior>
-            <MenuItem as="a" className="inline-flex w-full rounded-full hover:bg-gray-100">
-              <img alt="" src="/assets/home.svg" className="h-8 w-auto"/>
-            </MenuItem>
-          </Link>
-          <Link href="/guestviewevents" passHref legacyBehavior>
-            <MenuItem as="a" className="inline-flex w-full rounded-full hover:bg-gray-100">
-              <img alt="" src="/assets/feature_search.svg" className="h-8 w-auto"/>
-            </MenuItem>
-          </Link>
-          <Link href="/settings" passHref legacyBehavior>
-            <MenuItem as="a" className="inline-flex w-full rounded-full hover:bg-gray-100">
-              <img alt="" src="/assets/settings.svg" className="h-8 w-auto"/>
-            </MenuItem>
-          </Link>
-        </div>
+        <MenuItem>
+          {({ active }) => (
+            <Link href="/" className={`${active ? 'bg-gray-100' : ''} block w-full rounded-full`}>
+              <span className="inline-flex w-full items-center">
+                <img alt="" src="/assets/home.svg" className="h-8 w-auto"/>
+              </span>
+            </Link>
+          )}
+        </MenuItem>
+        <MenuItem>
+          {({ active }) => (
+            <Link href="/guestviewevents" className={`${active ? 'bg-gray-100' : ''} block w-full rounded-full`}>
+              <span className="inline-flex w-full items-center">
+                <img alt="" src="/assets/feature_search.svg" className="h-8 w-auto"/>
+              </span>
+            </Link>
+          )}
+        </MenuItem>
+        <MenuItem>
+          {({ active }) => (
+            <Link href="/settings" className={`${active ? 'bg-gray-100' : ''} block w-full rounded-full`}>
+              <span className="inline-flex w-full items-center">
+                <img alt="" src="/assets/settings.svg" className="h-8 w-auto"/>
+              </span>
+            </Link>
+          )}
+        </MenuItem>
       </MenuItems>
     </Menu>
   )
