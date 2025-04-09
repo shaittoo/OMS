@@ -229,21 +229,21 @@ const OrgList: React.FC = () => {
     }
   };
 
-  const filteredOrgs = organizations.filter((org) => {
-    const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrgs = organizations.filter((organizations) => {
+    const matchesSearch = organizations.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
     !categoryFilter || categoryFilter === "All"
       ? true
       : categoryFilter === "Others"
       ? !["academic", "sports", "interest"].some((cat) =>
-          org.tags?.map((t) => t.toLowerCase()).includes(cat)
+        organizations.tags?.map((t) => t.toLowerCase()).includes(cat)
         )
-      : org.tags?.map((t) => t.toLowerCase()).includes(categoryFilter.toLowerCase());  
+      : organizations.tags?.map((t) => t.toLowerCase()).includes(categoryFilter.toLowerCase());  
     const matchesStatus =
       !statusFilter ||
       (statusFilter === "Joined"
-        ? joinedOrgs.includes(org.id)
-        : !joinedOrgs.includes(org.id));
+        ? joinedOrgs.includes(organizations.id)
+        : !joinedOrgs.includes(organizations.id));
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -268,30 +268,30 @@ const OrgList: React.FC = () => {
           onCategoryFilterChange={(value) => setCategoryFilter(value)}      
         />
         <div className="space-y-4 mt-6">
-          {filteredOrgs.map((org) => (
+          {filteredOrgs.map((organizations) => (
             <div
-              key={org.id}
+              key={organizations.id}
               className="flex items-center p-4 border rounded-md hover:shadow-md transition duration-200"
             >
               <img
-                src={org.photo}
-                alt={org.name}
+                src={organizations.photo}
+                alt={organizations.name}
                 className="w-16 h-16 rounded mr-4 object-cover"
               />
               <div className="flex-grow">
-                <h3 className="text-lg font-medium text-gray-800">{org.name}</h3>
-                <p className="text-sm text-gray-600">{org.description}</p>
+                <h3 className="text-lg font-medium text-gray-800">{organizations.name}</h3>
+                <p className="text-sm text-gray-600">{organizations.description}</p>
               </div>
               <button
                 className={`px-4 py-2 text-white text-sm rounded ${
-                  joinedOrgs.includes(org.id)
+                  joinedOrgs.includes(organizations.id)
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-purple-600 hover:bg-purple-700"
                 }`}
-                onClick={() => handleJoinOrganization(org.id)}
-                disabled={joinedOrgs.includes(org.id)}
+                onClick={() => handleJoinOrganization(organizations.id)}
+                disabled={joinedOrgs.includes(organizations.id)}
               >
-                {joinedOrgs.includes(org.id) ? "Joined" : "Join Organization"}
+                {joinedOrgs.includes(organizations.id) ? "Joined" : "Join Organization"}
               </button>
             </div>
           ))}
