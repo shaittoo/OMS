@@ -17,37 +17,43 @@ import SearchIcon from "@mui/icons-material/Search";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 
-const Header: React.FC = () => {
-  return (
-
-    <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
-      <div className="py-2">
-        <Link href="/memberpage" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
-          <ArrowBackIcon />
-          <span>Back to Dashboard</span>
-        </Link>
-      </div>
-      <div>
-        <p className="text-lg text-gray-500">What organization would you like to join?</p>
-      </div>
+const Header: React.FC = () => (
+  <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
+    <div className="py-2">
+      <Link href="/memberpage" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
+        <ArrowBackIcon />
+        <span>Back to Dashboard</span>
+      </Link>
     </div>
-  );
-};
+    <div>
+      <p className="text-lg text-gray-500">What organization would you like to join?</p>
+    </div>
+  </div>
+);
 
-const SearchAndFilter: React.FC = () => {
-  const [activeFilter, setActiveFilter] = useState<string>("All");
-
-  const handleFilterClick = (filter: string) => {
-    setActiveFilter(filter);
-  };
+const SearchAndFilter: React.FC<{
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  onStatusFilterChange: (filter: string | null) => void;
+  onCategoryFilterChange: (filter: string | null) => void;
+}> = ({ searchTerm, onSearchChange, onStatusFilterChange, onCategoryFilterChange }) => {
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const filters = ["Active", "Joined"];
+
+  const handleStatusClick = (filter: string) => {
+    const newFilter = activeFilter === filter ? null : filter;
+    setActiveFilter(newFilter);
+    onStatusFilterChange(newFilter);
+  };
 
   return (
     <div className="relative flex items-center bg-white p-4 rounded-md mt-6 shadow-lg border border-gray-300 justify-center">
       <div className="relative flex-grow">
         <input
           type="text"
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
           placeholder="Search..."
         />
@@ -65,17 +71,15 @@ const SearchAndFilter: React.FC = () => {
                 ? "bg-purple-600 text-white"
                 : "text-gray-600 hover:bg-gray-100"
             }`}
-            onClick={() => handleFilterClick(filter)}
+            onClick={() => handleStatusClick(filter)}
           >
             {filter}
           </button>
         ))}
-
-        <DropdownMenu title="Category" options={["Category 1", "Category 2", "Category 3"]} />
         <DropdownMenu
-          title="Application"
-          options={["Accepted", "Ongoing", "Rejected"]}
-          links={["/membershipstatus"]}
+          title="Category"
+          options={["All", "Academic", "Sports", "Interest", "Others"]}
+          onSelect={onCategoryFilterChange}
         />
       </div>
     </div>
@@ -85,41 +89,35 @@ const SearchAndFilter: React.FC = () => {
 const DropdownMenu: React.FC<{
   title: string;
   options: string[];
-  links?: string[];
-}> = ({ title, options, links }) => {
-  return (
-    <Menu as="div" className="relative inline-block text-left">
-      <div>
-        <MenuButton className="inline-flex px-4 py-2 border rounded-md text-sm font-medium">
-          {title}
-          <ChevronDownIcon aria-hidden="true" className="-mr-1 h-5 w-5 text-gray-400" />
-        </MenuButton>
+  onSelect?: (value: string) => void;
+}> = ({ title, options, onSelect }) => (
+  <Menu as="div" className="relative inline-block text-left">
+    <div>
+      <MenuButton className="inline-flex px-4 py-2 border rounded-md text-sm font-medium">
+        {title}
+        <ChevronDownIcon aria-hidden="true" className="-mr-1 h-5 w-5 text-gray-400" />
+      </MenuButton>
+    </div>
+    <MenuItems className="absolute right-0 z-10 mt-2 w-auto origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
+      <div className="py-1">
+        {options.map((option) => (
+          <MenuItem key={option}>
+            {({ active }) => (
+              <button
+                onClick={() => onSelect?.(option)}
+                className={`flex px-4 py-2 text-sm w-full text-left ${
+                  active ? "bg-gray-100 text-gray-800" : "text-gray-700"
+                }`}
+              >
+                {option}
+              </button>
+            )}
+          </MenuItem>
+        ))}
       </div>
-      <MenuItems
-        className="absolute right-0 z-10 mt-2 w-auto origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
-      >
-        <div className="py-1">
-          {options.map((option, index) => (
-            <MenuItem key={option}>
-              {links && links.length > 0 ? (
-                <Link href={`${links[0]}=${option.toLowerCase()}`} passHref>
-                  <button className="flex px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none">
-                    {option}
-                  </button>
-                </Link>
-              ) : (
-                <button className="flex px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none">
-                  {option}
-                </button>
-              )}
-            </MenuItem>
-          ))}
-        </div>
-      </MenuItems>
-    </Menu>
-  );
-};
-
+    </MenuItems>
+  </Menu>
+);
 
 const OrgList: React.FC = () => {
   const [organizations, setOrganizations] = useState<Array<{
@@ -127,51 +125,72 @@ const OrgList: React.FC = () => {
     name: string;
     description?: string;
     photo?: string;
+    tags?: string[];
   }>>([]);
+  const [joinedOrgs, setJoinedOrgs] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>("All");
+
   useEffect(() => {
-    const fetchOrganizations = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      const auth = getAuth();
+      const userId = auth.currentUser?.uid;
+  
+      if (!userId) {
+        console.error("User not authenticated.");
+        setLoading(false);
+        return;
+      }
+  
       try {
+        // Fetch joined organizations
+        const memberSnapshot = await getDocs(query(
+          collection(db, "Members"),
+          where("uid", "==", userId)
+        ));
+        const joined = memberSnapshot.docs.map((doc) => doc.data().organizationId);
+        setJoinedOrgs(joined);
+  
+        // Fetch organizations
         const usersRef = collection(db, "Users");
         const orgQuery = query(usersRef, where("role", "==", "organization"));
         const querySnapshot = await getDocs(orgQuery);
-
-        const organizationPromises = querySnapshot.docs.map(async (userDoc) => {
-          const userData = userDoc.data();
-          const orgId = userData.organizationId;
-
-          if (orgId) {
-            const orgDoc = await getDoc(doc(db, "Organizations", orgId));
-            if (orgDoc.exists()) {
-              const orgData = orgDoc.data();
-              return {
-                id: orgId,
-                name: orgData.name || "Unnamed Organization",
-                description: orgData.description || "No description available.",
-                photo: orgData.photo || "/assets/default.jpg",
-              };
+  
+        const orgs = await Promise.all(
+          querySnapshot.docs.map(async (userDoc) => {
+            const userData = userDoc.data();
+            const orgId = userData.organizationId;
+            if (orgId) {
+              const orgDoc = await getDoc(doc(db, "Organizations", orgId));
+              if (orgDoc.exists()) {
+                const orgData = orgDoc.data();
+                return {
+                  id: orgId,
+                  name: orgData.name || "Unnamed Organization",
+                  description: orgData.description || "No description available.",
+                  photo: orgData.photo || "/assets/default.jpg",
+                  tags: orgData.tags || [],
+                };
+              }
             }
-          }
-          return null;
-        });
-
-        const resolvedOrganizations = (await Promise.all(organizationPromises)).filter(Boolean);
-        setOrganizations(resolvedOrganizations as Array<{
-          id: string;
-          name: string;
-          description?: string;
-          photo?: string;
-        }>);
+            return null;
+          })
+        );
+  
+        setOrganizations(orgs.filter(Boolean) as any);
       } catch (error) {
         console.error("Error fetching organizations:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchOrganizations();
-  }, []);
+  
+    fetchData();
+  }, []);  
 
   const handleJoinOrganization = async (organizationId: string) => {
     const auth = getAuth();
@@ -183,16 +202,14 @@ const OrgList: React.FC = () => {
     }
 
     try {
-      const membersRef = collection(db, "members");
       const memberQuery = query(
-        membersRef,
+        collection(db, "Members"),
         where("uid", "==", userId),
         where("organizationId", "==", organizationId)
       );
-      const memberSnapshot = await getDocs(memberQuery);
-
-      if (!memberSnapshot.empty) {
-        alert("You have already requested to join or are already a member of this organization.");
+      const snapshot = await getDocs(memberQuery);
+      if (!snapshot.empty) {
+        alert("You’ve already requested to join this organization.");
         return;
       }
 
@@ -204,12 +221,32 @@ const OrgList: React.FC = () => {
         approvalDate: null,
       });
 
-      alert("Request to join the organization has been sent for approval.");
-    } catch (error) {
-      console.error("Error joining organization:", error);
-      alert("There was an error while sending your request.");
+      setJoinedOrgs((prev) => [...prev, organizationId]);
+      alert("Request sent for approval.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send join request.");
     }
   };
+
+  const filteredOrgs = organizations.filter((org) => {
+    const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory =
+    !categoryFilter || categoryFilter === "All"
+      ? true
+      : categoryFilter === "Others"
+      ? !["academic", "sports", "interest"].some((cat) =>
+          org.tags?.map((t) => t.toLowerCase()).includes(cat)
+        )
+      : org.tags?.map((t) => t.toLowerCase()).includes(categoryFilter.toLowerCase());  
+    const matchesStatus =
+      !statusFilter ||
+      (statusFilter === "Joined"
+        ? joinedOrgs.includes(org.id)
+        : !joinedOrgs.includes(org.id));
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -220,13 +257,18 @@ const OrgList: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen ">
-      <MemberSidebar/>
+    <div className="flex min-h-screen">
+      <MemberSidebar />
       <div className="flex-grow p-6 bg-white">
         <Header />
-        <SearchAndFilter/>
+        <SearchAndFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onStatusFilterChange={setStatusFilter}
+          onCategoryFilterChange={(value) => setCategoryFilter(value)}      
+        />
         <div className="space-y-4 mt-6">
-          {organizations.map((org) => (
+          {filteredOrgs.map((org) => (
             <div
               key={org.id}
               className="flex items-center p-4 border rounded-md hover:shadow-md transition duration-200"
@@ -241,16 +283,21 @@ const OrgList: React.FC = () => {
                 <p className="text-sm text-gray-600">{org.description}</p>
               </div>
               <button
-                className="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700"
+                className={`px-4 py-2 text-white text-sm rounded ${
+                  joinedOrgs.includes(org.id)
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-700"
+                }`}
                 onClick={() => handleJoinOrganization(org.id)}
+                disabled={joinedOrgs.includes(org.id)}
               >
-                Join Organization
+                {joinedOrgs.includes(org.id) ? "Joined" : "Join Organization"}
               </button>
             </div>
           ))}
-          {organizations.length === 0 && (
+          {filteredOrgs.length === 0 && (
             <div className="text-center text-gray-600 mt-6">
-              No organizations found.
+              No organizations match your search or filters.
             </div>
           )}
         </div>

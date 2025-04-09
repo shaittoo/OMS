@@ -130,13 +130,13 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
     >
       <div
-        className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-xl relative"
+        className="bg-white p-10 rounded-lg w-full max-w-4xl shadow-xl relative"
         style={{ backgroundColor: "#f9f9f9" }}
       >
         {/* Close Button */}
         <button
           onClick={close}
-          className="absolute top-2 right-2 p-2 rounded-md hover:bg-purple-200 hover:text-white transition duration-200"
+          className="absolute top-3 right-2 p-3 rounded-md hover:bg-purple-200 hover:text-white transition duration-200"
           style={{ backgroundColor: "#e8e8e8" }}
         >
           <CloseIcon className="h-5 w-5 text-[#8736EA]" />
@@ -148,9 +148,9 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
           </h2>
 
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div> {/* Container for image upload and price/date */}
-              <div className="h-32 w-full border-2 border-dashed border-purple-500 rounded-md hover:bg-purple-100 transition-colors duration-200 relative">
+              <div className="h-32 w-full border-4 border-dashed border-purple-500 rounded-md hover:bg-purple-100 transition-colors duration-200 relative">
                 {imagePreviews.length === 0 ? ( // Conditionally render label or button
                 <label
                     htmlFor="file-upload"
@@ -227,7 +227,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                 </div>
 
                 {/* Event Price and Date under Event Name */}
-                <div className="mt-4 grid grid-cols-2 gap-4"> 
+                <div className="mt-6 grid grid-cols-2 gap-4"> 
                   <div>
                     <label className="block text-sm font-medium text-[#8736EA] mb-2">
                       Event Price (PHP)
@@ -237,7 +237,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                         type="number"
                         value={eventPrice}
                         onChange={(e) => setEventPrice(e.target.value)}
-                        className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                        className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                         min="0"
                         required={!isFree}
                         disabled={isFree}
@@ -263,14 +263,14 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                       type="date"
                       value={eventDate}
                       onChange={(e) => setEventDate(e.target.value)}
-                      className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                      className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                       required
                     />
                   </div>
                 </div>
 
                 {/* Tags and Status */}
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-6 grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-[#8736EA] mb-2">
                       Tags (Comma separated)
@@ -279,7 +279,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                       type="text"
                       value={tags}
                       onChange={(e) => setTags(e.target.value)}
-                      className="block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                      className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                       placeholder="e.g. conference, workshop, seminar"
                     />
                   </div>
@@ -291,7 +291,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                      className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     >
                       <option value="Upcoming">Upcoming</option>
                       <option value="Ongoing">Ongoing</option>
@@ -312,7 +312,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
-                    className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     required
                     placeholder="Enter event name"
                   />
@@ -327,7 +327,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                     type="text"
                     value={eventLocation}
                     onChange={(e) => setEventLocation(e.target.value)}
-                    className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     required
                     placeholder="Enter event location"
                   />
@@ -341,7 +341,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                   <textarea
                     value={eventDescription}
                     onChange={(e) => setEventDescription(e.target.value)}
-                    className="h-24 block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="h-24 block w-full px-6 py-4 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     rows={4}
                     required
                     placeholder="Enter event description"
@@ -349,7 +349,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
                 </div>
 
                 {/* Submit Button */}
-                <div className="mt-4">
+                <div className="mt-6">
                   <button
                     type="submit"
                     className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200"
