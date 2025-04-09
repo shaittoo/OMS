@@ -37,7 +37,10 @@ const Header: React.FC = () => {
       <div>
         <h1 className="text-3xl font-semibold text-gray-800">Current Events</h1>
         <p className="text-lg text-gray-500">
-          Login or create an account to unlock more features.
+          <a href="/login" className="text-lg text-blue-500">Login </a> 
+          or  
+          <a href="/choose" className="text-lg text-blue-500"> create an account </a>
+          to unlock more features.
         </p>
       </div>
     </div>
