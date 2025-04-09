@@ -118,21 +118,6 @@ const MemberOrg: React.FC = () => {
             View More
           </p></Link>
 
-          {/* Actions */}
-          <p className="pt-1 text-sm font-light">
-            What else would you like to do?
-          </p>
-          <div className="flex py-4 gap-4">
-            <Link href="/memberviewevents">
-              <button className="officer-action-buttons">View Events</button>
-            </Link>
-            <button
-              className="officer-action-buttons"
-              onClick={() => (window.location.href = "/orglist")}
-            >
-              View Members
-            </button>
-          </div>
         </div>
       </div>
 
