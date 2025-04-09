@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
@@ -13,6 +13,7 @@ interface Task {
   dueDate: string;
   priority: string;
   assignedOfficer: string;
+  completed: boolean;
 }
 
 const TaskList: React.FC = () => {
@@ -68,6 +69,7 @@ const TaskList: React.FC = () => {
             dueDate: new Date(data.dueDate.seconds * 1000).toLocaleString(),
             priority: data.priority,
             assignedOfficer: data.assignedOfficer,
+            completed: data.completed || false,
           } as Task;
         });
 
@@ -82,6 +84,21 @@ const TaskList: React.FC = () => {
 
     fetchUserTasks();
   }, []);
+
+  const handleCheckbox = async (taskId: string, completed: boolean) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, { completed: !completed });
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? { ...task, completed: !completed } : task
+        )
+      );
+    } catch (err) {
+      setError("error updating status for task");
+    }
+  };
 
   return (
     <div
@@ -110,10 +127,20 @@ const TaskList: React.FC = () => {
             className="task-item bg-gray-100 p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
             style={{
               wordWrap: "break-word",
+              textDecoration: task.completed ? "line-through" : "none", //strike through
+              opacity: task.completed ? 0.6 : 1
             }}
           >
-            {/* Task Name */}
-            <h3 className="font-semibold text-md text-purple-700 mb-1">{task.taskName}</h3>
+            {/* Task Name and Checkbox */}
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                checked={task.completed}
+                onChange={() => handleCheckbox(task.id, task.completed)}
+                className="cursor-pointer"
+              />
+              <h3 className="font-semibold text-md text-purple-700">{task.taskName}</h3>
+            </div>
 
             {/* Due Date, Assigned Officer, and Priority */}
             <div className="flex gap-4 text-sm text-gray-500">
