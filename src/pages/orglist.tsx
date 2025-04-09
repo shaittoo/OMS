@@ -11,11 +11,11 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import MemberSidebar from "../components/membersidebar";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Link from "next/link";
 import SearchIcon from "@mui/icons-material/Search";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const Header: React.FC = () => (
   <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
@@ -29,7 +29,7 @@ const Header: React.FC = () => (
       <p className="text-lg text-gray-500">What organization would you like to join?</p>
     </div>
   </div>
-);
+)
 
 const SearchAndFilter: React.FC<{
   searchTerm: string;
@@ -261,6 +261,17 @@ const OrgList: React.FC = () => {
       <MemberSidebar />
       <div className="flex-grow p-6 bg-white">
         <Header />
+
+        {/* View Application Status */}
+      <div className="absolute top-6 right-6">
+        <Link href="/application-status">
+          <button className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+            View Application Status
+          </button>
+        </Link>
+      </div>
+
+
         <SearchAndFilter
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
