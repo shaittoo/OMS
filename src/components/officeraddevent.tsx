@@ -130,7 +130,7 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
     >
       <div
-        className="bg-white p-6 rounded-lg w-full max-w-4xl h-[67%] shadow-xl relative flex"
+        className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-xl relative"
         style={{ backgroundColor: "#f9f9f9" }}
       >
         {/* Close Button */}
@@ -147,10 +147,10 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
             Add New Event
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div> {/* Container for image upload and price/date */}
-              <div className="h-48 w-full border-2 border-dashed border-purple-500 rounded-md hover:bg-purple-100 transition-colors duration-200 relative">
+              <div className="h-32 w-full border-2 border-dashed border-purple-500 rounded-md hover:bg-purple-100 transition-colors duration-200 relative">
                 {imagePreviews.length === 0 ? ( // Conditionally render label or button
                 <label
                     htmlFor="file-upload"
@@ -205,18 +205,39 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
 
                 </div>
 
+                {/* Upload Event File Button */}
+                <div className="mt-4">
+                  <a 
+                    href="https://forms.gle/3DECWcu9kRiPEF32A" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block w-full"
+                  >
+                    <button
+                      type="button"
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+                      style={{ backgroundColor: "#8736EA" }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      Upload Event Files
+                    </button>
+                  </a>
+                </div>
+
                 {/* Event Price and Date under Event Name */}
                 <div className="mt-4 grid grid-cols-2 gap-4"> 
                   <div>
-                    <label className="block text-sm font-medium text-[#8736EA]">
+                    <label className="block text-sm font-medium text-[#8736EA] mb-2">
                       Event Price (PHP)
                     </label>
-                    <div className="mt-2 relative">
+                    <div className="relative">
                       <input
                         type="number"
                         value={eventPrice}
                         onChange={(e) => setEventPrice(e.target.value)}
-                        className="block w-full px-2 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                        className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                         min="0"
                         required={!isFree}
                         disabled={isFree}
@@ -235,105 +256,109 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
 
                   {/* Event Date */}
                   <div>
-                    <label className="block text-sm font-medium text-[#8736EA]">
+                    <label className="block text-sm font-medium text-[#8736EA] mb-2">
                       Event Date
                     </label>
                     <input
                       type="date"
                       value={eventDate}
                       onChange={(e) => setEventDate(e.target.value)}
-                      className="text-gray mt-2 block w-full px-2 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                      className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                       required
                     />
                   </div>
+                </div>
 
-                  {/* Tags and Status */}
-                  <div className="fixed grid grid-cols-2 gap-4 mt-20">
-                    <div>
-                      <label className="inline-block text-sm font-medium text-[#8736EA] whitespace-nowrap">
-                        Tags (Comma separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={tags}
-                        onChange={(e) => setTags(e.target.value)}
-                        className="mt-2 h-10 block w-full px-2 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mt-1 block text-sm font-medium text-[#8736EA]">
-                        Status
-                      </label>
-                      <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="mt-2 h-10 block w-full px-1 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
-                      >
-                        <option value="Upcoming">Upcoming</option>
-                        <option value="Ongoing">Ongoing</option>
-                        <option value="Completed">Completed</option>
-                      </select>
-                    </div>
+                {/* Tags and Status */}
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#8736EA] mb-2">
+                      Tags (Comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      className="block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                      placeholder="e.g. conference, workshop, seminar"
+                    />
                   </div>
-                  
-                </div> 
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#8736EA] mb-2">
+                      Status
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    >
+                      <option value="Upcoming">Upcoming</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {/* Right Side (Text Inputs) */}
               <div className="space-y-4">
                 {/* Event Name */}
                 <div>
-                  <label className="block text-sm font-medium text-[#8736EA]">
+                  <label className="block text-sm font-medium text-[#8736EA] mb-2">
                     Event Name
                   </label>
                   <input
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
-                    className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     required
+                    placeholder="Enter event name"
                   />
                 </div>
 
                 {/* Event Location */}
                 <div>
-                  <label className="block text-sm font-medium text-[#8736EA]">
+                  <label className="block text-sm font-medium text-[#8736EA] mb-2">
                     Event Location
                   </label>
                   <input
                     type="text"
                     value={eventLocation}
                     onChange={(e) => setEventLocation(e.target.value)}
-                    className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     required
+                    placeholder="Enter event location"
                   />
                 </div>
 
                 {/* Event Description */}
                 <div>
-                  <label className="block text-sm font-medium text-[#8736EA]">
+                  <label className="block text-sm font-medium text-[#8736EA] mb-2">
                     Event Description
                   </label>
                   <textarea
                     value={eventDescription}
                     onChange={(e) => setEventDescription(e.target.value)}
-                    className="h-24 mt-2 mb-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                    className="h-24 block w-full px-4 py-3 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                     rows={4}
                     required
+                    placeholder="Enter event description"
                   ></textarea>
                 </div>
-              </div>
-            </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="w-[49%] bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
-              >
-                Add Event
-              </button>
+                {/* Submit Button */}
+                <div className="mt-4">
+                  <button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200"
+                    style={{ backgroundColor: "#8736EA" }}
+                  >
+                    Add Event
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
         </div>
