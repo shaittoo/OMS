@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig";
+import { getAuth } from "firebase/auth";
+import { db } from "../firebaseConfig";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -8,105 +9,208 @@ import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import Link from "next/link";
 
 interface Event {
-  uid: string;
-  eventDate: string | Date;
+  id: string;
   eventName: string;
   eventDescription: string;
+  eventDate: string;
+  eventLocation: string;
+  eventPrice: string;
   eventImages: string[];
   organizationId: string;
-  likedBy: string[];
-  dislikedBy: string[];
-  interestedBy: string[];
-  isLiked: boolean;
-  isDisliked: boolean;
-  isInterested: boolean;
+  organizationName: string;
+  likes: string[];
+  dislikes: string[];
+  interested: string[];
+  isOpenForAll: boolean;
+  status: string;
+  tags: string[];
 }
 
-interface User {
-  likedEvents: string[];
-  dislikedEvents: string[];
-  interestedEvents: string[];
+interface MemberEventListProps {
+  organizationId?: string;
 }
 
-const MemberEventList: React.FC = () => {
+export default function MemberEventList({ organizationId }: MemberEventListProps) {
   const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userOrganizations, setUserOrganizations] = useState<string[]>([]);
+  const auth = getAuth();
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-    const userId = auth.currentUser?.uid;
-  
-    let userEvents: User = {
-      likedEvents: [],
-      dislikedEvents: [],
-      interestedEvents: [],
-    };
-  
-    try {
-      if (userId) {
-        const userDoc = await getDoc(doc(db, "Users", userId));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          userEvents = {
-            likedEvents: userData.likedEvents || [],
-            dislikedEvents: userData.dislikedEvents || [],
-            interestedEvents: userData.interestedEvents || [],
-          };
-        }
+  // Fetch user's organizations
+  useEffect(() => {
+    const fetchUserOrganizations = async () => {
+      const user = auth.currentUser;
+
+      if (!user) return;
+
+      try {
+        const membersRef = collection(db, "Members");
+        const q = query(
+          membersRef,
+          where("uid", "==", user.uid),
+          where("status", "==", "approved")
+        );
+        const querySnapshot = await getDocs(q);
+
+        const orgIds: string[] = [];
+        querySnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.organizationId) {
+            orgIds.push(data.organizationId);
+          }
+        });
+
+        setUserOrganizations(orgIds);
+      } catch (error) {
+        console.error("Error fetching user organizations:", error);
       }
-  
-      const eventsRef = collection(db, "events");
-      const querySnapshot = await getDocs(eventsRef);
-      const eventsList = querySnapshot.docs.map((doc) => {
-        const data = doc.data() as Event;
-        return {
-          ...data,
-          uid: doc.id,
-          eventDate:
-            data.eventDate instanceof Timestamp
-              ? data.eventDate.toDate().toLocaleDateString()
-              : data.eventDate,
-          isLiked: userEvents.likedEvents.includes(doc.id),
-          isDisliked: userEvents.dislikedEvents.includes(doc.id),
-          isInterested: userEvents.interestedEvents.includes(doc.id),
-        };
-      });
-  
-      // Sort events by the number of likes (length of the likedBy array)
-      const sortedEvents = eventsList.sort((a, b) => (b.likedBy?.length || 0) - (a.likedBy?.length || 0));
-  
-      const topEvents = sortedEvents.slice(0, 5);
-  
-      setEvents(topEvents);
-    } catch (err) {
-      console.error("Error fetching events:", err);
-      setError("Failed to load events.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchUserOrganizations();
+  }, [auth]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchEvents();
-      } else {
+    const fetchEvents = async () => {
+      setLoading(true);
+      setError(null);
+
+      const user = auth.currentUser;
+
+      console.log("Current user:", user?.uid);
+      console.log("Organization ID:", organizationId);
+      console.log("User Organizations:", userOrganizations);
+
+      if (!user) {
+        setError("You must be logged in to view events.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        let eventsQuery;
+        
+        // If a specific organization is selected, filter by that organization
+        if (organizationId) {
+          console.log("Filtering by specific organization:", organizationId);
+          eventsQuery = query(
+            collection(db, "events"),
+            where("organizationId", "==", organizationId)
+          );
+        } 
+        // Otherwise, fetch events from all organizations the user is a member of
+        else if (userOrganizations.length > 0) {
+          console.log("Filtering by user organizations:", userOrganizations);
+          eventsQuery = query(
+            collection(db, "events"),
+            where("organizationId", "in", userOrganizations)
+          );
+        } else {
+          console.log("No organization ID or user organizations provided");
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
+        
+        const eventsSnapshot = await getDocs(eventsQuery);
+        console.log("Number of events found:", eventsSnapshot.size);
+
+        let eventsList = eventsSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          console.log("Event data:", data);
+          return {
+            id: doc.id,
+            eventName: data.eventName || "Untitled Event",
+            eventDescription: data.eventDescription || "",
+            eventDate: data.eventDate ? new Date(data.eventDate.seconds * 1000).toISOString() : "",
+            eventLocation: data.eventLocation || "",
+            eventPrice: data.eventPrice || "Free",
+            eventImages: data.eventImages || [],
+            organizationId: data.organizationId || "",
+            organizationName: data.organizationName || "Unknown Organization",
+            likes: data.likes || [],
+            dislikes: data.dislikes || [],
+            interested: data.interested || [],
+            isOpenForAll: data.isOpenForAll || false,
+            status: data.status || "active",
+            tags: data.tags || []
+          } as Event;
+        });
+
+        // Sort events by likes count (descending) and then by date
+        eventsList.sort((a, b) => {
+          // First sort by likes count (descending)
+          const likesDiff = (b.likes?.length || 0) - (a.likes?.length || 0);
+          if (likesDiff !== 0) return likesDiff;
+          
+          // If likes are equal, sort by date
+          const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+          const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        });
+
+        // If we're in dashboard view (no organizationId), ensure we have exactly 4 events
+        if (!organizationId && eventsList.length < 4) {
+          // Pad with empty events if needed
+          const emptyEvent = {
+            id: "empty",
+            eventName: "No Event",
+            eventDescription: "There are no more events at this time.",
+            eventDate: "",
+            eventLocation: "",
+            eventPrice: "",
+            eventImages: [],
+            organizationId: "",
+            organizationName: "",
+            likes: [],
+            dislikes: [],
+            interested: [],
+            isOpenForAll: false,
+            status: "active",
+            tags: []
+          };
+          
+          while (eventsList.length < 4) {
+            eventsList.push({ ...emptyEvent, id: `empty-${eventsList.length}` });
+          }
+        }
+
+        console.log("Final processed events list:", eventsList);
+        setEvents(eventsList);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        setError("Error fetching events: " + errorMessage);
+      } finally {
         setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    fetchEvents();
+  }, [organizationId, userOrganizations, auth]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Date not specified";
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const handleEventAction = async (eventId: string, action: "like" | "dislike" | "interest") => {
-    const organizationId = auth.currentUser?.uid;
-    if (!organizationId) return;
+    const user = auth.currentUser;
+    if (!user) return;
   
-    const userRef = doc(db, "Users", organizationId); // Using organizationId to reference Users collection
+    const userRef = doc(db, "Users", user.uid);
     const eventRef = doc(db, "events", eventId);
   
     // Prepare the object to update user's event lists based on the action
@@ -131,12 +235,69 @@ const MemberEventList: React.FC = () => {
   
     // Update the event's interactions (like, dislike, interested)
     await updateDoc(eventRef, {
-      likedBy: action === "like" ? arrayUnion(organizationId) : arrayRemove(organizationId),
-      dislikedBy: action === "dislike" ? arrayUnion(organizationId) : arrayRemove(organizationId),
-      interestedBy: action === "interest" ? arrayUnion(organizationId) : arrayRemove(organizationId),
+      likes: action === "like" ? arrayUnion(user.uid) : arrayRemove(user.uid),
+      dislikes: action === "dislike" ? arrayUnion(user.uid) : arrayRemove(user.uid),
+      interested: action === "interest" ? arrayUnion(user.uid) : arrayRemove(user.uid),
     });
   
-    fetchEvents(); // Re-fetch to reflect changes
+    // Refresh the events list
+    const fetchEvents = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let eventsQuery;
+        
+        if (organizationId) {
+          eventsQuery = query(
+            collection(db, "events"),
+            where("organizationId", "==", organizationId)
+          );
+        } 
+        else if (userOrganizations.length > 0) {
+          eventsQuery = query(
+            collection(db, "events"),
+            where("organizationId", "in", userOrganizations)
+          );
+        } else {
+          setEvents([]);
+          setLoading(false);
+          return;
+        }
+        
+        const eventsSnapshot = await getDocs(eventsQuery);
+
+        const eventsList = eventsSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            eventName: data.eventName || "Untitled Event",
+            eventDescription: data.eventDescription || "",
+            eventDate: data.eventDate ? new Date(data.eventDate.seconds * 1000).toISOString() : "",
+            eventLocation: data.eventLocation || "",
+            eventPrice: data.eventPrice || "Free",
+            eventImages: data.eventImages || [],
+            organizationId: data.organizationId || "",
+            organizationName: data.organizationName || "Unknown Organization",
+            likes: data.likes || [],
+            dislikes: data.dislikes || [],
+            interested: data.interested || [],
+            isOpenForAll: data.isOpenForAll || false,
+            status: data.status || "active",
+            tags: data.tags || []
+          } as Event;
+        });
+
+        eventsList.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+        setEvents(eventsList);
+      } catch (error) {
+        console.error("Error refreshing events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
   };
 
   const truncateText = (text: string | undefined) => {
@@ -154,44 +315,142 @@ const MemberEventList: React.FC = () => {
 
   return (
     <div>
-      <div className="grid gap-2 p-1 m-auto text-black  h-auto w-full">
-        {events.map((event) => (
-          <div key={event.uid} className="p-2 mb-4 flex flex-col bg-gray-100 lg:flex-row items-center transition-shadow  shadow-md duration-200 hover:shadow-lg hover:shadow-gray-300">
-            <div className="mb-4 w-60 h-20 rounded bg-gray-200">
-              <img
-                src={Array.isArray(event.eventImages) && event.eventImages.length > 0 ? event.eventImages[0] : "/assets/default-img.png"}
-                alt={event.eventName}
-                className="w-full h-full object-cover rounded"
-              />
-            </div>
-            <div className="ml-8 flex flex-col">
-              <p style={{ fontSize: '18px', fontFamily: 'Arial' }}><b>{event.eventName}</b></p>
-              <p style={{ fontSize: '12px', fontFamily: 'Arial', lineHeight: '0.5' }}>{truncateText(event.eventDescription)}</p>
+      {loading && (
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+      
+      {!loading && error && <div>{error}</div>}
 
-              <div className="flex mt-4">
-                <div className={`mr-2 flex items-center cursor-pointer ${event.isLiked ? 'text-green-500' : ''}`}
-                  onClick={() => handleEventAction(event.uid, "like")}>
-                  {event.isLiked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
-                  <p className="mx-1" style={{ fontSize: '13px', fontFamily: 'Arial' }}>Like</p>
-                </div>
-                <div className={`mr-2 flex items-center cursor-pointer ${event.isDisliked ? 'text-red-500' : ''}`}
-                  onClick={() => handleEventAction(event.uid, "dislike")}>
-                  {event.isDisliked ? <ThumbDownIcon /> : <ThumbDownOffAltIcon />}
-                  <p className="mx-1" style={{ fontSize: '13px', fontFamily: 'Arial' }}>Dislike</p>
-                </div>
-                <div className="ml-8 mr-1 flex items-center cursor-pointer" onClick={() => handleEventAction(event.uid, "interest")}>
-                  <p className="mx-1" style={{ fontSize: '13px', fontFamily: 'Arial' }}>
-                    {event.isInterested ? "Interested" : "Interested?"}
-                  </p>
+      {!loading && !error && events.length === 0 && (
+        <div className="text-gray-500 text-center py-8">
+          No events found.
+        </div>
+      )}
+      
+      {!loading && !error && events.length > 0 && (
+        <>
+          <div className="space-y-2">
+            {/* Show all events when in organization view or when userOrganizations is available */}
+            {(organizationId || userOrganizations.length > 0 ? events : events.slice(0, 4)).map((event) => (
+              <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.id.startsWith('empty-') ? 'opacity-50' : ''}`}>
+                <div className="flex p-3">
+                  {/* Event Image */}
+                  <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
+                    {event.eventImages && event.eventImages.length > 0 ? (
+                      <img 
+                        src={event.eventImages[0]} 
+                        alt={event.eventName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <img 
+                          src="/assets/default.jpg"
+                          alt="Default event"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Main Content */}
+                  <div className="flex-grow min-w-0">
+                    {/* Title and Organization */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+                        {!organizationId && (
+                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+                            {event.organizationName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+
+                    {/* Details Row */}
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <div className="space-y-1">
+                        {/* Date */}
+                        <p>
+                          <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+                        </p>
+
+                        {/* Tags */}
+                        {event.tags && event.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {event.tags.map((tag, index) => (
+                              <span 
+                                key={index} 
+                                className="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Location and Price */}
+                      <div className="text-right ml-4 space-y-1">
+                        {event.eventLocation && (
+                          <p>
+                            <span className="font-medium">Location:</span> {event.eventLocation}
+                          </p>
+                        )}
+                        {event.eventPrice && (
+                          <p>
+                            <span className="font-medium">Price:</span> {event.eventPrice}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Interaction Buttons */}
+                    <div className="flex justify-end items-center space-x-3 mt-2 pt-2 border-t">
+                      <button 
+                        className={`flex items-center text-xs ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-green-600' : 'text-gray-600'}`}
+                        onClick={() => handleEventAction(event.id, "like")}
+                      >
+                        {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                        <span className="ml-1">Like</span>
+                      </button>
+
+                      <button 
+                        className={`flex items-center text-xs ${event.dislikes.includes(auth.currentUser?.uid || "") ? 'text-red-600' : 'text-gray-600'}`}
+                        onClick={() => handleEventAction(event.id, "dislike")}
+                      >
+                        {event.dislikes.includes(auth.currentUser?.uid || "") ? <ThumbDownIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
+                        <span className="ml-1">Dislike</span>
+                      </button>
+
+                      <button 
+                        className={`flex items-center text-xs ${event.interested.includes(auth.currentUser?.uid || "") ? 'text-purple-600' : 'text-gray-600'}`}
+                        onClick={() => handleEventAction(event.id, "interest")}
+                      >
+                        <span>
+                          {event.interested.includes(auth.currentUser?.uid || "") ? "Interested" : "Interested?"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <hr className="border-black mb-4 w-auto" />
+            ))}
           </div>
-        ))}
-      </div>
+          {!organizationId && events.length > 4 && (
+            <Link href="/memberviewevents">
+              <p className="text-right text-sm text-purple-600 hover:text-purple-800 mt-2 cursor-pointer">
+                View More
+              </p>
+            </Link>
+          )}
+        </>
+      )}
     </div>
   );
-};
-
-export default MemberEventList;
+}

@@ -13,10 +13,12 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 const MemberSidebar: React.FC = () => {
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchUserOrganizations = async (userId: string) => {
     try {
@@ -38,7 +40,10 @@ const MemberSidebar: React.FC = () => {
         const orgData = orgDoc.data();
 
         if (orgData) {
-          orgs.push(orgData);
+          orgs.push({
+            ...orgData,
+            id: orgId // Store the organization ID
+          });
         }
       }
 
@@ -65,6 +70,10 @@ const MemberSidebar: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  const handleOrgClick = (orgId: string) => {
+    router.push(`/membervieworg?orgId=${orgId}`);
+  };
+
   return (
     <aside className="w-64 h-auto bg-gray-100 shadow-lg flex flex-col">
       <div className="p-6 bg-gray-100 flex justify-center items-center">
@@ -79,14 +88,18 @@ const MemberSidebar: React.FC = () => {
           <span className="ml-3 text-md font-medium">Dashboard</span>
         </Link>
         {userOrganizations.map((org, index) => (
-          <Link key={index} href="/membervieworg" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+          <div 
+            key={index} 
+            onClick={() => handleOrgClick(org.id)}
+            className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
+          >
             <img
               src={org.photo || "/assets/default.jpg"} // Use org.photo for the organization's photo
               alt={org.name}
               className="h-8 w-8 rounded-full" // Circular image style
             />
             <span className="ml-3 text-md font-medium">{org.name}</span>
-          </Link>
+          </div>
         ))}
 
         <hr className="my-4 border-gray-300" />

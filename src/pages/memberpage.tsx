@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { auth } from "../firebaseConfig";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import MemberDashboard from "../components/memberdashboard"; // Ensure the path is correct
+import MemberDashboard from "../components/memberdashboard"; 
 import { onAuthStateChanged} from "firebase/auth";
 
 const MemberPage = () => {
@@ -44,7 +44,6 @@ const MemberPage = () => {
     );
   }
 
-  // Render MemberDashboard if the user is a member
   return isMember ? <MemberDashboard /> : null;
 };
 
