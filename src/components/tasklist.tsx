@@ -132,7 +132,7 @@ const TaskList: React.FC = () => {
       }}
     >
         <div className="header flex justify-between items-center mb-4" style={{ position: 'relative' }}>
-        <h1 className="font-bold text-2xl text-purple-700 bg-gray-100 z-10">
+        <h1 className="font-bold text-2xl text-purple-700 z-10">
           Assigned Tasks
         </h1>
  

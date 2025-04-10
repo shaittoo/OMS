@@ -180,7 +180,7 @@ const MemberProfileSettings: React.FC = () => {
                   type="button"
                   onClick={handleLogout}
                   className="w-full p-3 text-white font-semibold rounded-md transition-colors duration-200 mr-2"
-                  style={{ backgroundColor: "#8736EA" }}
+                  style={{ backgroundColor: "red" }}
                 >
                   Logout
                 </button>
