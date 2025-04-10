@@ -138,59 +138,61 @@ const OrgList: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       const auth = getAuth();
-      const userId = auth.currentUser?.uid;
+
+      const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          console.error("User not authenticated.");
+          setLoading(false);
+          return;
+        }
   
-      if (!userId) {
-        console.error("User not authenticated.");
-        setLoading(false);
-        return;
-      }
+        const userId = user.uid;
+        try {
+          const memberSnapshot = await getDocs(query(
+            collection(db, "Members"),
+            where("uid", "==", userId)
+          ));
+          const joined = memberSnapshot.docs.map((doc) => doc.data().organizationId);
+          setJoinedOrgs(joined);  
+
+          const usersRef = collection(db, "Users");
+          const orgQuery = query(usersRef, where("role", "==", "organization"));
+          const querySnapshot = await getDocs(orgQuery);
   
-      try {
-        // Fetch joined organizations
-        const memberSnapshot = await getDocs(query(
-          collection(db, "Members"),
-          where("uid", "==", userId)
-        ));
-        const joined = memberSnapshot.docs.map((doc) => doc.data().organizationId);
-        setJoinedOrgs(joined);
-  
-        // Fetch organizations
-        const usersRef = collection(db, "Users");
-        const orgQuery = query(usersRef, where("role", "==", "organization"));
-        const querySnapshot = await getDocs(orgQuery);
-  
-        const orgs = await Promise.all(
-          querySnapshot.docs.map(async (userDoc) => {
-            const userData = userDoc.data();
-            const orgId = userData.organizationId;
-            if (orgId) {
-              const orgDoc = await getDoc(doc(db, "Organizations", orgId));
-              if (orgDoc.exists()) {
-                const orgData = orgDoc.data();
-                return {
-                  id: orgId,
-                  name: orgData.name || "Unnamed Organization",
-                  description: orgData.description || "No description available.",
-                  photo: orgData.photo || "/assets/default.jpg",
-                  tags: orgData.tags || [],
-                };
+          const orgs = await Promise.all(
+            querySnapshot.docs.map(async (userDoc) => {
+              const userData = userDoc.data();
+              const orgId = userData.organizationId;
+              if (orgId) {
+                const orgDoc = await getDoc(doc(db, "Organizations", orgId));
+                if (orgDoc.exists()) {
+                  const orgData = orgDoc.data();
+                  return {
+                    id: orgId,
+                    name: orgData.name || "Unnamed Organization",
+                    description: orgData.description || "No description available.",
+                    photo: orgData.photo || "/assets/default.jpg",
+                    tags: orgData.tags || [],
+                  };
+                }
               }
-            }
-            return null;
-          })
-        );
+              return null;
+            })
+          );
   
-        setOrganizations(orgs.filter(Boolean) as any);
-      } catch (error) {
-        console.error("Error fetching organizations:", error);
-      } finally {
-        setLoading(false);
-      }
+          setOrganizations(orgs.filter(Boolean) as any);
+        } catch (error) {
+          console.error("Error fetching organizations:", error);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      return () => unsubscribe();
     };
   
     fetchData();
-  }, []);  
+  }, []); 
 
   const handleJoinOrganization = async (organizationId: string) => {
     const auth = getAuth();
