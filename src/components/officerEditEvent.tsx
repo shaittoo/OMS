@@ -302,7 +302,7 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
                   </div>
 
                   {/* Tags and Status */}
-                  <div className="fixed grid grid-cols-2 gap-4 mt-20">
+                  <div className="fixed grid grid-cols-2 gap-2 mt-20">
                     <div>
                       <label className="inline-block text-sm font-medium text-[#8736EA] whitespace-nowrap">
                         Tags (Comma separated)
@@ -311,7 +311,7 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
                         type="text"
                         value={tags}
                         onChange={(e) => setTags(e.target.value)}
-                        className="mt-2 h-10 block w-full px-2 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                        className="mt-2 h-10 block w-[95%] px-2 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                       />
                     </div>
 
@@ -322,7 +322,7 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
                       <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="mt-2 h-10 block w-full px-1 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
+                        className="mt-2 h-10 block w-[93%] px-1 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500 border-[#cccccc]"
                       >
                         <option value="Upcoming">Upcoming</option>
                         <option value="Ongoing">Ongoing</option>
