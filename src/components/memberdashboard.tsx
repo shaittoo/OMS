@@ -3,8 +3,8 @@ import { auth, db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import MemberSidebar from "./membersidebar";
-import Link from 'next/link';
-import MemTaskList from "./memtasklist"
+import Link from "next/link";
+import MemTaskList from "./memtasklist";
 import MemberEventList from "./membereventlist";
 import Calendar from "./calendar";
 
@@ -60,15 +60,17 @@ const MemberDashboard: React.FC = () => {
 
     const interval = setInterval(() => {
       const current = new Date();
-      setCurrentDateTime(current.toLocaleString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })); // Update every minute, remove seconds
-    })
+      setCurrentDateTime(
+        current.toLocaleString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      ); // Update every minute, remove seconds
+    });
 
     // Clean up the listener and interval when the component unmounts
     return () => {
@@ -90,36 +92,44 @@ const MemberDashboard: React.FC = () => {
   };
 
   return (
-      <div
-        className="grid lg:grid-cols-3 bg-white"
-        style={{ gridTemplateColumns: "20% 40% 40%" }}
-      >
-        <div className="flex lg:col-start-1">
-          <MemberSidebar />
+    <div
+      className="grid lg:grid-cols-3 bg-white"
+      style={{ gridTemplateColumns: "20% 40% 40%" }}
+    >
+      <div className="flex lg:col-start-1 h-auto">
+        <MemberSidebar />
+      </div>
+      <div className="lg:col-start-2 mt-8">
+        <div className="welcome-message ml-auto">
+          Welcome back, {firstName || "User"}! {/* Display first name */}
         </div>
-        <div className="lg:col-start-2 mt-8">
-          <div className="welcome-message ml-auto">
-            Welcome back, {firstName || "User"}! {/* Display first name */}
+        <p style={{ fontSize: "16px", fontFamily: "Arial" }}>
+          {" "}
+          How are we doing today?
+        </p>
+        <hr className="my-4 border-black" />
+        <div className="text-black rounded-lg shadow-lg bg-white relative">
+          <div className="ml-6 py-6" style={{ width: "90%" }}>
+            <Calendar />
           </div>
-          <p style={{ fontSize: "16px", fontFamily: "Arial" }}>
-            {" "}
-            How are we doing today?
-          </p>
-          <hr className="my-4 border-black" />
-          <div className="text-black rounded-lg shadow-lg bg-white relative">
-            <div className="ml-6 py-6" style={{width: '90%'}}>
-              <Calendar />
-            </div>
-          </div>
+        </div>
 
-          <div className="mx-32 my-5 text-black memberstats h-4 w-full max-w-xs bg-white shadow-md p-4">
-            {currentDateTime} {/* Display current time without seconds */}
-
-          </div>
+        <div className="mx-32 my-5 text-black memberstats h-4 w-full max-w-xs bg-white shadow-md p-4">
+          {currentDateTime} {/* Display current time without seconds */}
+        </div>
+        <div className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
           <div
-          className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
-          <MemTaskList />
+            className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <MemTaskList />
+          </div>
         </div>
+        <Link href="/memberviewtasks">
           <p
             className="my-2 text-right hover:text-purple-700"
             style={{ fontSize: "13px", fontFamily: "Arial" }}
@@ -127,47 +137,51 @@ const MemberDashboard: React.FC = () => {
             {" "}
             View More
           </p>
-        </div>
-        <div className="lg:col-start-3 mt-8 ml-6">
-          <button className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
-          onClick={handleLogout} >
-            Log Out
+        </Link>
+      </div>
+      <div className="lg:col-start-3 mt-8 ml-6">
+        <button
+          className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
+          onClick={handleLogout}
+        >
+          Log Out
+        </button>
+        <p className="pt-7" style={{ fontSize: "16px", fontFamily: "Arial" }}>
+          {" "}
+          What else would you like to do?
+        </p>
+        <div className="flex py-4 gap-4 w-min">
+          <button
+            className="officer-action-buttons flex-grow"
+            onClick={handleOrgListRedirect}
+          >
+            View Orgs
           </button>
-          <p className="pt-7" style={{ fontSize: "16px", fontFamily: "Arial" }}>
-            {" "}
-            What else would you like to do?
-          </p>
-          <div className="flex py-4 gap-4 w-min">
-            <button 
-              className="officer-action-buttons flex-grow"
-              onClick={handleOrgListRedirect}>
-              View Orgs
-            </button>
-            <Link href="/memberviewevents" >
+          <Link href="/memberviewevents">
             <button className="officer-action-buttons flex-grow">
               View All Events
             </button>
-            </Link>
-          </div>
-          <p
-            className="pt-2 pb-2"
-            style={{ fontSize: "16px", fontFamily: "Arial" }}
-          >
-            {" "}
-            Check out what's trending...
-          </p>
-          <div style={{width: '90%'}}>
-            <MemberEventList/>
-          </div>
-          {/* <Link href="/memberviewevents" ><p
+          </Link>
+        </div>
+        <p
+          className="pt-2 pb-2"
+          style={{ fontSize: "16px", fontFamily: "Arial" }}
+        >
+          {" "}
+          Check out what's trending...
+        </p>
+        <div style={{ width: "90%" }}>
+          <MemberEventList />
+        </div>
+        {/* <Link href="/memberviewevents" ><p
             className="ml-2 my-1 text-right hover:text-purple-700"
             style={{width: '96%', fontSize: "13px", fontFamily: "Arial" }}
           >
             {" "}
             View More
           </p></Link> */}
-        </div>
       </div>
+    </div>
   );
 };
 

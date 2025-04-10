@@ -66,7 +66,7 @@ const MemberSidebar: React.FC = () => {
   }, []);
 
   return (
-    <aside className="w-64 h-auto bg-gray-100 shadow-lg flex flex-col">
+    <aside className="w-64 bg-gray-100 shadow-lg flex flex-col">
       <div className="p-6 bg-gray-100 flex justify-center items-center">
         <Link href="/memberpage">
           <img src="/assets/OMSLOGO.png" alt="OMS Logo" className="h-12 mt-4" />
@@ -74,12 +74,19 @@ const MemberSidebar: React.FC = () => {
       </div>
 
       <nav className="flex-grow mt-4">
-        <Link href="/memberpage" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <Link
+          href="/memberpage"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
           <DashboardIcon />
           <span className="ml-3 text-md font-medium">Dashboard</span>
         </Link>
         {userOrganizations.map((org, index) => (
-          <Link key={index} href="/membervieworg" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+          <Link
+            key={index}
+            href="/membervieworg"
+            className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+          >
             <img
               src={org.photo || "/assets/default.jpg"} // Use org.photo for the organization's photo
               alt={org.name}
@@ -90,12 +97,18 @@ const MemberSidebar: React.FC = () => {
         ))}
 
         <hr className="my-4 border-gray-300" />
-        <Link href="/memberaboutus" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <Link
+          href="/memberaboutus"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
           <InfoIcon />
           <span className="ml-3 text-md font-medium">Information</span>
         </Link>
 
-        <Link href="/memberprofilesettings" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <Link
+          href="/memberprofilesettings"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
           <SettingsIcon />
           <span className="ml-3 text-md font-medium">Profile Settings</span>
         </Link>

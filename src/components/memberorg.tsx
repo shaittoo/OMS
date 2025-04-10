@@ -7,7 +7,7 @@ import Link from "next/link";
 import MemTaskList from "./memtasklist";
 import MemberEventList from "./membereventlist";
 import Calendar from "./calendar";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const MemberOrg: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
@@ -58,15 +58,17 @@ const MemberOrg: React.FC = () => {
 
     const interval = setInterval(() => {
       const current = new Date();
-      setCurrentDateTime(current.toLocaleString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })); // Update every minute, remove seconds
-    })
+      setCurrentDateTime(
+        current.toLocaleString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      ); // Update every minute, remove seconds
+    });
 
     return () => unsubscribe();
   }, []);
@@ -85,7 +87,7 @@ const MemberOrg: React.FC = () => {
       style={{ gridTemplateColumns: "20% 40% 40%" }}
     >
       {/* Sidebar */}
-      <div className="flex lg:col-start-1">
+      <div className="flex lg:col-start-1 h-auto">
         <MemberSidebar />
       </div>
 
@@ -108,16 +110,14 @@ const MemberOrg: React.FC = () => {
             Welcome back, {firstName || "User"}!
           </div>
           <hr className="my-4 border-black" />
-          <p className="text-sm font-light">
-            Check out what's happening...
-          </p>
+          <p className="text-sm font-light">Check out what's happening...</p>
           {/* Events Section */}
           <MemberEventList />
           <Link href="/memberviewevents">
-          <p className="my-2 text-right hover:text-purple-700 text-sm font-light">
-            View More
-          </p></Link>
-
+            <p className="my-2 text-right hover:text-purple-700 text-sm font-light">
+              View More
+            </p>
+          </Link>
         </div>
       </div>
 
@@ -143,13 +143,22 @@ const MemberOrg: React.FC = () => {
 
         {/* Pending Tasks */}
         <div className="ml-0 text-black pending-tasks max-w-full p-5 flex justify-start">
-          <MemTaskList />
+          <div
+            className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <MemTaskList />
+          </div>
         </div>
-        <p
-          className="mx-16 my-2 text-right hover:text-purple-700 text-sm font-light"
-        >
-          View More
-        </p>
+        <Link href="./memberviewtasks">
+          <p className="mx-16 my-2 text-right hover:text-purple-700 text-sm font-light">
+            View More
+          </p>
+        </Link>
       </div>
     </div>
   );
