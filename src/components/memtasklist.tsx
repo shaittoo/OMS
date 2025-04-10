@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebaseConfig";
-import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
@@ -75,29 +75,59 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
       }
 
       try {
+        console.log("Current user uid:", user.uid);
+        console.log("User organizations:", userOrganizations);
+        console.log("Selected organization:", organizationId);
+
         let tasksQuery;
         
         if (organizationId) {
+          // If specific organization is selected, show tasks for that org assigned to the member
           tasksQuery = query(
             collection(db, "tasks"),
-            where("organizationId", "==", organizationId)
+            where("organizationId", "==", organizationId),
+            where("memberId", "==", user.uid)
           );
         } else if (userOrganizations.length > 0) {
+          // If no specific organization, show tasks from all user's organizations assigned to them
           tasksQuery = query(
             collection(db, "tasks"),
-            where("organizationId", "in", userOrganizations)
+            where("organizationId", "in", userOrganizations),
+            where("memberId", "==", user.uid)
           );
+          console.log("Querying tasks for organizations:", userOrganizations);
+          console.log("Filtering for member uid:", user.uid);
         } else {
+          console.log("No organizations found for user");
           setTasks([]);
           setLoading(false);
           return;
         }
-        
+
         const tasksSnapshot = await getDocs(tasksQuery);
-        const memTaskList = tasksSnapshot.docs.map((doc) => {
-          const data = doc.data();
+        console.log("Number of tasks found:", tasksSnapshot.size);
+        console.log("Raw tasks data:", tasksSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+
+        const memTaskList = tasksSnapshot.docs.map(async (taskDoc) => {
+          const data = taskDoc.data();
+          
+          // Fetch organization name if organizationId exists
+          let organizationName = "Unknown Organization";
+          if (data.organizationId) {
+            try {
+              const orgDocRef = doc(db, "Organizations", data.organizationId);
+              const orgDoc = await getDoc(orgDocRef);
+              if (orgDoc.exists()) {
+                const orgData = orgDoc.data();
+                organizationName = orgData.name || "Unknown Organization";
+              }
+            } catch (error) {
+              console.error("Error fetching organization:", error);
+            }
+          }
+
           return {
-            id: doc.id,
+            id: taskDoc.id,
             taskName: data.taskName || "Untitled Task",
             description: data.description || "",
             dueDate: data.dueDate ? new Date(data.dueDate.seconds * 1000).toLocaleString() : "No due date",
@@ -105,18 +135,22 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
             assignedOfficer: data.assignedOfficer || "Unassigned",
             completed: data.completed || false,
             organizationId: data.organizationId || "",
-            organizationName: data.organizationName || "Unknown Organization"
+            organizationName: organizationName
           } as Task;
         });
 
+        // Wait for all organization names to be fetched
+        const resolvedTasks = await Promise.all(memTaskList);
+        console.log("Processed tasks:", resolvedTasks);
+
         // Sort tasks by due date
-        memTaskList.sort((a, b) => {
+        resolvedTasks.sort((a, b) => {
           const dateA = a.dueDate === "No due date" ? new Date(0) : new Date(a.dueDate);
           const dateB = b.dueDate === "No due date" ? new Date(0) : new Date(b.dueDate);
           return dateA.getTime() - dateB.getTime();
         });
 
-        setTasks(memTaskList);
+        setTasks(resolvedTasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
         setError("Error fetching tasks. Please try again later.");
