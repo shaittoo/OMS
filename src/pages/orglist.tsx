@@ -180,15 +180,12 @@ const OrgList: React.FC = () => {
             })
           );
   
-          setOrganizations(orgs.filter(Boolean) as any);
-        } catch (error) {
-          console.error("Error fetching organizations:", error);
-        } finally {
-          setLoading(false);
-        }
-      });
-
-      return () => unsubscribe();
+        setOrganizations(orgs.filter(Boolean) as any);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      } finally {
+        setLoading(false);
+      }
     };
   
     fetchData();

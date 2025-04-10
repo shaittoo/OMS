@@ -167,7 +167,6 @@ const TaskList: React.FC = () => {
                   </div>}
         {error && <p className="text-gray-700">{error}</p>}
         {noTasksMessage()}
-        {!loading && filteredTasks.length === 0 && <p className="text-gray-700">No tasks available.</p>}
         {!loading && !error && filteredTasks.map((task) => (
           <div
             key={task.id}
