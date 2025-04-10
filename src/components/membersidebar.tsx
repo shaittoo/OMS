@@ -14,10 +14,12 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import MemberProfileSettings from "./memberprofilesettings";
 
 const MemberSidebar: React.FC = () => {
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
 
   const fetchUserOrganizations = async (userId: string) => {
@@ -108,15 +110,22 @@ const MemberSidebar: React.FC = () => {
           <span className="ml-3 text-md font-medium">Information</span>
         </Link>
 
-        <Link href="/memberprofilesettings" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <div 
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
+          onClick={() => setIsProfileOpen(true)}
+        >
           <SettingsIcon />
           <span className="ml-3 text-md font-medium">Profile Settings</span>
-        </Link>
+        </div>
       </nav>
 
       <div className="p-4 text-sm text-gray-500 border-t border-gray-300">
         © 2024 OMS Platform
       </div>
+
+      {isProfileOpen && (
+        <MemberProfileSettings close={() => setIsProfileOpen(false)} />
+      )}
     </aside>
   );
 };

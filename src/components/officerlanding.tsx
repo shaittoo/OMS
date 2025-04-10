@@ -53,7 +53,7 @@ const OfficerDashboard: React.FC = () => {
         if (orgData) {
           setOrganizationData({
             organizationName: orgData.name || "No Name",
-            organizationLogo: orgData.photo || "/assets/OMSLOGO.png",
+            organizationLogo: orgData.photo || "",
             organizationDescription: orgData.description || "No description available.",
           });
 
@@ -188,11 +188,17 @@ const OfficerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
           <div className="org-overview flex flex-col gap-0">
             <div className="org-logo-container flex items-center gap-3 bg-transparent">
-              <img
-                src={organizationData?.organizationLogo ? organizationData.organizationLogo : "/assets/default-logo.png"}
-                alt="Organization Logo"
-                className="org-logo-img w-36 h-36 rounded-full object-contain shadow"
-              />
+              {organizationData?.organizationLogo ? (
+                <img
+                  src={organizationData.organizationLogo}
+                  alt="Organization Logo"
+                  className="org-logo-img w-36 h-36 rounded-full object-cover shadow"
+                />
+              ) : (
+                <div className="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center shadow">
+                  <span className="text-gray-400">No Logo</span>
+                </div>
+              )}
             </div>
 
             <div className="absolute left ml-52 my-5">
@@ -260,8 +266,5 @@ const OfficerDashboard: React.FC = () => {
 };
 
 export default OfficerDashboard;
-function setCompletedEventCount(size: number) {
-  throw new Error("Function not implemented.");
-}
 
 
