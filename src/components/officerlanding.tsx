@@ -205,9 +205,11 @@ const OfficerDashboard: React.FC = () => {
             </div>
             
             <div className="text-black rounded-lg shadow-lg pending-tasks bg-gray-100 h-72 col-span-2 p-4 relative">
-              <TaskList />
+              <div className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto">
+                <TaskList />
+              </div>
             </div>
-            <Link href="/officertaskspage"> <p
+            <Link href="/orgviewtasks"> <p
               className="text-purple-700 text-right underline absolute bottom-3 text-sm z-50 mx-100 my-0.5 hover:text-purple-700"
               style={{ fontSize: "16px", fontFamily: "Arial", right: "24rem"}}
             >

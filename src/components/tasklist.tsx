@@ -123,7 +123,7 @@ const TaskList: React.FC = () => {
 
   return (
     <div
-      className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto"
+      className=""
       style={{
         maxWidth: "100%",
         display: "flex",
