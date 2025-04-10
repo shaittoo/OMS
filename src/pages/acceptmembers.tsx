@@ -25,12 +25,10 @@ const AcceptMembers: React.FC = () => {
   const [rejectionDetails, setRejectionDetails] = useState("");
 
   const fetchPendingMembers = async () => {
+    while (!user){
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for user to be defined
+    }
     try {
-      if (!user) {
-        alert("You must be logged in to view this page.");
-        return;
-      }
-
       const usersRef = collection(db, "Users");
       const userQuery = query(usersRef, where("email", "==", user.email));
       const userDocs = await getDocs(userQuery);
