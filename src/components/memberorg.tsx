@@ -137,7 +137,7 @@ const MemberOrg: React.FC = () => {
         </div>
 
         {/* Current Date and Time */}
-        <div className="mx-28 mt-56 text-black memberstats h-4 max-w-xs bg-gray-300 p-4 bg-white shadow-md">
+        <div className="mx-28 mt-56 text-black memberstats h-4 max-w-xs bg-white p-4 shadow-md">
           {currentDateTime}
         </div>
 
