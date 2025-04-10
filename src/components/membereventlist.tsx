@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
 import { db } from "../firebaseConfig";
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -118,11 +118,27 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
         const eventsSnapshot = await getDocs(eventsQuery);
         console.log("Number of events found:", eventsSnapshot.size);
 
-        let eventsList = eventsSnapshot.docs.map((doc) => {
-          const data = doc.data();
+        let eventsList = await Promise.all(eventsSnapshot.docs.map(async (eventDoc) => {
+          const data = eventDoc.data();
           console.log("Event data:", data);
+
+          // Fetch organization name
+          let organizationName = "Unknown Organization";
+          if (data.organizationId) {
+            try {
+              const orgDocRef = doc(db, "Organizations", data.organizationId);
+              const orgDoc = await getDoc(orgDocRef);
+              if (orgDoc.exists()) {
+                const orgData = orgDoc.data();
+                organizationName = orgData.name;
+              }
+            } catch (error) {
+              console.error("Error fetching organization:", error);
+            }
+          }
+
           return {
-            id: doc.id,
+            id: eventDoc.id,
             eventName: data.eventName || "Untitled Event",
             eventDescription: data.eventDescription || "",
             eventDate: data.eventDate ? new Date(data.eventDate.seconds * 1000).toISOString() : "",
@@ -130,7 +146,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             eventPrice: data.eventPrice || "Free",
             eventImages: data.eventImages || [],
             organizationId: data.organizationId || "",
-            organizationName: data.organizationName || "Unknown Organization",
+            organizationName: organizationName,
             likes: data.likes || [],
             dislikes: data.dislikes || [],
             interested: data.interested || [],
@@ -138,7 +154,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             status: data.status || "active",
             tags: data.tags || []
           } as Event;
-        });
+        }));
 
         // Sort events by likes count (descending) and then by date
         eventsList.sort((a, b) => {
