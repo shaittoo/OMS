@@ -62,103 +62,107 @@ const Header: React.FC = () => (
   </div>
 );
 
-const SearchAndFilter: React.FC = () => {
-    const [activeFilters, setActiveFilters] = useState({
-      type: "All",
-      likes: "none",
-      participation: "none",
-      date: "none",
-    });
-  
-    const handleFilterChange = (
-      filterType: keyof typeof activeFilters,
-      value: string
-    ) => {
-      setActiveFilters((prevFilters) => ({
+const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({ onFilterChange }) => {
+  const [activeFilters, setActiveFilters] = useState({
+    type: "All",
+    likes: "none",
+    participation: "none",
+    date: "none",
+    searchTerm: "",
+  });
+
+  const handleFilterChange = (
+    filterType: keyof typeof activeFilters,
+    value: string
+  ) => {
+    setActiveFilters((prevFilters) => {
+      const newFilters = {
         ...prevFilters,
         [filterType]: value,
-      }));
-    };
-  
-    const handleSortChange = (filterType: keyof typeof activeFilters) => {
-      setActiveFilters((prevFilters) => {
-        const newValue =
-          prevFilters[filterType] === "none"
-            ? "least"
-            : prevFilters[filterType] === "least"
-            ? "most"
-            : "none";
-        return {
-          ...prevFilters,
-          [filterType]: newValue,
-        };
-      });
-    };
-  
-    const getIndicator = (filterValue: string) => {
-      if (filterValue === "least") return "↓";
-      if (filterValue === "most") return "↑";
-      return "-";
-    };
-  
-    return (
-      <div className="relative flex items-center bg-white p-4 rounded-md mt-6 shadow-lg border border-gray-300 justify-center">
-        <div className="relative flex-grow">
-          <input
-            type="text"
-            className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
-            placeholder="Search..."
-          />
-          <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-            <SearchIcon className="h-5 w-5" />
-          </span>
-        </div>
-        <div className="ml-4 flex items-center space-x-4">
-          <span className="text-gray-600 text-sm">Filter by:</span>
-          <select
-            className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
-            value={activeFilters.type}
-            onChange={(e) => handleFilterChange("type", e.target.value)}
-          >
-            {[
-              "All",
-              "Academic",
-              "Cultural",
-              "Sports",
-              "Socials",
-              "Competition",
-              "Interests",
-              "Volunteering",
-              "Career",
-              "Assemblies",
-            ].map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <button
-            className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
-            onClick={() => handleSortChange("likes")}
-          >
-            Likes {getIndicator(activeFilters.likes)}
-          </button>
-          <button
-            className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
-            onClick={() => handleSortChange("participation")}
-          >
-            Participation {getIndicator(activeFilters.participation)}
-          </button>
-          <button
-            className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
-            onClick={() => handleSortChange("date")}
-          >
-            Date {getIndicator(activeFilters.date)}
-          </button>
-        </div>
-      </div>
-    );
+      };
+      onFilterChange(newFilters); // Pass new filters to parent
+      return newFilters;
+    });
   };
+
+  const handleSortChange = (filterType: keyof typeof activeFilters) => {
+    setActiveFilters((prevFilters) => {
+      const newValue =
+        prevFilters[filterType] === "none"
+          ? "least"
+          : prevFilters[filterType] === "least"
+          ? "most"
+          : "none";
+      const newFilters = {
+        ...prevFilters,
+        [filterType]: newValue,
+      };
+      onFilterChange(newFilters); // Pass new filters to parent
+      return newFilters;
+    });
+  };
+
+  const getIndicator = (filterValue: string) => {
+    if (filterValue === "least") return "↓";
+    if (filterValue === "most") return "↑";
+    return "-";
+  };
+
+  return (
+    <div className="relative flex items-center bg-white p-4 rounded-md mt-6 shadow-lg border border-gray-300 justify-center">
+      <div className="relative flex-grow">
+        <input
+          type="text"
+          className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          placeholder="Search..."
+          value={activeFilters.searchTerm}
+          onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
+        />
+        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <SearchIcon className="h-5 w-5" />
+        </span>
+      </div>
+      <div className="ml-4 flex items-center space-x-4">
+        <span className="text-gray-600 text-sm">Filter by:</span>
+        <select
+          className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
+          value={activeFilters.type}
+          onChange={(e) => handleFilterChange("type", e.target.value)}
+        >
+          {[
+            "All",
+            "Academic",
+            "Sports",
+            "Interests",
+            "Others",
+          ].map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
+          onClick={() => handleSortChange("likes")}
+        >
+          Likes {getIndicator(activeFilters.likes)}
+        </button>
+        <button
+          className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
+          onClick={() => handleSortChange("participation")}
+        >
+          Participation {getIndicator(activeFilters.participation)}
+        </button>
+        <button
+          className="px-4 py-2 border rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100"
+          onClick={() => handleSortChange("date")}
+        >
+          Date {getIndicator(activeFilters.date)}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const MyEventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -167,6 +171,13 @@ const MyEventsView: React.FC = () => {
   const [user, loadingUser] = useAuthState(auth);
   const [isEditEventOpen, setEditEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [filters, setFilters] = useState({
+    type: "All",
+    likes: "none",
+    participation: "none",
+    date: "none",
+    searchTerm: "",
+  });
 
   useEffect(() => {
     const fetchMyEvents = async () => {
@@ -216,11 +227,11 @@ const MyEventsView: React.FC = () => {
             data.eventDate instanceof Timestamp
               ? data.eventDate.toDate()
               : new Date(data.eventDate);
-  
+
           // Check if event date is in the past and update status to 'Done'
           const currentDate = new Date();
           const status = eventDate < currentDate ? "Completed" : data.status;
-  
+
           return {
             ...data,
             uid: doc.id,
@@ -229,7 +240,7 @@ const MyEventsView: React.FC = () => {
             status, // Update the status if event date is in the past
           };
         });
-  
+
         setEvents(eventsList);
       } catch (err) {
         console.error("Error fetching user events:", err);
@@ -241,6 +252,26 @@ const MyEventsView: React.FC = () => {
 
     fetchMyEvents();
   }, [user]);
+
+  useEffect(() => {
+    const filterEvents = () => {
+      const filteredEvents = events.filter((event) => {
+        // Filter based on search term
+        const matchesSearchTerm =
+          event.eventName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+          event.eventLocation.toLowerCase().includes(filters.searchTerm.toLowerCase());
+        
+        // Filter based on event type
+        const matchesType = filters.type === "All" || event.eventType === filters.type;
+        
+        return matchesSearchTerm && matchesType;
+      });
+
+      setEvents(filteredEvents);
+    };
+
+    filterEvents();
+  }, [filters, events]);
 
   const handleEdit = (event: Event) => {
     setSelectedEvent(event);
@@ -256,17 +287,17 @@ const MyEventsView: React.FC = () => {
     try {
       await deleteDoc(doc(db, "events", uid));
       console.log("Event deleted with UID:", uid);
-      
-      setEvents((prevEvents) => prevEvents.filter(event => event.uid !== uid));
+
+      setEvents((prevEvents) => prevEvents.filter((event) => event.uid !== uid));
     } catch (error) {
       console.error("Error deleting event:", error);
       setError("Failed to delete the event.");
     }
-  };  
+  };
 
   const handleUpdateEvent = (updatedEvent: Event) => {
-    setEvents(prevEvents => 
-      prevEvents.map(event => 
+    setEvents((prevEvents) =>
+      prevEvents.map((event) =>
         event.uid === updatedEvent.uid ? updatedEvent : event
       )
     );
@@ -277,7 +308,7 @@ const MyEventsView: React.FC = () => {
       <OfficerSidebar />
       <div className="flex-grow p-6 bg-white">
         <Header />
-        <SearchAndFilter />
+        <SearchAndFilter onFilterChange={setFilters} />
         <div className="mt-6">
           {loading ? (
             <div className="text-center text-gray-500 py-4">Loading events...</div>
@@ -316,14 +347,18 @@ const MyEventsView: React.FC = () => {
                     <tr key={index} className="even:bg-gray-50">
                       <td className="px-4 py-2">{event.eventName}</td>
                       <td className="px-4 py-2">{event.eventDate.toLocaleString()}</td>
-                      <td className="px-4 py-2">{event.interestedBy ? event.interestedBy.length : 0}</td>
+                      <td className="px-4 py-2">
+                        {event.interestedBy ? event.interestedBy.length : 0}
+                      </td>
                       <td className="px-4 py-2">{event.status}</td>
                       <td className="px-4 py-2">
-                        <ThumbUpOffAltIcon className="ml-2" /> {event.likedBy ? event.likedBy.length : 0}
-                        <ThumbDownOffAltIcon className="ml-2" /> {event.dislikedBy ? event.dislikedBy.length : 0}
+                        <ThumbUpOffAltIcon className="ml-2" />{" "}
+                        {event.likedBy ? event.likedBy.length : 0}
+                        <ThumbDownOffAltIcon className="ml-2" />{" "}
+                        {event.dislikedBy ? event.dislikedBy.length : 0}
                       </td>
                       <td className="px-4 py-2">
-                        <button 
+                        <button
                           className="text-black-500 hover:underline"
                           onClick={() => handleEdit(event)}
                         >
@@ -331,8 +366,8 @@ const MyEventsView: React.FC = () => {
                         </button>
                       </td>
                       <td className="px-4 py-2">
-                        <DeleteIcon 
-                          className="ml-2 cursor-pointer" 
+                        <DeleteIcon
+                          className="ml-2 cursor-pointer"
                           onClick={() => handleDelete(event.uid)}
                         />
                       </td>
@@ -351,8 +386,8 @@ const MyEventsView: React.FC = () => {
         </div>
       </div>
       {isEditEventOpen && selectedEvent && (
-        <OfficerEditEvent 
-          close={handleCloseEditEvent} 
+        <OfficerEditEvent
+          close={handleCloseEditEvent}
           event={selectedEvent}
           onUpdate={handleUpdateEvent}
         />

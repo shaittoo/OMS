@@ -7,7 +7,7 @@ import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import EventIcon from "@mui/icons-material/Event";
-import MemberSidebar from "../components/membersidebar"
+import MemberSidebar from "../components/membersidebar";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
@@ -37,7 +37,6 @@ interface Event {
 
 const Header: React.FC = () => {
   return (
-
     <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
       <div className="py-2">
         <Link href="/memberpage" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
@@ -55,36 +54,38 @@ const Header: React.FC = () => {
   );
 };
 
-const SearchAndFilter: React.FC = () => {
+const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({ onFilterChange }) => {
   const [activeFilters, setActiveFilters] = useState({
+    searchQuery: "",
     type: "All",
     likes: "none",
     participation: "none",
     date: "none",
   });
 
-  const handleFilterChange = (
-    filterType: keyof typeof activeFilters,
-    value: string
-  ) => {
-    setActiveFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterType]: value,
-    }));
+  const handleFilterChange = (filterType: keyof typeof activeFilters, value: string) => {
+    const newFilters = { ...activeFilters, [filterType]: value };
+    setActiveFilters(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value;
+    setActiveFilters((prevFilters) => ({ ...prevFilters, searchQuery: query }));
+    onFilterChange({ ...activeFilters, searchQuery: query });
   };
 
   const handleSortChange = (filterType: keyof typeof activeFilters) => {
+    const newValue =
+      activeFilters[filterType] === "none"
+        ? "least"
+        : activeFilters[filterType] === "least"
+        ? "most"
+        : "none";
     setActiveFilters((prevFilters) => {
-      const newValue =
-        prevFilters[filterType] === "none"
-          ? "least"
-          : prevFilters[filterType] === "least"
-          ? "most"
-          : "none";
-      return {
-        ...prevFilters,
-        [filterType]: newValue,
-      };
+      const newFilters = { ...prevFilters, [filterType]: newValue };
+      onFilterChange(newFilters);
+      return newFilters;
     });
   };
 
@@ -101,6 +102,8 @@ const SearchAndFilter: React.FC = () => {
           type="text"
           className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
           placeholder="Search..."
+          value={activeFilters.searchQuery}
+          onChange={handleSearchChange}
         />
         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
           <SearchIcon className="h-5 w-5" />
@@ -113,18 +116,7 @@ const SearchAndFilter: React.FC = () => {
           value={activeFilters.type}
           onChange={(e) => handleFilterChange("type", e.target.value)}
         >
-          {[
-            "All",
-            "Academic",
-            "Cultural",
-            "Sports",
-            "Socials",
-            "Competition",
-            "Interests",
-            "Volunteering",
-            "Career",
-            "Assemblies",
-          ].map((type) => (
+          {["All", "Academic", "Sports", "Interests", "Others"].map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
@@ -155,7 +147,7 @@ const SearchAndFilter: React.FC = () => {
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
-  const [interested, setInterested] = useState(event. isInterested);
+  const [interested, setInterested] = useState(event.isInterested);
   const [liked, setLiked] = useState(event.isLiked);
   const [disliked, setDisliked] = useState(event.isDisliked);
   
@@ -182,60 +174,57 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     fetchOrganizationName();
   }, [event.organizationId]);
 
-  
   const handleInterestedClick = async () => {
     setInterested(!interested);
     const userId = auth.currentUser?.uid;
     if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            interestedEvents: interested ? arrayRemove(event.uid) : arrayUnion(event.uid),
-        });
+      const userRef = doc(db, "Users", userId);
+      await updateDoc(userRef, {
+        interestedEvents: interested ? arrayRemove(event.uid) : arrayUnion(event.uid),
+      });
     }
 
     const eventRef = doc(db, "events", event.uid);
     await updateDoc(eventRef, {
-        interestedBy: interested ? arrayRemove(userId) : arrayUnion(userId),
+      interestedBy: interested ? arrayRemove(auth.currentUser?.uid) : arrayUnion(auth.currentUser?.uid),
     });
   };
 
   const handleLikeClick = async () => {
     const userId = auth.currentUser?.uid;
-
     setLiked(!liked);
     if (disliked) setDisliked(false);
 
     if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-            dislikedEvents: arrayRemove(event.uid)
-        });
+      const userRef = doc(db, "Users", userId);
+      await updateDoc(userRef, {
+        likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
+        dislikedEvents: arrayRemove(event.uid),
+      });
     }
 
     const eventRef = doc(db, "events", event.uid);
     await updateDoc(eventRef, {
-        likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
+      likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
     });
-};
+  };
 
-  const handleDislikeClick = async() => {
+  const handleDislikeClick = async () => {
     const userId = auth.currentUser?.uid;
-
     setDisliked(!disliked);
     if (liked) setLiked(false);
 
     if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            dislikedEvents: disliked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-            likedEvents: arrayRemove(event.uid)
-        });
+      const userRef = doc(db, "Users", userId);
+      await updateDoc(userRef, {
+        dislikedEvents: disliked ? arrayRemove(event.uid) : arrayUnion(event.uid),
+        likedEvents: arrayRemove(event.uid),
+      });
     }
 
     const eventRef = doc(db, "events", event.uid);
     await updateDoc(eventRef, {
-        dislikedBy: disliked ? arrayRemove(userId) : arrayUnion(userId),
+      dislikedBy: disliked ? arrayRemove(userId) : arrayUnion(userId),
     });
   };
 
@@ -257,7 +246,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         </div>
       )}
       <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-      <h2 className="text-xl font-semibold mt-4">{event.isLiked}</h2>
       <p className="text-gray-600 mt-2">
         {truncateText(event.eventDescription)}
       </p>
@@ -275,18 +263,14 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
       <div className="flex items-center mt-4">
         <div
-          className={`mr-2 flex items-center cursor-pointer ${
-            liked ? "text-green-500" : "text-gray-500"
-          }`}
+          className={`mr-2 flex items-center cursor-pointer ${liked ? "text-green-500" : "text-gray-500"}`}
           onClick={handleLikeClick}
         >
           {liked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
           <span className="ml-1">Like</span>
         </div>
         <div
-          className={`flex items-center cursor-pointer ${
-            disliked ? "text-red-500" : "text-gray-500"
-          }`}
+          className={`flex items-center cursor-pointer ${disliked ? "text-red-500" : "text-gray-500"}`}
           onClick={handleDislikeClick}
         >
           {disliked ? <ThumbDownIcon /> : <ThumbDownOffAltIcon />}
@@ -294,9 +278,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         </div>
 
         <button
-          className={`ml-20 px-4 py-2 rounded-md ${
-            interested ? "bg-gray-500 text-white" : "bg-blue-500 text-white"
-          }`}
+          className={`ml-20 px-4 py-2 rounded-md ${interested ? "bg-gray-500 text-white" : "bg-blue-500 text-white"}`}
           onClick={handleInterestedClick}
         >
           {interested ? "Interested" : "Interested?"}
@@ -310,19 +292,25 @@ const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<any>({
+    searchQuery: "",
+    type: "All",
+    likes: "none",
+    participation: "none",
+    date: "none",
+  });
 
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
     const userId = auth.currentUser?.uid;
-    console.log("userId: ", userId);
-
+  
     let userEvents = {
       likedEvents: [],
       dislikedEvents: [],
       interestedEvents: [],
     };
-
+  
     try {
       if (userId) {
         const userDoc = await getDoc(doc(db, "Users", userId));
@@ -335,40 +323,62 @@ const EventsView: React.FC = () => {
           };
         }
       }
-
+  
       const eventsRef = collection(db, "events");
       const querySnapshot = await getDocs(eventsRef);
       const eventsList = querySnapshot.docs.map((doc) => {
         const data = doc.data() as Event;
-        console.log("Event: ", data);
+        const eventDate =
+          data.eventDate instanceof Timestamp
+            ? data.eventDate.toDate() // Convert to Date object
+            : new Date(data.eventDate); // Ensure it's a Date object
+  
         return {
           ...data,
           uid: doc.id,
-          eventDate:
-            data.eventDate instanceof Timestamp
-              ? data.eventDate.toDate().toLocaleDateString()
-              : data.eventDate,
+          eventDate, // Store eventDate as a Date object
           isLiked: userEvents.likedEvents.includes(doc.id as never),
           isDisliked: userEvents.dislikedEvents.includes(doc.id as never),
           isInterested: userEvents.interestedEvents.includes(doc.id as never),
         };
       });
-      setEvents(eventsList);
+  
+      // Apply filters
+      let filteredEvents = eventsList.filter(event => {
+        const matchesSearchQuery =
+          event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
+        const matchesType = filters.type === "All" || event.eventType === filters.type;
+  
+        return matchesSearchQuery && matchesType;
+      });
+  
+      // Handle sorting by date
+      if (filters.date !== "none") {
+        filteredEvents = filteredEvents.sort((a, b) => {
+          const dateA = a.eventDate;
+          const dateB = b.eventDate;
+  
+          if (filters.date === "most") {
+            return dateB.getTime() - dateA.getTime(); // Sort latest first
+          } else if (filters.date === "least") {
+            return dateA.getTime() - dateB.getTime(); // Sort oldest first
+          }
+          return 0; // No sorting if "none" is selected
+        });
+      }
+  
+      setEvents(filteredEvents);
     } catch (err) {
       console.error("Error fetching events:", err);
       setError("Failed to load events.");
+    } finally {
       setLoading(false);
     }
-    finally {
-      console.log("Events: ", events);
-      setLoading(false);
-    }
-  };
+  };  
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setLoading(true);
         fetchEvents();
       } else {
         setLoading(false);
@@ -376,19 +386,17 @@ const EventsView: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [filters]);
 
   return (
     <div className="flex h-screen">
       <MemberSidebar />
       <div className="flex-grow p-6 bg-white overflow-y-auto">
         <Header />
-        <SearchAndFilter />
+        <SearchAndFilter onFilterChange={setFilters} />
         <div className="mt-6">
           {loading ? (
-            <div className="text-center text-gray-500 py-4">
-              Loading events...
-            </div>
+            <div className="text-center text-gray-500 py-4">Loading events...</div>
           ) : error ? (
             <div className="text-center text-red-500 py-4">{error}</div>
           ) : (
