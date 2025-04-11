@@ -25,8 +25,8 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: string;
-  likes: number;  // Add likes for sorting
-  participation: number;  // Add participation for sorting
+  likes: number;  
+  participation: number;  
 }
 
 const Header: React.FC = () => {
@@ -70,7 +70,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({
         ...prevFilters,
         [filterType]: value,
       };
-      onFilterChange(newFilters); // Pass new filters to parent
+      onFilterChange(newFilters); 
       return newFilters;
     });
   };
@@ -87,7 +87,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({
         ...prevFilters,
         [filterType]: newValue,
       };
-      onFilterChange(newFilters); // Pass new filters to parent
+      onFilterChange(newFilters); 
       return newFilters;
     });
   };
@@ -203,7 +203,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         <EventIcon />
         &nbsp;
         {event.eventDate instanceof Date
-          ? event.eventDate.toLocaleDateString() // Format the date as a string
+          ? event.eventDate.toLocaleDateString() 
           : event.eventDate}
       </p>
     </div>
@@ -212,7 +212,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
-  const [allEvents, setAllEvents] = useState<Event[]>([]); // Store raw events
+  const [allEvents, setAllEvents] = useState<Event[]>([]); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -241,8 +241,8 @@ const EventsView: React.FC = () => {
                 : data.eventDate,
           };
         });
-        setAllEvents(eventsList); // Save all raw events
-        setEvents(eventsList); // Initially display all events
+        setAllEvents(eventsList); 
+        setEvents(eventsList); 
       } catch (err) {
         console.error("Error fetching events:", err);
         setError("Failed to load events.");
@@ -257,18 +257,15 @@ const EventsView: React.FC = () => {
   useEffect(() => {
     const filterEvents = () => {
       const filteredEvents = allEvents.filter((event) => {
-        // Filter based on search term, ensuring eventName and eventLocation are strings
         const matchesSearchTerm =
           (event.eventName && event.eventName.toLowerCase().includes(filters.searchTerm.toLowerCase())) ||
           (event.eventLocation && event.eventLocation.toLowerCase().includes(filters.searchTerm.toLowerCase()));
   
-        // Filter based on event type
         const matchesType = filters.type === "All" || event.eventType === filters.type;
   
         return matchesSearchTerm && matchesType;
       });
 
-      // Sort based on selected filters
       const sortedEvents = filteredEvents.sort((a, b) => {
         if (filters.likes === "most") return b.likes - a.likes;
         if (filters.likes === "least") return a.likes - b.likes;
@@ -276,17 +273,17 @@ const EventsView: React.FC = () => {
         if (filters.participation === "most") return b.participation - a.participation;
         if (filters.participation === "least") return a.participation - b.participation;
 
-        if (filters.date === "most") return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
-        if (filters.date === "least") return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+        if (filters.date === "most") return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+        if (filters.date === "least") return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
 
         return 0;
       });
   
-      setEvents(sortedEvents); // Set filtered and sorted events to state
+      setEvents(sortedEvents); 
     };
   
     filterEvents();
-  }, [filters, allEvents]); // Re-run filtering and sorting when filters or allEvents change
+  }, [filters, allEvents]); 
 
   return (
     <div className="min-h-screen bg-gray-50">

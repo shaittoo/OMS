@@ -19,7 +19,7 @@ interface Member {
   contact: string;
   email: string;
   joinedAt: string;
-  role: string; // Assuming role is included for filtering (Members, Officers, Alumni)
+  role: string; 
 }
 
 const Header: React.FC = () => {

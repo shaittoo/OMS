@@ -359,11 +359,11 @@ const EventsView: React.FC = () => {
           const dateB = b.eventDate;
   
           if (filters.date === "most") {
-            return dateB.getTime() - dateA.getTime(); // Sort latest first
+            return dateA.getTime() - dateB.getTime(); 
           } else if (filters.date === "least") {
-            return dateA.getTime() - dateB.getTime(); // Sort oldest first
+            return dateB.getTime() - dateA.getTime(); 
           }
-          return 0; // No sorting if "none" is selected
+          return 0; 
         });
       }
   

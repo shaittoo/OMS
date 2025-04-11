@@ -322,7 +322,6 @@ const EventsView: React.FC = () => {
       };
     
       try {
-        // Fetch user events data
         if (userId) {
           const userDoc = await getDoc(doc(db, "Users", userId));
           if (userDoc.exists()) {
@@ -335,7 +334,6 @@ const EventsView: React.FC = () => {
           }
         }
     
-        // Get all events from the database
         const eventsRef = collection(db, "events");
         const querySnapshot = await getDocs(eventsRef);
         const eventsList = querySnapshot.docs.map((doc) => {
@@ -354,7 +352,6 @@ const EventsView: React.FC = () => {
           };
         });
     
-        // Apply search filter
         let filteredEvents = eventsList.filter(event => {
           const matchesSearchQuery =
             event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
@@ -362,15 +359,14 @@ const EventsView: React.FC = () => {
           return matchesSearchQuery && matchesType;
         });
     
-        // Sorting based on date, likes, or participation
         if (filters.date !== "none") {
           filteredEvents = filteredEvents.sort((a, b) => {
             const dateA = a.eventDate;
             const dateB = b.eventDate;
             if (filters.date === "most") {
-              return dateB.getTime() - dateA.getTime(); // Sort latest first
+              return dateA.getTime() - dateB.getTime(); 
             } else if (filters.date === "least") {
-              return dateA.getTime() - dateB.getTime(); // Sort oldest first
+              return dateB.getTime() - dateA.getTime(); 
             }
             return 0;
           });

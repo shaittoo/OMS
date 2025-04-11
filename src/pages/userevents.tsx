@@ -38,7 +38,7 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: number;
-  organizationName?: string; // Add organization name
+  organizationName?: string;
   likedBy: string[];
   dislikedBy: string[];
   interestedBy: string[];
@@ -53,7 +53,6 @@ const Header: React.FC = () => (
     <div className="flex items-center space-x-4 mt-4 md:mt-0">
       <button
         className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200"
-        // You can replace handleRedirect with an actual handler
         onClick={() => {}}
       >
         Create Event
@@ -71,35 +70,23 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({ onFilterChang
     searchTerm: "",
   });
 
-  const handleFilterChange = (
-    filterType: keyof typeof activeFilters,
-    value: string
-  ) => {
-    setActiveFilters((prevFilters) => {
-      const newFilters = {
-        ...prevFilters,
-        [filterType]: value,
-      };
-      onFilterChange(newFilters); // Pass new filters to parent
-      return newFilters;
-    });
+  const handleFilterChange = (filterType: keyof typeof activeFilters, value: string) => {
+    const newFilters = { ...activeFilters, [filterType]: value };
+    setActiveFilters(newFilters);
+    onFilterChange(newFilters);
   };
 
   const handleSortChange = (filterType: keyof typeof activeFilters) => {
-    setActiveFilters((prevFilters) => {
-      const newValue =
-        prevFilters[filterType] === "none"
-          ? "least"
-          : prevFilters[filterType] === "least"
-          ? "most"
-          : "none";
-      const newFilters = {
-        ...prevFilters,
-        [filterType]: newValue,
-      };
-      onFilterChange(newFilters); // Pass new filters to parent
-      return newFilters;
-    });
+    const newValue =
+      activeFilters[filterType] === "none"
+        ? "least"
+        : activeFilters[filterType] === "least"
+        ? "most"
+        : "none";
+
+    const newFilters = { ...activeFilters, [filterType]: newValue };
+    setActiveFilters(newFilters);
+    onFilterChange(newFilters);
   };
 
   const getIndicator = (filterValue: string) => {
@@ -129,13 +116,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({ onFilterChang
           value={activeFilters.type}
           onChange={(e) => handleFilterChange("type", e.target.value)}
         >
-          {[
-            "All",
-            "Academic",
-            "Sports",
-            "Interests",
-            "Others",
-          ].map((type) => (
+          {["All", "Academic", "Sports", "Interests", "Others"].map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
@@ -166,9 +147,10 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({ onFilterChang
 
 const MyEventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [user, loadingUser] = useAuthState(auth);
+  const [user] = useAuthState(auth);
   const [isEditEventOpen, setEditEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [filters, setFilters] = useState({
@@ -190,7 +172,6 @@ const MyEventsView: React.FC = () => {
           return;
         }
 
-        // Fetch user's organization ID
         const userDocRef = doc(db, "Users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -200,50 +181,40 @@ const MyEventsView: React.FC = () => {
           return;
         }
 
-        const userData = userDoc.data();
-        const organizationId = userData?.organizationId;
-
+        const organizationId = userDoc.data()?.organizationId;
         if (!organizationId) {
-          setError("Organization ID not found for the user.");
+          setError("Organization ID not found.");
           setLoading(false);
           return;
         }
 
-        // Fetch organization name
-        const orgDocRef = doc(db, "Organizations", organizationId);
-        const orgDoc = await getDoc(orgDocRef);
-        const organizationName = orgDoc.exists()
-          ? orgDoc.data()?.name || "Unnamed Organization"
-          : "Unknown Organization";
+        const orgDoc = await getDoc(doc(db, "Organizations", organizationId));
+        const organizationName = orgDoc.exists() ? orgDoc.data()?.name || "Unnamed" : "Unknown";
 
-        // Query events based on organization ID
-        const eventsRef = collection(db, "events");
-        const q = query(eventsRef, where("organizationId", "==", organizationId));
-        const querySnapshot = await getDocs(q);
+        const q = query(collection(db, "events"), where("organizationId", "==", organizationId));
+        const snapshot = await getDocs(q);
 
-        const eventsList = querySnapshot.docs.map((doc) => {
+        const fetchedEvents = snapshot.docs.map((doc) => {
           const data = doc.data() as Event;
           const eventDate =
             data.eventDate instanceof Timestamp
               ? data.eventDate.toDate()
               : new Date(data.eventDate);
-
-          // Check if event date is in the past and update status to 'Done'
-          const currentDate = new Date();
-          const status = eventDate < currentDate ? "Completed" : data.status;
+          const status = eventDate < new Date() ? "Completed" : data.status;
 
           return {
             ...data,
             uid: doc.id,
-            eventDate: eventDate.toLocaleDateString(),
-            organizationName, // Include organization name in event data
-            status, // Update the status if event date is in the past
+            eventDate,
+            organizationName,
+            status,
           };
         });
 
-        setEvents(eventsList);
+        setAllEvents(fetchedEvents);
+        setEvents(fetchedEvents);
       } catch (err) {
-        console.error("Error fetching user events:", err);
+        console.error("Error fetching events:", err);
         setError("Failed to load your events.");
       } finally {
         setLoading(false);
@@ -254,24 +225,42 @@ const MyEventsView: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    const filterEvents = () => {
-      const filteredEvents = events.filter((event) => {
-        // Filter based on search term
-        const matchesSearchTerm =
-          event.eventName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-          event.eventLocation.toLowerCase().includes(filters.searchTerm.toLowerCase());
-        
-        // Filter based on event type
-        const matchesType = filters.type === "All" || event.eventType === filters.type;
-        
-        return matchesSearchTerm && matchesType;
+    let filtered = allEvents.filter((event) => {
+      const matchesSearch =
+        event.eventName.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        event.eventLocation.toLowerCase().includes(filters.searchTerm.toLowerCase());
+  
+      const matchesType = filters.type === "All" || event.eventType === filters.type;
+  
+      return matchesSearch && matchesType;
+    });
+  
+    if (filters.likes !== "none") {
+      filtered = [...filtered].sort((a, b) => {
+        const aLikes = a.likedBy?.length || 0;
+        const bLikes = b.likedBy?.length || 0;
+        return filters.likes === "most" ? bLikes - aLikes : aLikes - bLikes;
       });
-
-      setEvents(filteredEvents);
-    };
-
-    filterEvents();
-  }, [filters, events]);
+    }
+  
+    if (filters.participation !== "none") {
+      filtered = [...filtered].sort((a, b) => {
+        const aParticipation = a.interestedBy?.length || 0;
+        const bParticipation = b.interestedBy?.length || 0;
+        return filters.participation === "most" ? bParticipation - aParticipation : aParticipation - bParticipation;
+      });
+    }
+  
+    if (filters.date !== "none") {
+      filtered = [...filtered].sort((a, b) => {
+        const aDate = new Date(a.eventDate).getTime();
+        const bDate = new Date(b.eventDate).getTime();
+        return filters.date === "most" ? aDate - bDate : bDate - aDate;
+      });
+    }
+  
+    setEvents(filtered);
+  }, [filters, allEvents]);
 
   const handleEdit = (event: Event) => {
     setSelectedEvent(event);
@@ -286,22 +275,29 @@ const MyEventsView: React.FC = () => {
   const handleDelete = async (uid: string) => {
     try {
       await deleteDoc(doc(db, "events", uid));
-      console.log("Event deleted with UID:", uid);
-
-      setEvents((prevEvents) => prevEvents.filter((event) => event.uid !== uid));
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      setError("Failed to delete the event.");
+      setEvents((prev) => prev.filter((event) => event.uid !== uid));
+      setAllEvents((prev) => prev.filter((event) => event.uid !== uid));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      setError("Failed to delete event.");
     }
   };
 
   const handleUpdateEvent = (updatedEvent: Event) => {
-    setEvents((prevEvents) =>
-      prevEvents.map((event) =>
-        event.uid === updatedEvent.uid ? updatedEvent : event
-      )
+    const formattedDate =
+      updatedEvent.eventDate instanceof Date
+        ? updatedEvent.eventDate.toLocaleDateString()
+        : updatedEvent.eventDate;
+  
+    const newEvent = { ...updatedEvent, eventDate: formattedDate };
+  
+    setEvents((prev) =>
+      prev.map((event) => (event.uid === updatedEvent.uid ? newEvent : event))
     );
-  };
+    setAllEvents((prev) =>
+      prev.map((event) => (event.uid === updatedEvent.uid ? newEvent : event))
+    );
+  };  
 
   return (
     <div className="flex">
@@ -318,64 +314,44 @@ const MyEventsView: React.FC = () => {
             <table className="table-auto w-full rounded-lg overflow-hidden shadow-lg border border-gray-300 text-left">
               <thead className="bg-purple-600 text-white">
                 <tr>
-                  <th className="px-4 py-2">
-                    <EventIcon sx={{ color: "white" }} /> Event Name
-                  </th>
-                  <th className="px-4 py-2">
-                    <CalendarTodayIcon sx={{ color: "white" }} /> Date
-                  </th>
-                  <th className="px-4 py-2">
-                    <StarIcon sx={{ color: "white" }} /> Interests
-                  </th>
-                  <th className="px-4 py-2">
-                    <PeopleIcon sx={{ color: "white" }} /> Status
-                  </th>
-                  <th className="px-4 py-2">
-                    <PeopleIcon sx={{ color: "white" }} /> Engagements
-                  </th>
-                  <th className="px-4 py-2">
-                    <PeopleIcon sx={{ color: "white" }} /> Action
-                  </th>
-                  <th className="px-4 py-2">
-                    <PeopleIcon sx={{ color: "white" }} /> Delete
-                  </th>
+                  <th className="px-4 py-2"><EventIcon /> Event Name</th>
+                  <th className="px-4 py-2"><CalendarTodayIcon /> Date</th>
+                  <th className="px-4 py-2"><StarIcon /> Interests</th>
+                  <th className="px-4 py-2"><PeopleIcon /> Status</th>
+                  <th className="px-4 py-2"><PeopleIcon /> Engagements</th>
+                  <th className="px-4 py-2"><PeopleIcon /> Action</th>
+                  <th className="px-4 py-2"><PeopleIcon /> Delete</th>
                 </tr>
               </thead>
               <tbody>
                 {events.length > 0 ? (
-                  events.map((event, index) => (
-                    <tr key={index} className="even:bg-gray-50">
+                  events.map((event) => (
+                    <tr key={event.uid} className="even:bg-gray-50">
                       <td className="px-4 py-2">{event.eventName}</td>
-                      <td className="px-4 py-2">{event.eventDate.toLocaleString()}</td>
                       <td className="px-4 py-2">
-                        {event.interestedBy ? event.interestedBy.length : 0}
+                        {event.eventDate instanceof Date
+                          ? event.eventDate.toLocaleDateString()
+                          : new Date(event.eventDate).toLocaleDateString()}
                       </td>
+                      <td className="px-4 py-2">{event.interestedBy?.length || 0}</td>
                       <td className="px-4 py-2">{event.status}</td>
                       <td className="px-4 py-2">
-                        <ThumbUpOffAltIcon className="ml-2" />{" "}
-                        {event.likedBy ? event.likedBy.length : 0}
-                        <ThumbDownOffAltIcon className="ml-2" />{" "}
-                        {event.dislikedBy ? event.dislikedBy.length : 0}
+                        <ThumbUpOffAltIcon className="ml-2" /> {event.likedBy?.length || 0}
+                        <ThumbDownOffAltIcon className="ml-2" /> {event.dislikedBy?.length || 0}
                       </td>
                       <td className="px-4 py-2">
-                        <button
-                          className="text-black-500 hover:underline"
-                          onClick={() => handleEdit(event)}
-                        >
+                        <button className="hover:underline" onClick={() => handleEdit(event)}>
                           Edit
                         </button>
                       </td>
                       <td className="px-4 py-2">
-                        <DeleteIcon
-                          className="ml-2 cursor-pointer"
-                          onClick={() => handleDelete(event.uid)}
-                        />
+                        <DeleteIcon className="cursor-pointer" onClick={() => handleDelete(event.uid)} />
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center text-gray-500 py-4">
+                    <td colSpan={7} className="text-center text-gray-500 py-4">
                       No events found.
                     </td>
                   </tr>
@@ -385,6 +361,7 @@ const MyEventsView: React.FC = () => {
           )}
         </div>
       </div>
+
       {isEditEventOpen && selectedEvent && (
         <OfficerEditEvent
           close={handleCloseEditEvent}
