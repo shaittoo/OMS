@@ -15,6 +15,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Configure AWS
   AWS.config.update({
@@ -168,6 +169,31 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
       className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[17%] z-50"
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
     >
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowLogoutModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="bg-gray-100 p-12 rounded-lg w-full max-w-md shadow-xl relative max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: "#f9f9f9" }}
@@ -296,7 +322,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
             <div className="flex justify-between mt-8">
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutModal(true)}
                 className="w-full p-3 bg-red-600 text-white font-semibold rounded-md transition-colors duration-200 hover:bg-white focus:ring-2 focus:ring-white mr-2"
                 style={{ backgroundColor: "#dc2626" }}
               >
@@ -378,7 +404,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
             <div className="flex justify-between mt-8">
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutModal(true)}
                 className="w-full p-3 bg-red-600 text-white font-semibold rounded-md transition-colors duration-200 hover:bg-white focus:ring-2 focus:ring-white mr-2"
                 style={{ backgroundColor: "#dc2626" }}
               >

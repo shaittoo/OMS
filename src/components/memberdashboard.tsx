@@ -11,6 +11,7 @@ import Calendar from "./calendar";
 const MemberDashboard: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -75,6 +76,32 @@ const MemberDashboard: React.FC = () => {
   };
 
   return (
+    <>
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowLogoutModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         className="grid lg:grid-cols-3 bg-white"
         style={{ gridTemplateColumns: "20% 40% 40%" }}
@@ -112,8 +139,10 @@ const MemberDashboard: React.FC = () => {
           </p>
         </div>
         <div className="lg:col-start-3 mt-8 ml-6">
-          <button className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
-          onClick={handleLogout} >
+          <button 
+            className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
+            onClick={() => setShowLogoutModal(true)}
+          >
             Log Out
           </button>
           <p className="pt-7" style={{ fontSize: "16px", fontFamily: "Arial" }}>
@@ -144,6 +173,7 @@ const MemberDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+    </>
   );
 };
 
