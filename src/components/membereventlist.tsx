@@ -168,9 +168,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           return dateB - dateA; // Most recent first
         });
 
-        // If we're in dashboard view (no organizationId), ensure we have exactly 4 events
-        if (!organizationId && eventsList.length < 4) {
-          // Pad with empty events if needed
+        // Always take top 4 events with highest likes
+        eventsList = eventsList.slice(0, 4);
+
+        // If we have less than 4 events, pad with empty events
+        if (eventsList.length < 4) {
           const emptyEvent = {
             id: "empty",
             eventName: "No Event",
