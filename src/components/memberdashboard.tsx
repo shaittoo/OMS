@@ -12,8 +12,6 @@ const MemberDashboard: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [currentDateTime, setCurrentDateTime] = useState<string>("");
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -58,22 +56,9 @@ const MemberDashboard: React.FC = () => {
       }
     });
 
-    const interval = setInterval(() => {
-      const current = new Date();
-      setCurrentDateTime(current.toLocaleString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })); // Update every minute, remove seconds
-    })
-
-    // Clean up the listener and interval when the component unmounts
+    // Clean up the listener when the component unmounts
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
 
@@ -112,14 +97,12 @@ const MemberDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="mx-32 my-5 text-black memberstats h-4 w-full max-w-xs bg-white shadow-md p-4">
-            {currentDateTime} {/* Display current time without seconds */}
-
+          <div className="mt-8">
+            <div
+            className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
+            <MemTaskList />
           </div>
-          <div
-          className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
-          <MemTaskList />
-        </div>
+          </div>
           <p
             className="my-2 text-right hover:text-purple-700"
             style={{ fontSize: "13px", fontFamily: "Arial" }}
@@ -159,13 +142,6 @@ const MemberDashboard: React.FC = () => {
           <div style={{width: '90%'}}>
             <MemberEventList/>
           </div>
-          {/* <Link href="/memberviewevents" ><p
-            className="ml-2 my-1 text-right hover:text-purple-700"
-            style={{width: '96%', fontSize: "13px", fontFamily: "Arial" }}
-          >
-            {" "}
-            View More
-          </p></Link> */}
         </div>
       </div>
   );
