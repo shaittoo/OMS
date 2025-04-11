@@ -19,6 +19,7 @@ interface Member {
   contact: string;
   email: string;
   joinedAt: string;
+  role: string; // Assuming role is included for filtering (Members, Officers, Alumni)
 }
 
 const Header: React.FC = () => {
@@ -29,9 +30,7 @@ const Header: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-200">
       <div>
-        <h1 className="text-3xl font-semibold text-gray-800">
-          Organization's Approved Members
-        </h1>
+        <h1 className="text-3xl font-semibold text-gray-800">Organization's Approved Members</h1>
         <p className="text-lg text-gray-500">What would you like to do?</p>
       </div>
       <div className="flex items-center space-x-4 mt-4 md:mt-0">
@@ -46,12 +45,21 @@ const Header: React.FC = () => {
   );
 };
 
-
-const SearchAndFilter: React.FC = () => {
+const SearchAndFilter: React.FC<{ onSearch: (searchTerm: string) => void; onFilter: (filter: string) => void }> = ({
+  onSearch,
+  onFilter,
+}) => {
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeFilter, setActiveFilter] = useState<string>("All");
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    onSearch(event.target.value); 
+  };
 
   const handleFilterClick = (filter: string) => {
     setActiveFilter(filter);
+    onFilter(filter); 
   };
 
   return (
@@ -59,6 +67,8 @@ const SearchAndFilter: React.FC = () => {
       <div className="relative flex-grow">
         <input
           type="text"
+          value={searchTerm}
+          onChange={handleSearchChange}
           className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
           placeholder="Search..."
         />
@@ -88,6 +98,7 @@ const SearchAndFilter: React.FC = () => {
 
 const MembersPageOfficerView: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]); // State for filtered members
   const [loading, setLoading] = useState(true);
   const [user] = useAuthState(auth);
 
@@ -142,11 +153,13 @@ const MembersPageOfficerView: React.FC = () => {
             contact: userData.contact || "Unknown",
             email: userData.email || "Unknown",
             joinedAt: memberData.joinedAt || "N/A",
+            role: memberData.role || "Member", 
           };
         });
 
         const resolvedMembers = await Promise.all(memberPromises);
         setMembers(resolvedMembers);
+        setFilteredMembers(resolvedMembers); 
       } catch (error) {
         console.error("Error fetching approved members:", error);
       } finally {
@@ -157,18 +170,37 @@ const MembersPageOfficerView: React.FC = () => {
     fetchApprovedMembers();
   }, [user]);
 
+  const handleSearch = (searchTerm: string) => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    const filtered = members.filter(
+      (member) =>
+        member.fullName.toLowerCase().includes(lowercasedSearchTerm) ||
+        member.email.toLowerCase().includes(lowercasedSearchTerm) ||
+        member.contact.toLowerCase().includes(lowercasedSearchTerm)
+    );
+    setFilteredMembers(filtered);
+  };
+
+  const handleFilter = (filter: string) => {
+    if (filter === "All") {
+      setFilteredMembers(members);
+    } else {
+      const filtered = members.filter((member) => member.role === filter);
+      setFilteredMembers(filtered);
+    }
+  };
+
   return (
     <div className="flex">
       <OfficerSidebar />
       <div className="flex-grow p-6 bg-white">
         <Header />
-        <SearchAndFilter />
+        <SearchAndFilter onSearch={handleSearch} onFilter={handleFilter} />
         <div className="mt-6">
           {loading ? (
-
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+            <div className="flex justify-center items-center h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
           ) : (
             <table className="table-auto w-full rounded-lg overflow-hidden shadow-lg border border-gray-300 text-left">
               <thead className="bg-purple-600 text-white">
@@ -194,8 +226,8 @@ const MembersPageOfficerView: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {members.length > 0 ? (
-                  members.map((member) => (
+                {filteredMembers.length > 0 ? (
+                  filteredMembers.map((member) => (
                     <tr key={member.uid} className="even:bg-gray-50">
                       <td className="px-4 py-2">{member.fullName}</td>
                       <td className="px-4 py-2">{member.course}</td>
@@ -208,7 +240,7 @@ const MembersPageOfficerView: React.FC = () => {
                 ) : (
                   <tr>
                     <td colSpan={6} className="text-center text-gray-500 py-4">
-                      No approved members found.
+                      No members found.
                     </td>
                   </tr>
                 )}

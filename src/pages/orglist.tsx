@@ -187,12 +187,12 @@ const OrgList: React.FC = () => {
           setLoading(false);
         }
       });
-  
+
       return () => unsubscribe();
     };
   
     fetchData();
-  }, []);     
+  }, []); 
 
   const handleJoinOrganization = async (organizationId: string) => {
     const auth = getAuth();

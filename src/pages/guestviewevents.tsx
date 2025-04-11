@@ -1,19 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
   collection,
+  getDocs,
   doc,
   getDoc,
-  getDocs,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbDownIcon from "@mui/icons-material/ThumbDown";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import EventIcon from "@mui/icons-material/Event";
 
 interface Event {
   uid: string;
@@ -29,6 +25,8 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: string;
+  likes: number;  // Add likes for sorting
+  participation: number;  // Add participation for sorting
 }
 
 const Header: React.FC = () => {
@@ -37,9 +35,14 @@ const Header: React.FC = () => {
       <div>
         <h1 className="text-3xl font-semibold text-gray-800">Current Events</h1>
         <p className="text-lg text-gray-500">
-          <a href="/login" className="text-lg text-blue-500">Login </a> 
-          or  
-          <a href="/choose" className="text-lg text-blue-500"> create an account </a>
+          <a href="/login" className="text-lg text-blue-500">
+            Login{" "}
+          </a>
+          or
+          <a href="/choose" className="text-lg text-blue-500">
+            {" "}
+            create an account{" "}
+          </a>
           to unlock more features.
         </p>
       </div>
@@ -47,22 +50,29 @@ const Header: React.FC = () => {
   );
 };
 
-const SearchAndFilter: React.FC = () => {
+const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({
+  onFilterChange,
+}) => {
   const [activeFilters, setActiveFilters] = useState({
     type: "All",
     likes: "none",
     participation: "none",
     date: "none",
+    searchTerm: "",
   });
 
   const handleFilterChange = (
     filterType: keyof typeof activeFilters,
     value: string
   ) => {
-    setActiveFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterType]: value,
-    }));
+    setActiveFilters((prevFilters) => {
+      const newFilters = {
+        ...prevFilters,
+        [filterType]: value,
+      };
+      onFilterChange(newFilters); // Pass new filters to parent
+      return newFilters;
+    });
   };
 
   const handleSortChange = (filterType: keyof typeof activeFilters) => {
@@ -73,10 +83,12 @@ const SearchAndFilter: React.FC = () => {
           : prevFilters[filterType] === "least"
           ? "most"
           : "none";
-      return {
+      const newFilters = {
         ...prevFilters,
         [filterType]: newValue,
       };
+      onFilterChange(newFilters); // Pass new filters to parent
+      return newFilters;
     });
   };
 
@@ -93,6 +105,8 @@ const SearchAndFilter: React.FC = () => {
           type="text"
           className="w-full pl-10 pr-4 py-2 text-gray-600 placeholder-gray-400 bg-white rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
           placeholder="Search..."
+          value={activeFilters.searchTerm}
+          onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
         />
         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
           <SearchIcon className="h-5 w-5" />
@@ -105,18 +119,7 @@ const SearchAndFilter: React.FC = () => {
           value={activeFilters.type}
           onChange={(e) => handleFilterChange("type", e.target.value)}
         >
-          {[
-            "All",
-            "Academic",
-            "Cultural",
-            "Sports",
-            "Socials",
-            "Competition",
-            "Interests",
-            "Volunteering",
-            "Career",
-            "Assemblies",
-          ].map((type) => (
+          {["All", "Academic", "Sports", "Interests", "Others"].map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
@@ -147,17 +150,12 @@ const SearchAndFilter: React.FC = () => {
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
-  const [interested, setInterested] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
 
   useEffect(() => {
     const fetchOrganizationName = async () => {
       if (event.organizationId) {
         try {
-          const orgDoc = await getDoc(
-            doc(db, "Organizations", event.organizationId)
-          );
+          const orgDoc = await getDoc(doc(db, "Organizations", event.organizationId));
           if (orgDoc.exists()) {
             const data = orgDoc.data();
             setOrgName(data.name || "Unknown Organization");
@@ -196,9 +194,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         </div>
       )}
       <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-      <p className="text-gray-600 mt-2">
-        {truncateText(event.eventDescription)}
-      </p>
+      <p className="text-gray-600 mt-2">{truncateText(event.eventDescription)}</p>
       <p className="text-gray-500 mt-2">
         <CorporateFareIcon />
         &nbsp; {orgName}
@@ -216,8 +212,16 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]); // Store raw events
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    type: "All",
+    likes: "none",
+    participation: "none",
+    date: "none",
+    searchTerm: "",
+  });
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -237,8 +241,8 @@ const EventsView: React.FC = () => {
                 : data.eventDate,
           };
         });
-        console.log("Events: ", eventsList);
-        setEvents(eventsList);
+        setAllEvents(eventsList); // Save all raw events
+        setEvents(eventsList); // Initially display all events
       } catch (err) {
         console.error("Error fetching events:", err);
         setError("Failed to load events.");
@@ -250,24 +254,54 @@ const EventsView: React.FC = () => {
     fetchEvents();
   }, []);
 
+  useEffect(() => {
+    const filterEvents = () => {
+      const filteredEvents = allEvents.filter((event) => {
+        // Filter based on search term, ensuring eventName and eventLocation are strings
+        const matchesSearchTerm =
+          (event.eventName && event.eventName.toLowerCase().includes(filters.searchTerm.toLowerCase())) ||
+          (event.eventLocation && event.eventLocation.toLowerCase().includes(filters.searchTerm.toLowerCase()));
+  
+        // Filter based on event type
+        const matchesType = filters.type === "All" || event.eventType === filters.type;
+  
+        return matchesSearchTerm && matchesType;
+      });
+
+      // Sort based on selected filters
+      const sortedEvents = filteredEvents.sort((a, b) => {
+        if (filters.likes === "most") return b.likes - a.likes;
+        if (filters.likes === "least") return a.likes - b.likes;
+
+        if (filters.participation === "most") return b.participation - a.participation;
+        if (filters.participation === "least") return a.participation - b.participation;
+
+        if (filters.date === "most") return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
+        if (filters.date === "least") return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
+
+        return 0;
+      });
+  
+      setEvents(sortedEvents); // Set filtered and sorted events to state
+    };
+  
+    filterEvents();
+  }, [filters, allEvents]); // Re-run filtering and sorting when filters or allEvents change
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Header />
-        <SearchAndFilter />
+        <SearchAndFilter onFilterChange={setFilters} />
         <div className="mt-6">
           {loading ? (
-            <div className="text-center text-gray-500 py-4">
-              Loading events...
-            </div>
+            <div className="text-center text-gray-500 py-4">Loading events...</div>
           ) : error ? (
             <div className="text-center text-red-500 py-4">{error}</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {events.length > 0 ? (
-                events.map((event) => (
-                  <EventCard key={event.uid} event={event} />
-                ))
+                events.map((event) => <EventCard key={event.uid} event={event} />)
               ) : (
                 <div className="text-center text-gray-500 py-4">
                   No events found.

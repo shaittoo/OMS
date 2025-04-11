@@ -7,13 +7,15 @@ import Link from "next/link";
 import MemTaskList from "./memtasklist";
 import MemberEventList from "./membereventlist";
 import Calendar from "./calendar";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useRouter } from "next/router";
 
 const MemberOrg: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [currentDateTime, setCurrentDateTime] = useState<string>("");
+  const [organizationData, setOrganizationData] = useState<any>(null);
+  const router = useRouter();
+  const { orgId } = router.query;
 
   // Handles user logout
   const handleLogout = async () => {
@@ -46,6 +48,18 @@ const MemberOrg: React.FC = () => {
     }
   };
 
+  // Fetch organization data if orgId is provided
+  const fetchOrganizationData = async (orgId: string) => {
+    try {
+      const orgDoc = await getDoc(doc(db, "Organizations", orgId));
+      if (orgDoc.exists()) {
+        setOrganizationData(orgDoc.data());
+      }
+    } catch (error) {
+      console.error("Error fetching organization data:", error);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -73,6 +87,13 @@ const MemberOrg: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Fetch organization data when orgId changes
+  useEffect(() => {
+    if (orgId && typeof orgId === 'string') {
+      fetchOrganizationData(orgId);
+    }
+  }, [orgId]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -91,8 +112,8 @@ const MemberOrg: React.FC = () => {
         <MemberSidebar />
       </div>
 
-      {/* Main Content */}
-      <div className="lg:col-start-2 mt-4">
+      {/* Main Content - Events */}
+      <div className="lg:col-start-2 mt-4 px-6">
         {/* Back to Dashboard Link */}
         <div className="py-2">
           <Link
@@ -104,25 +125,23 @@ const MemberOrg: React.FC = () => {
           </Link>
         </div>
 
-        {/* Welcome Message */}
-        <div className="lg:col-start-2 ml-auto">
-          <div className="welcome-message ml-auto">
-            Welcome back, {firstName || "User"}!
+        {/* Organization Header */}
+        {organizationData && (
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">{organizationData.name}</h1>
+            <p className="text-gray-600">{organizationData.description}</p>
           </div>
-          <hr className="my-4 border-black" />
-          <p className="text-sm font-light">Check out what's happening...</p>
-          {/* Events Section */}
-          <MemberEventList />
-          <Link href="/memberviewevents">
-            <p className="my-2 text-right hover:text-purple-700 text-sm font-light">
-              View More
-            </p>
-          </Link>
+        )}
+
+        {/* Events Section */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Events</h2>
+          <MemberEventList organizationId={orgId as string} />
         </div>
       </div>
 
-      {/* Right Sidebar */}
-      <div className="lg:col-start-3 mt-8 ml-6">
+      {/* Right Content - Calendar and Tasks */}
+      <div className="lg:col-start-3 mt-4 px-6">
         {/* Logout Button */}
         <button
           className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-6 top-6"
@@ -131,29 +150,16 @@ const MemberOrg: React.FC = () => {
           Log Out
         </button>
 
-        {/* Calendar */}
-        <div className="mx-4 mt-16 h-60 max-w-lg">
-          <Calendar />
+        {/* Calendar Section */}
+        <div className="mt-16 mb-8">
+          <Calendar organizationId={orgId as string} />
         </div>
 
-        {/* Current Date and Time */}
-        <div className="mx-28 mt-56 text-black memberstats h-4 max-w-xs bg-white p-4 shadow-md">
-          {currentDateTime}
+        {/* Tasks Section */}
+        <div className="mb-8">
+          <MemTaskList organizationId={orgId as string} />
         </div>
-
-        {/* Pending Tasks */}
-        <div className="ml-0 text-black pending-tasks max-w-full p-5 flex justify-start">
-          <div
-            className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-          >
-            <MemTaskList />
-          </div>
-        </div>
+        
         <Link href="./memberviewtasks">
           <p className="mx-16 my-2 text-right hover:text-purple-700 text-sm font-light">
             View More

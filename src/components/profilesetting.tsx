@@ -3,6 +3,7 @@ import { db, auth } from "../firebaseConfig";
 import { collection, getDoc, doc, updateDoc } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import CloseIcon from "@mui/icons-material/Close";
+import AWS from 'aws-sdk';
 
 interface ProfileSettingsProps {
   close: () => void; // Prop to handle form closure
@@ -12,6 +13,19 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
   const [userType, setUserType] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Configure AWS
+  AWS.config.update({
+    region: 'ap-southeast-1',
+    credentials: {
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || ''
+    }
+  });
+
+  const s3 = new AWS.S3();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -39,17 +53,85 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
     fetchUserData();
   }, []);
 
-  // save the updated profile
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedFile(event.target.files[0]);
+    }
+  };
+
+  const uploadToS3 = async (file: File): Promise<string> => {
+    const fileName = `organization-logos/${Date.now()}-${file.name}`;
+    
+    const params = {
+      Bucket: process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'oms-128',
+      Key: fileName,
+      Body: file,
+      ContentType: file.type
+    };
+
+    try {
+      const upload = s3.upload(params);
+      
+      upload.on('httpUploadProgress', (progress) => {
+        const percentage = Math.round((progress.loaded / progress.total) * 100);
+        setUploadProgress(percentage);
+      });
+
+      const result = await upload.promise();
+      const region = 'ap-southeast-1';
+      const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME || 'oms-128';
+      const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${fileName}`;
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading to S3:', error);
+      throw error;
+    }
+  };
+
   const handleSave = async () => {
     const auth = getAuth();
     const user = auth.currentUser;
 
     if (user) {
       try {
-        await updateDoc(doc(db, "Users", user.uid), userData);
+        let updatedData = { ...userData };
+
+        if (selectedFile) {
+          try {
+            const logoUrl = await uploadToS3(selectedFile);
+            updatedData.photo = logoUrl; // Change logoUrl to photo to match the data structure
+          } catch (error) {
+            console.error("Error uploading logo:", error);
+            alert("Failed to upload logo. Please try again.");
+            return;
+          }
+        }
+
+        // Update both Users and Organizations collections
+        await updateDoc(doc(db, "Users", user.uid), updatedData);
+        
+        if (userType === "organization") {
+          // Get the organization ID from user data
+          const userDoc = await getDoc(doc(db, "Users", user.uid));
+          const userData = userDoc.data();
+          const organizationId = userData?.organizationId;
+
+          if (organizationId) {
+            await updateDoc(doc(db, "Organizations", organizationId), {
+              ...updatedData,
+              lastUpdated: new Date()
+            });
+          }
+        }
+
+        setUserData(updatedData);
         alert("Profile updated successfully!");
+        setUploadProgress(0);
+        setSelectedFile(null);
+        window.location.reload(); // Reload the page to show updated logo
       } catch (error) {
         console.error("Error updating profile: ", error);
+        alert("Failed to update profile. Please try again.");
       }
     }
   };
@@ -116,8 +198,21 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
               </label>
               <input
                 type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
                 className="mt-1 block w-full px-4 py-2 border rounded-md border-gray-300"
               />
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-purple-600 h-2.5 rounded-full"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Uploading: {uploadProgress}%</p>
+                </div>
+              )}
             </div>
             <div>
               <label

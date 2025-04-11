@@ -12,7 +12,11 @@ interface Task {
   dueDate: string; // Due date as a string in a readable format
 }
 
-export default function Calendar() {
+interface CalendarProps {
+  organizationId?: string;
+}
+
+export default function Calendar({ organizationId }: CalendarProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +37,20 @@ export default function Calendar() {
       }
 
       try {
-        const tasksQuery = query(
-          collection(db, "tasks"),
-          where("memberId", "==", user.uid) // Assuming user.uid is used as memberId
-        );
+        let tasksQuery;
+        
+        if (organizationId) {
+          tasksQuery = query(
+            collection(db, "tasks"),
+            where("organizationId", "==", organizationId)
+          );
+        } else {
+          tasksQuery = query(
+            collection(db, "tasks"),
+            where("memberId", "==", user.uid)
+          );
+        }
+        
         const tasksSnapshot = await getDocs(tasksQuery);
 
         const memTaskList = tasksSnapshot.docs.map((doc) => {
@@ -58,7 +72,7 @@ export default function Calendar() {
     };
 
     fetchTasks();
-  }, []);
+  }, [organizationId]);
 
   // Group tasks by dueDate
   const groupedTasks = tasks.reduce((acc, task) => {
