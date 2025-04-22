@@ -27,6 +27,10 @@ function RegisterMember() {
       toast.error("Enter a valid email address.");
       return false;
     }
+    if (!email.endsWith("@up.edu.ph")) {
+      toast.error("Only UP email addresses (@up.edu.ph) are allowed for registration.");
+      return false;
+    }
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long.");
       return false;
