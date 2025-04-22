@@ -40,6 +40,23 @@ const markAllAsSeen = async () => {
   await batch.commit();
 };
 
+const rejectionReasons = {
+  low_grades: "Low Grades",
+  incomplete_documents: "Incomplete Documents",
+  bad_moral_record: "Bad Moral Record",
+  lack_of_commitment: "Lack of Commitment",
+  disciplinary_action: "Disciplinary Action",
+  attendance_issues: "Attendance Issues",
+  failed_interview: "Failed Interview",
+  not_meet_requirements: "Does Not Meet Requirements",
+  other: "Other",
+};
+
+const getRejectionReasonLabel = (reason: keyof typeof rejectionReasons) => {
+  return rejectionReasons[reason] || "Unknown Reason"; // Fallback in case of an undefined reason
+};
+
+
 const ApplicationStatus: React.FC = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,12 +85,28 @@ const ApplicationStatus: React.FC = () => {
           const memberData = docSnapshot.data();
           const organizationDoc = await getDoc(doc(db, "Organizations", memberData.organizationId));
           if (organizationDoc.exists()) {
-            applicationsList.push({
-              organizationId: memberData.organizationId,
-              organizationName: organizationDoc.data().name,
-              status: memberData.status, 
-              photo: organizationDoc.data().photo || "/assets/default.jpg", 
-            });
+
+            const rejectionReason = memberData.status === "rejected"
+            ? (Object.prototype.hasOwnProperty.call(rejectionReasons, memberData.rejectionReason)
+                ? rejectionReasons[memberData.rejectionReason as keyof typeof rejectionReasons]
+                : memberData.rejectionReason)
+            : null;
+          
+
+            const rejectionDetails = memberData.status === "rejected"
+              ? memberData.rejectionDetails || ""
+              : "";
+
+
+              applicationsList.push({
+                organizationId: memberData.organizationId,
+                organizationName: organizationDoc.data().name,
+                status: memberData.status,
+                rejectionReason,
+                rejectionDetails,
+                photo: organizationDoc.data().photo || "/assets/default.jpg",
+              });
+              
           }
         }
 
@@ -143,16 +176,35 @@ const ApplicationStatus: React.FC = () => {
                     className="w-16 h-16 rounded mr-4 object-cover"
                   />
                   <div className="flex-grow">
-                    <h3 className="text-lg font-medium text-gray-800">{app.organizationName}</h3>
-                    <p className="text-sm text-gray-600">Status: 
-                      <span className={`px-2 py-1 ml-1 rounded-sm ${getStatusColor(app.status)}`}>
-                      {capitalizeStatus(app.status)} 
-                      </span>
-                    </p>
+                  <h3 className="text-lg font-medium text-gray-800">
+                    {app.organizationName}{" "}
+                    <span className={`text-sm px-2 py-1 rounded-sm ${getStatusColor(app.status)}`}>
+                      {capitalizeStatus(app.status)}
+                    </span>
+                  </h3>
+
+                    <div className="flex items-center ">
+
+                      {app.status === "rejected" && app.rejectionReason && (
+                        <p className="text-xs text-red-600 whitespace-nowrap">
+                        Reason: {app.rejectionReason}
+                        </p>
+                      )}
+
+                    </div>
+
+                    {app.status === "rejected" && app.rejectionDetails && (
+                      <p className="text-xs italic text-gray-600">
+                        More Details: {app.rejectionDetails}
+                      </p>
+                    )}
+                    
+
                   </div>
                 </div>
               ))}
             </div>
+
           </div>
         </div>
       </div>

@@ -23,6 +23,8 @@ const AcceptMembers: React.FC = () => {
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [rejectionDetails, setRejectionDetails] = useState("");
+  const [customOtherReason, setCustomOtherReason] = useState("");
+
 
   const fetchPendingMembers = async () => {
     while (!user){
@@ -113,7 +115,7 @@ const AcceptMembers: React.FC = () => {
       const memberDocRef = doc(db, "Members", selectedMemberId);
       await updateDoc(memberDocRef, {
         status: "rejected",
-        rejectionReason: rejectionReason,
+        rejectionReason: rejectionReason === "other" ? customOtherReason : rejectionReason,
         rejectionDetails: rejectionDetails,
         seenByUser: false //for notification purposes
       });
@@ -233,11 +235,18 @@ const AcceptMembers: React.FC = () => {
               </select>
 
               {rejectionReason === "other" && (
+              <div className="mt-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Specify Other Reason:
+                </label>
                 <textarea
-                  className="mt-2 w-full border-purple-500 rounded p-2"
+                  className="w-full border-purple-500 rounded p-2"
                   placeholder="Please specify the reason..."
+                  value={customOtherReason}
+                  onChange={(e) => setCustomOtherReason(e.target.value)}
                 />
-              )}
+              </div>
+            )}
 
               <label
                 htmlFor="rejectionDetails"
