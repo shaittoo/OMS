@@ -5,6 +5,7 @@ import { getAuth } from "firebase/auth";
 import Link from "next/link";
 import MemberSidebar from "../components/membersidebar";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { writeBatch } from "firebase/firestore";
 
 const AppHeader: React.FC = () => (
   <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
@@ -16,6 +17,28 @@ const AppHeader: React.FC = () => (
     </div>
   </div>
 );
+
+const markAllAsSeen = async () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const q = query(
+    collection(db, "Members"),
+    where("uid", "==", user.uid),
+    where("status", "in", ["approved", "rejected"]),
+    where("seenByUser", "==", false)
+  );
+
+  const snapshot = await getDocs(q);
+  const batch = writeBatch(db);
+
+  snapshot.forEach(docSnap => {
+    batch.update(doc(db, "Members", docSnap.id), { seenByUser: true });
+  });
+
+  await batch.commit();
+};
 
 const ApplicationStatus: React.FC = () => {
   const [applications, setApplications] = useState<any[]>([]);
@@ -34,7 +57,6 @@ const ApplicationStatus: React.FC = () => {
       }
 
       try {
-        // Fetch the applications from the "Members" collection
         const memberQuery = query(
           collection(db, "Members"),
           where("uid", "==", userId)
@@ -56,6 +78,8 @@ const ApplicationStatus: React.FC = () => {
         }
 
         setApplications(applicationsList);
+
+        await markAllAsSeen(); //call this for notification purposes
       } catch (error) {
         console.error("Error fetching application statuses:", error);
       } finally {
@@ -73,7 +97,7 @@ const ApplicationStatus: React.FC = () => {
       case "approved":
         return "bg-green-400 text-green-800";
       case "rejected":
-        return "bg-red-400text-red-800";
+        return "bg-red-400 text-red-800";
       default:
         return "bg-gray-400 text-gray-800";
     }
@@ -98,11 +122,15 @@ const ApplicationStatus: React.FC = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               </div>
             )}
-            {!loading && applications.length === 0 && (
+           {!loading && applications.length === 0 && (
               <div className="text-center text-gray-600 mt-6">
-                You haven't applied to any organizations.
+                <p>You haven't applied to any organizations.</p>
+                <Link href="/orglist">
+                  <span className="text-blue-600 hover:underline mt-2 inline-block">View Organizations</span>
+                </Link>
               </div>
             )}
+
             <div className="space-y-4 mt-6">
               {applications.map((app) => (
                 <div
