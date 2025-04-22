@@ -52,7 +52,7 @@ export default function HomePage() {
                   <img src="/assets/arrow.svg" alt="arrow" className="rounded-l-sm rounded-b-sm mt-2" style={{backgroundClip: 'none'}}/>
                 </span>
                 <span className="relative lg:row-start-2 lg:col-span-2 rounded-3xl block">
-                  <p className="pl-5 pt-10" style={{fontSize: '32px', fontFamily: 'Arial', color: 'white'}}>Explore More</p>
+                  <p className="pl-5 pt-10" style={{fontSize: '32px', fontFamily: 'Arial', color: 'white'}}>Explore Events as Guest</p>
                 </span>
               </span>
             </Link>
