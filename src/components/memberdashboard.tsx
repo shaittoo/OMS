@@ -124,7 +124,7 @@ const MemberDashboard: React.FC = () => {
             <button 
               className="officer-action-buttons flex-grow"
               onClick={handleOrgListRedirect}>
-              View Orgs
+              View All Orgs
             </button>
             <Link href="/memberviewevents" >
             <button className="officer-action-buttons flex-grow">
