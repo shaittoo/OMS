@@ -30,7 +30,6 @@ interface Event {
   registrations: number;
   organizationName?: string;
   likedBy: string[];
-  dislikedBy: string[];
   interestedBy: string[];
 }
 

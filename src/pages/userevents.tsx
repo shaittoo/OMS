@@ -40,7 +40,6 @@ interface Event {
   registrations: number;
   organizationName?: string;
   likedBy: string[];
-  dislikedBy: string[];
   interestedBy: string[];
 }
 
@@ -337,7 +336,6 @@ const MyEventsView: React.FC = () => {
                       <td className="px-4 py-2">{event.status}</td>
                       <td className="px-4 py-2">
                         <ThumbUpOffAltIcon className="ml-2" /> {event.likedBy?.length || 0}
-                        <ThumbDownOffAltIcon className="ml-2" /> {event.dislikedBy?.length || 0}
                       </td>
                       <td className="px-4 py-2">
                         <button className="hover:underline" onClick={() => handleEdit(event)}>

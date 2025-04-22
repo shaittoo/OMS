@@ -22,7 +22,6 @@ interface Event {
   organizationId: string;
   organizationName: string;
   likes: string[];
-  dislikes: string[];
   interested: string[];
   isOpenForAll: boolean;
   status: string;
@@ -148,7 +147,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             organizationId: data.organizationId || "",
             organizationName: organizationName,
             likes: data.likes || [],
-            dislikes: data.dislikes || [],
             interested: data.interested || [],
             isOpenForAll: data.isOpenForAll || false,
             status: data.status || "active",
@@ -184,7 +182,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             organizationId: "",
             organizationName: "",
             likes: [],
-            dislikes: [],
             interested: [],
             isOpenForAll: false,
             status: "active",
@@ -224,7 +221,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     });
   };
 
-  const handleEventAction = async (eventId: string, action: "like" | "dislike" | "interest") => {
+  const handleEventAction = async (eventId: string, action: "like" | "interest") => {
     const user = auth.currentUser;
     if (!user) return;
   
@@ -236,25 +233,18 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   
     if (action === "like") {
       updatedUserEvents.likedEvents = arrayUnion(eventId);
-      updatedUserEvents.dislikedEvents = arrayRemove(eventId);
-      updatedUserEvents.interestedEvents = arrayRemove(eventId);
-    } else if (action === "dislike") {
-      updatedUserEvents.dislikedEvents = arrayUnion(eventId);
-      updatedUserEvents.likedEvents = arrayRemove(eventId);
       updatedUserEvents.interestedEvents = arrayRemove(eventId);
     } else if (action === "interest") {
       updatedUserEvents.interestedEvents = arrayUnion(eventId);
       updatedUserEvents.likedEvents = arrayRemove(eventId);
-      updatedUserEvents.dislikedEvents = arrayRemove(eventId);
     }
   
     // Update the user's document in Firestore
     await updateDoc(userRef, updatedUserEvents);
   
-    // Update the event's interactions (like, dislike, interested)
+    // Update the event's interactions (like, interested)
     await updateDoc(eventRef, {
       likes: action === "like" ? arrayUnion(user.uid) : arrayRemove(user.uid),
-      dislikes: action === "dislike" ? arrayUnion(user.uid) : arrayRemove(user.uid),
       interested: action === "interest" ? arrayUnion(user.uid) : arrayRemove(user.uid),
     });
   
@@ -298,7 +288,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             organizationId: data.organizationId || "",
             organizationName: data.organizationName || "Unknown Organization",
             likes: data.likes || [],
-            dislikes: data.dislikes || [],
             interested: data.interested || [],
             isOpenForAll: data.isOpenForAll || false,
             status: data.status || "active",
@@ -437,15 +426,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                         {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
                         <span className="ml-1">Like</span>
                       </button>
-
-                      <button 
-                        className={`flex items-center text-xs ${event.dislikes.includes(auth.currentUser?.uid || "") ? 'text-red-600' : 'text-gray-600'}`}
-                        onClick={() => handleEventAction(event.id, "dislike")}
-                      >
-                        {event.dislikes.includes(auth.currentUser?.uid || "") ? <ThumbDownIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
-                        <span className="ml-1">Dislike</span>
-                      </button>
-
                       <button 
                         className={`flex items-center text-xs ${event.interested.includes(auth.currentUser?.uid || "") ? 'text-purple-600' : 'text-gray-600'}`}
                         onClick={() => handleEventAction(event.id, "interest")}
