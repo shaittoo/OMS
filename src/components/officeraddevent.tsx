@@ -112,7 +112,6 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
         eventImages: imageUrls,
         organizationId, 
         likes: 0,
-        dislikes: 0,
         interested: 0,
       });
   

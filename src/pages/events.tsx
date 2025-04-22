@@ -27,10 +27,8 @@ interface Event {
   organizationId: string;
   registrations: string;
   likedBy: string[];
-  dislikedBy: string[];
   interestedBy: string[];
   isLiked: boolean;
-  isDisliked: boolean;
   isInterested: boolean;
 }
 
@@ -148,7 +146,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
   const [interested, setInterested] = useState(event.isInterested);
   const [liked, setLiked] = useState(event.isLiked);
-  const [disliked, setDisliked] = useState(event.isDisliked);
   
   useEffect(() => {
     const fetchOrganizationName = async () => {
@@ -194,13 +191,11 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     const userId = auth.currentUser?.uid;
 
     setLiked(!liked);
-    if (disliked) setDisliked(false);
 
     if (userId) {
         const userRef = doc(db, "Users", userId);
         await updateDoc(userRef, {
             likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-            dislikedEvents: arrayRemove(event.uid),
         });
     }
 
@@ -209,26 +204,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
     });
 };
-
-  const handleDislikeClick = async() => {
-    const userId = auth.currentUser?.uid;
-
-    setDisliked(!disliked);
-    if (liked) setLiked(false);
-
-    if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            dislikedEvents: disliked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-            likedEvents: arrayRemove(event.uid),
-        });
-    }
-
-    const eventRef = doc(db, "events", event.uid);
-    await updateDoc(eventRef, {
-        dislikedBy: disliked ? arrayRemove(userId) : arrayUnion(userId),
-    });
-  };
 
   const truncateText = (text: string | undefined) => {
     return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
@@ -266,7 +241,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
       <div className="flex items-center mt-4">
         <div
-          className={`mr-2 flex items-center cursor-pointer ${
+          className={`mr-3 flex items-center cursor-pointer ${
             liked ? "text-green-500" : "text-gray-500"
           }`}
           onClick={handleLikeClick}
@@ -274,18 +249,9 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
           {liked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
           <span className="ml-1">Like</span>
         </div>
-        <div
-          className={`flex items-center cursor-pointer ${
-            disliked ? "text-red-500" : "text-gray-500"
-          }`}
-          onClick={handleDislikeClick}
-        >
-          {disliked ? <ThumbDownIcon /> : <ThumbDownOffAltIcon />}
-          <span className="ml-1">Dislike</span>
-        </div>
 
         <button
-          className={`ml-20 px-4 py-2 rounded-md ${
+          className={`ml-44 px-4 py-2 rounded-md ${
             interested ? "bg-gray-500 text-white" : "bg-blue-500 text-white"
           }`}
           onClick={handleInterestedClick}
@@ -317,7 +283,6 @@ const EventsView: React.FC = () => {
     
       let userEvents = {
         likedEvents: [],
-        dislikedEvents: [],
         interestedEvents: [],
       };
     
@@ -328,7 +293,6 @@ const EventsView: React.FC = () => {
             const userData = userDoc.data();
             userEvents = {
               likedEvents: userData.likedEvents || [],
-              dislikedEvents: userData.dislikedEvents || [],
               interestedEvents: userData.interestedEvents || [],
             };
           }
@@ -347,7 +311,6 @@ const EventsView: React.FC = () => {
             uid: doc.id,
             eventDate,
             isLiked: userEvents.likedEvents.includes(doc.id as never),
-            isDisliked: userEvents.dislikedEvents.includes(doc.id as never),
             isInterested: userEvents.interestedEvents.includes(doc.id as never),
           };
         });
