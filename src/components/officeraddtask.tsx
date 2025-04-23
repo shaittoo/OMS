@@ -3,9 +3,20 @@ import { db } from "../firebaseConfig";
 import { collection, getDocs, query, where, addDoc, doc, getDoc } from "firebase/firestore";
 import CloseIcon from "@mui/icons-material/Close";
 import { getAuth } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
+import { toast } from "react-toastify";
+import { v4 as uuidv4 } from "uuid";
 
 interface OfficerAddTaskProps {
   close: () => void; // Prop to handle form closure
+}
+
+interface Member {
+  uid: string;
+  fullName: string;
+  email: string;
 }
 
 const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
@@ -14,7 +25,9 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("low");
   const [assignedOfficer, setAssignedOfficer] = useState("");
-  const [approvedMembers, setApprovedMembers] = useState<Array<{ uid: string; fullName: string }>>([]);
+  const [approvedMembers, setApprovedMembers] = useState<Member[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   // Fetch approved members from Firestore
@@ -25,17 +38,31 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
         const membersQuery = query(collection(db, "Members"), where("status", "==", "approved"));
         const membersSnapshot = await getDocs(membersQuery);
 
-        // For each approved member, fetch their fullName from the 'Users' collection
+        // Create a Set to track unique member UIDs
+        const uniqueMemberUids = new Set<string>();
+
+        // For each approved member, fetch their fullName and email from the 'Users' collection
         const memberPromises = membersSnapshot.docs.map(async (memberDoc) => {
           const memberData = memberDoc.data();
-          const userDoc = await getDoc(doc(db, "Users", memberData.uid));
-          const fullName = userDoc.exists() ? userDoc.data()?.fullName || "Unknown Member" : "Unknown Member";
+          
+          // Skip if we've already processed this member
+          if (uniqueMemberUids.has(memberData.uid)) {
+            return null;
+          }
+          uniqueMemberUids.add(memberData.uid);
 
-          return { uid: memberData.uid, fullName };
+          const userDoc = await getDoc(doc(db, "Users", memberData.uid));
+          const userData = userDoc.exists() ? userDoc.data() : null;
+          
+          return {
+            uid: memberData.uid,
+            fullName: userData?.fullName || "Unknown Member",
+            email: userData?.email || "No email"
+          };
         });
 
-        // Resolve all promises to get the list of approved members
-        const resolvedMembers = await Promise.all(memberPromises);
+        // Resolve all promises and filter out null values
+        const resolvedMembers = (await Promise.all(memberPromises)).filter(Boolean) as Member[];
         setApprovedMembers(resolvedMembers);
       } catch (error) {
         console.error("Error fetching approved members: ", error);
@@ -64,6 +91,12 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
     fetchUserOrganizationId();
   }, []);
 
+  // Filter members based on search term
+  const filteredMembers = approvedMembers.filter(member => 
+    member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   
@@ -90,8 +123,8 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
         dueDate: new Date(dueDate),
         priority,
         assignedOfficer,
-        organizationId, // Include organizationId
-        memberId: selectedMember.uid, // Add memberId (uid)
+        organizationId,
+        memberId: selectedMember.uid,
       });
       console.log("Task added successfully!");
       alert("Task added successfully!");
@@ -103,92 +136,69 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
   
 
   return (
-    <div
-      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[18%] z-50"
-      style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
-    >
-      <div
-        className="bg-gray-100 p-8 rounded-lg w-full max-w-md shadow-xl relative"
-        style={{ backgroundColor: "#f9f9f9" }}
-      >
+    <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[0%] top-[0%] z-50">
+      <div className="bg-white p-6 rounded w-96 border-2 border-purple-500 relative" style={{ boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px' }}>
         {/* Close Button */}
         <button
           onClick={close}
-          className="absolute top-2 right-2 p-2 rounded-md hover:bg-gray-200 transition duration-200"
-          style={{ backgroundColor: "#e8e8e8" }}
+          className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
         >
-          <CloseIcon className="h-5 w-5 text-[#8736EA]" />
+          <svg
+            className="w-6 h-6 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
         </button>
 
-        <h2
-          className="text-2xl font-semibold mb-4 text-center"
-          style={{ color: "#333399" }}
-        >
-          Add New Task
-        </h2>
+        <h2 className="text-xl font-semibold mb-4">Add New Task</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label
-              className="block text-sm font-medium"
-              style={{ color: "#333399" }}
-            >
-              Task Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Task Name</label>
             <input
               type="text"
               value={taskName}
               onChange={(e) => setTaskName(e.target.value)}
-              className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500"
-              style={{ borderColor: "#cccccc" }}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               required
             />
           </div>
 
           <div>
-            <label
-              className="block text-sm font-medium"
-              style={{ color: "#333399" }}
-            >
-              Description
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500"
-              style={{ borderColor: "#cccccc" }}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               required
             />
           </div>
 
           <div>
-            <label
-              className="block text-sm font-medium"
-              style={{ color: "#333399" }}
-            >
-              Due Date
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Due Date</label>
             <input
-              type="date"
+              type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500"
-              style={{ borderColor: "#cccccc" }}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               required
             />
           </div>
 
           <div>
-            <label
-              className="block text-sm font-medium"
-              style={{ color: "#333399" }}
-            >
-              Priority
-            </label>
+            <label className="block text-sm font-medium text-gray-700">Priority</label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500"
-              style={{ borderColor: "#cccccc" }}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -196,42 +206,77 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
             </select>
           </div>
 
-          <div>
-            <label
-              className="block text-sm font-medium"
-              style={{ color: "#333399" }}
-            >
-              Assign Officer
-            </label>
-            <select
-              value={assignedOfficer}
-              onChange={(e) => setAssignedOfficer(e.target.value)}
-              className="mt-2 block w-full px-4 py-2 border rounded-md border-gray-300 focus:ring-2 focus:ring-purple-500"
-              style={{ borderColor: "#cccccc" }}
-              required
-            >
-              <option value="" disabled>
-                Select a member
-              </option>
-              {approvedMembers.length > 0 ? (
-                approvedMembers.map((member) => (
-                  <option key={member.uid} value={member.fullName}>
-                    {member.fullName}
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>
-                  No approved members found
-                </option>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700">Assign Member</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Search member by name or email"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setShowDropdown(true);
+                  }}
+                  className="absolute inset-y-0 right-0 mt-1 pr-3 flex items-center cursor-pointer text-gray-400 hover:text-gray-500"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               )}
-            </select>
+            </div>
+            {showDropdown && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredMembers.map((member) => (
+                  <div
+                    key={member.uid}
+                    onClick={() => {
+                      setAssignedOfficer(member.fullName);
+                      setSearchTerm(member.fullName);
+                      setShowDropdown(false);
+                    }}
+                    className="px-4 py-2 hover:bg-purple-100 cursor-pointer"
+                  >
+                    <div className="font-medium">{member.fullName}</div>
+                    <div className="text-sm text-gray-500">{member.email}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={close}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              className="w-full p-3 bg-purple-600 text-white font-semibold rounded-md transition-colors duration-200 hover:bg-white focus:ring-2 focus:ring-white"
-              style={{ backgroundColor: "#8736EA" }}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
               Add Task
             </button>
