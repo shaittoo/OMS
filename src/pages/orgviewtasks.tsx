@@ -45,7 +45,7 @@ const OrgViewTasks = () => {
   }
 
   // Render OrgViewTask if the user is an organization member
-  return isOrganizationMember ? <OrgViewTask /> : null;
+  return isOrganizationMember ? <OrgViewTask showBackButton={true} /> : null;
 };
 
 export default OrgViewTasks;

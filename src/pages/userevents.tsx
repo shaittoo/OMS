@@ -10,6 +10,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { useRouter } from "next/router"; 
 import OfficerSidebar from "../components/officersidebar";
 import EventIcon from "@mui/icons-material/Event";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
@@ -22,6 +23,7 @@ import { auth, db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
 import OfficerEditEvent from "../components/officerEditEvent";
+import OfficerAddEvent from "../components/officeraddevent"; // Import the OfficerAddEvent component
 
 interface Event {
   uid: string;
@@ -43,16 +45,24 @@ interface Event {
   interestedBy: string[];
 }
 
-const Header: React.FC = () => (
+const Header: React.FC<{ onBack: () => void; onAddEvent: () => void }> = ({ onBack, onAddEvent }) => (
   <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-200">
-    <div>
-      <h1 className="text-3xl font-semibold text-gray-800">Your events</h1>
-      <p className="text-lg text-gray-500">Manage and view event details</p>
+    <div className="flex items-center">
+      <button
+        onClick={onBack}
+        className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
+      >
+        &#8592;
+      </button>
+      <div>
+        <h1 className="text-3xl font-semibold text-gray-800">Your events</h1>
+        <p className="text-lg text-gray-500">Manage and view event details</p>
+      </div>
     </div>
     <div className="flex items-center space-x-4 mt-4 md:mt-0">
       <button
         className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200"
-        onClick={() => {}}
+        onClick={onAddEvent} // Use the onAddEvent prop
       >
         Create Event
       </button>
@@ -151,6 +161,7 @@ const MyEventsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [user] = useAuthState(auth);
   const [isEditEventOpen, setEditEventOpen] = useState(false);
+  const [isAddEventOpen, setAddEventOpen] = useState(false); // State for Add Event form
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [filters, setFilters] = useState({
     type: "All",
@@ -159,6 +170,20 @@ const MyEventsView: React.FC = () => {
     date: "none",
     searchTerm: "",
   });
+
+  const router = useRouter(); // Initialize useRouter
+
+  const handleBack = () => {
+    router.back(); // Navigate to the previous page
+  };
+
+  const handleAddEventClick = () => {
+    setAddEventOpen(true); // Open the Add Event form
+  };
+
+  const handleCloseEventForm = () => {
+    setAddEventOpen(false); // Close the Add Event form
+  };
 
   useEffect(() => {
     const fetchMyEvents = async () => {
@@ -302,7 +327,7 @@ const MyEventsView: React.FC = () => {
     <div className="flex">
       <OfficerSidebar />
       <div className="flex-grow p-6 bg-white">
-        <Header />
+        <Header onBack={handleBack} onAddEvent={handleAddEventClick} />
         <SearchAndFilter onFilterChange={setFilters} />
         <div className="mt-6">
           {loading ? (
@@ -359,6 +384,9 @@ const MyEventsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Add Event Form */}
+      {isAddEventOpen && <OfficerAddEvent close={handleCloseEventForm} />}
 
       {isEditEventOpen && selectedEvent && (
         <OfficerEditEvent
