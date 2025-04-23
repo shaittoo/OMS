@@ -3,7 +3,7 @@ import { db, storage } from "../firebaseConfig"; // Make sure you have firebaseC
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CloseIcon from "@mui/icons-material/Close";
-import { s3Client, Upload } from "./awsConfig";
+import { s3Client } from "./awsConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 

@@ -1,5 +1,4 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 
 const s3Client = new S3Client({
     region: process.env.NEXT_PUBLIC_AWS_REGION,
@@ -11,4 +10,4 @@ const s3Client = new S3Client({
     endpoint: `https://s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com`,
 });
 
-export { s3Client, Upload };
+export { s3Client };
