@@ -164,30 +164,38 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           } as Event & { isPastEvent: boolean };
         }));
 
-        // Only filter out past events if not in organization view
+        // Filter and sort based on view type
         if (!organizationId) {
+          // Member Dashboard View: Filter out past events and sort by likes
           const currentDate = new Date();
           eventsList = eventsList.filter(event => {
             if (!event.eventDate) return false;
             const eventDate = new Date(event.eventDate);
             return eventDate >= currentDate;
           });
+
+          // Sort by likes count (descending) and then by date
+          eventsList.sort((a, b) => {
+            // First sort by likes count (descending)
+            const likesDiff = (b.likes?.length || 0) - (a.likes?.length || 0);
+            if (likesDiff !== 0) return likesDiff;
+            
+            // If likes are equal, sort by date
+            const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+            const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+            return dateB - dateA;
+          });
+
+          // Take top 4 events
+          eventsList = eventsList.slice(0, 4);
+        } else {
+          // Organization View: Sort by date (most recent first)
+          eventsList.sort((a, b) => {
+            const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+            const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+            return dateB - dateA;
+          });
         }
-
-        // Sort events by likes count (descending) and then by date
-        eventsList.sort((a, b) => {
-          // First sort by likes count (descending)
-          const likesDiff = (b.likes?.length || 0) - (a.likes?.length || 0);
-          if (likesDiff !== 0) return likesDiff;
-          
-          // If likes are equal, sort by date
-          const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
-          const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
-          return dateB - dateA; // Most recent first
-        });
-
-        // Always take top 4 events with highest likes
-        eventsList = eventsList.slice(0, 4);
 
         console.log("Final processed events list:", eventsList);
         setEvents(eventsList);
@@ -383,7 +391,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       <Toaster 
         position="bottom-right"
         toastOptions={{
-          // Default options for all toasts
           className: '',
           style: {
             maxWidth: '350px',
@@ -395,6 +402,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           fontSize: '14px',
         }}
       />
+      
       {loading && (
         <div className="flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -412,9 +420,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       
       {!loading && !error && events.length > 0 && (
         <>
-          <div className="space-y-2">
-            {/* Show all events when in organization view or when userOrganizations is available */}
-            {(organizationId || userOrganizations.length > 0 ? events : events.slice(0, 4)).map((event) => (
+          <div className={`space-y-2 ${organizationId ? 'h-[calc(150vh-250px)] overflow-y-auto' : ''} pr-2`}>
+            {events.map((event) => (
               <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
                 <div className="flex p-3">
                   {/* Event Image */}
@@ -526,13 +533,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
               </div>
             ))}
           </div>
-          {events.length > 0 && events.length < 4 && (
-            <div className="text-center mt-4">
-              <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
-                <p className="text-gray-600 text-sm">That's all the events for now!</p>
-              </div>
-            </div>
-          )}
           {!organizationId && events.length > 4 && (
             <Link href="/memberviewevents">
               <p className="text-right text-sm text-purple-600 hover:text-purple-800 mt-2 cursor-pointer">

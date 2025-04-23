@@ -3,7 +3,8 @@ import { db } from "../firebaseConfig"; // Make sure you have firebaseConfig.js 
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CloseIcon from "@mui/icons-material/Close";
-import s3 from "./awsConfig";
+import { s3Client } from "./awsConfig";
+import { Upload } from "@aws-sdk/lib-storage";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 
@@ -80,21 +81,25 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
             throw new Error("S3_BUCKET_NAME is not defined");
         }
 
-        const params = {
-          Bucket: bucketName,
-          Key: `events/${encodeURIComponent(file.name)}`,
-          Body: file,
-          ContentType: file.type,
-        };
+        const key = `events/${encodeURIComponent(file.name)}`;
+        const upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: bucketName,
+            Key: key,
+            Body: file,
+            ContentType: file.type,
+          },
+        });
 
-        await s3.upload(params).promise();
+        await upload.done();
 
-        const downloadURL = `https://${params.Bucket}.s3.amazonaws.com/${params.Key}`;
+        const downloadURL = `https://${bucketName}.s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com/${key}`;
         uploadedURLs.push(downloadURL);
-        console.log("Uploaded file: ", downloadURL);
+        console.log("Uploaded file:", downloadURL);
       } catch (error) {
         console.error("Error uploading file:", file.name, error);
-        throw error; 
+        throw error;
       }
     }
     const allImages = [...event.eventImages, ...uploadedURLs];

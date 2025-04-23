@@ -1,11 +1,13 @@
-import AWS from 'aws-sdk';
+import { S3Client } from '@aws-sdk/client-s3';
 
-AWS.config.update({
-    accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+const s3Client = new S3Client({
     region: process.env.NEXT_PUBLIC_AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY!,
+    },
+    forcePathStyle: true,
+    endpoint: `https://s3.${process.env.NEXT_PUBLIC_AWS_REGION}.amazonaws.com`,
 });
 
-const s3 = new AWS.S3();
-
-export default s3;
+export { s3Client };

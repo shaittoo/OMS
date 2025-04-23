@@ -3,7 +3,7 @@ import { db, storage } from "../firebaseConfig"; // Make sure you have firebaseC
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CloseIcon from "@mui/icons-material/Close";
-import s3 from "./awsConfig";
+import { s3Client } from "./awsConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 
@@ -44,28 +44,46 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
 
   const uploadImages = async (): Promise<string[]> => {
     const uploadedURLs: string[] = [];
+    const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
+    
+    if (!bucketName) {
+      throw new Error("S3 bucket name is not configured");
+    }
+
     for (const file of eventImages) {
       try {
-        const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME ?? "";
-        if (!bucketName) {
-            throw new Error("S3_BUCKET_NAME is not defined");
+        const key = `events/${Date.now()}-${encodeURIComponent(file.name)}`;
+        
+        // Create a new FormData instance
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('key', key);
+        formData.append('bucket', bucketName);
+        formData.append('Content-Type', file.type);
+
+        // Upload using fetch
+        const response = await fetch(`/api/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Upload failed');
         }
 
-        const params = {
-          Bucket: bucketName,
-          Key: `events/${encodeURIComponent(file.name)}`,
-          Body: file,
-          ContentType: file.type,
-        };
-
-        await s3.upload(params).promise();
-
-        const downloadURL = `https://${params.Bucket}.s3.amazonaws.com/${params.Key}`;
+        const data = await response.json();
+        const downloadURL = data.url;
+        
         uploadedURLs.push(downloadURL);
-        console.log("Uploaded file: ", downloadURL);
+        console.log("Uploaded file:", downloadURL);
       } catch (error) {
         console.error("Error uploading file:", file.name, error);
-        throw error; 
+        if (error instanceof Error) {
+          throw new Error(`Failed to upload image ${file.name}: ${error.message}`);
+        } else {
+          throw new Error(`Failed to upload image ${file.name}: Unknown error`);
+        }
       }
     }
     return uploadedURLs;
