@@ -136,8 +136,8 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
   
 
   return (
-    <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[15.25%] top-[8%] z-50 shadow-md">
-      <div className="bg-white p-6 rounded shadow-lg w-96 border-2 border-purple-500 relative">
+    <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[0%] top-[0%] z-50">
+      <div className="bg-white p-6 rounded w-96 border-2 border-purple-500 relative" style={{ boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px' }}>
         {/* Close Button */}
         <button
           onClick={close}
@@ -208,35 +208,17 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
 
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700">Assign Member</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg
-                  className="h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowDropdown(true);
-                }}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search member by name or email"
-                className="mt-1 block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              placeholder="Search member by name or email"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+            />
             {showDropdown && (
               <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredMembers.map((member) => (
