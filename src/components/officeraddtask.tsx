@@ -24,7 +24,7 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("low");
-  const [assignedOfficer, setAssignedOfficer] = useState("");
+  const [assignedMembers, setAssignedMembers] = useState<string[]>([]);
   const [approvedMembers, setApprovedMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -106,13 +106,8 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
         return;
       }
   
-      // Find the selected officer's memberId (uid)
-      const selectedMember = approvedMembers.find(
-        (member) => member.fullName === assignedOfficer
-      );
-  
-      if (!selectedMember) {
-        alert("No member selected.");
+      if (assignedMembers.length === 0) {
+        alert("No members selected.");
         return;
       }
   
@@ -122,10 +117,10 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
         description,
         dueDate: new Date(dueDate),
         priority,
-        assignedOfficer,
+        assignedMembers, // Save the array of selected member UIDs
         organizationId,
-        memberId: selectedMember.uid,
       });
+  
       console.log("Task added successfully!");
       alert("Task added successfully!");
       close(); // Close the form upon successful submission
@@ -133,7 +128,6 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
       console.error("Error adding task: ", error);
     }
   };
-  
 
   return (
     <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[0%] top-[0%] z-50">
@@ -207,64 +201,89 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700">Assign Member</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowDropdown(true);
+  <label className="block text-sm font-medium text-gray-700">Assign Members</label>
+  <div
+    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 cursor-pointer flex flex-wrap items-center gap-2"
+    onClick={() => setShowDropdown(!showDropdown)}
+  >
+    {/* Search Bar */}
+    <input
+      type="text"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      placeholder="Search members..."
+      className="flex-grow px-2 py-1 border-none focus:outline-none focus:ring-0"
+      onClick={(e) => e.stopPropagation()} // Prevent dropdown toggle when clicking inside the search bar
+    />
+    {/* Selected Members */}
+    {assignedMembers.length > 0 &&
+      assignedMembers.map((uid) => {
+        const member = approvedMembers.find((m) => m.uid === uid);
+        return (
+          member && (
+            <div
+              key={uid}
+              className="flex items-center bg-purple-100 text-purple-700 px-2 py-1 rounded-md"
+            >
+              <span className="mr-2">{member.fullName}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent dropdown toggle
+                  setAssignedMembers(assignedMembers.filter((id) => id !== uid));
                 }}
-                onFocus={() => setShowDropdown(true)}
-                placeholder="Search member by name or email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setShowDropdown(true);
-                  }}
-                  className="absolute inset-y-0 right-0 mt-1 pr-3 flex items-center cursor-pointer text-gray-400 hover:text-gray-500"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                className="text-red-500 hover:text-red-700"
+              >
+                &times;
+              </button>
             </div>
-            {showDropdown && (
-              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredMembers.map((member) => (
-                  <div
-                    key={member.uid}
-                    onClick={() => {
-                      setAssignedOfficer(member.fullName);
-                      setSearchTerm(member.fullName);
-                      setShowDropdown(false);
-                    }}
-                    className="px-4 py-2 hover:bg-purple-100 cursor-pointer"
-                  >
-                    <div className="font-medium">{member.fullName}</div>
-                    <div className="text-sm text-gray-500">{member.email}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )
+        );
+      })}
+    {/* Dropdown Icon */}
+    <svg
+      className={`w-5 h-5 text-gray-500 transform transition-transform ${
+        showDropdown ? "rotate-180" : ""
+      }`}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </div>
+  {showDropdown && (
+    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+      {/* Member List */}
+      {filteredMembers.map((member) => (
+        <div key={member.uid} className="px-4 py-2 hover:bg-purple-100 cursor-pointer">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={assignedMembers.includes(member.uid)}
+              onChange={() => {
+                if (assignedMembers.includes(member.uid)) {
+                  setAssignedMembers(assignedMembers.filter((uid) => uid !== member.uid));
+                } else {
+                  setAssignedMembers([...assignedMembers, member.uid]);
+                }
+              }}
+              className="form-checkbox text-purple-600"
+            />
+            <span className="font-medium">{member.fullName}</span>
+            <span className="text-sm text-gray-500">({member.email})</span>
+          </label>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
           <div className="flex justify-end space-x-3">
             <button

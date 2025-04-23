@@ -14,6 +14,7 @@ interface Task {
   dueDate: string;
   priority: string;
   assignedOfficer: string;
+  assignedMembers?: string; // Optional property for assigned members
   completed: boolean;
 }
 
@@ -32,41 +33,46 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
     const fetchUserTasks = async () => {
       setLoading(true);
       setError(null);
-
+    
       try {
         const auth = getAuth();
         const user = auth.currentUser;
-
+    
         if (!user) {
           setError("You must be logged in to view tasks.");
           setLoading(false);
           return;
         }
-
+    
         // Fetch user document to get organizationId
         const userDocRef = doc(db, "Users", user.uid);
         const userDoc = await getDoc(userDocRef);
-
+    
         if (!userDoc.exists()) {
           setError("User not found.");
           setLoading(false);
           return;
         }
-
+    
         const userData = userDoc.data();
         const organizationId = userData?.organizationId;
-
+    
         if (!organizationId) {
           setError("Organization ID not found for the user.");
           setLoading(false);
           return;
         }
-
-        // Fetch tasks belonging to the organization
+    
+        // Fetch tasks where the user is either the assignedOfficer or in assignedMembers
         const tasksRef = collection(db, "tasks");
-        const tasksQuery = query(tasksRef, where("organizationId", "==", organizationId));
+        const tasksQuery = query(
+          tasksRef,
+          where("organizationId", "==", organizationId),
+          where("assignedMembers", "array-contains", user.uid) // Check if user is in assignedMembers
+        );
+    
         const tasksSnapshot = await getDocs(tasksQuery);
-
+    
         const taskList = tasksSnapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -76,10 +82,11 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
             dueDate: new Date(data.dueDate.seconds * 1000).toLocaleString(),
             priority: data.priority,
             assignedOfficer: data.assignedOfficer,
+            assignedMembers: data.assignedMembers,
             completed: data.completed || false,
           } as Task;
         });
-
+    
         setTasks(taskList);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
@@ -213,9 +220,16 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
                 <span>Due: {task.dueDate}</span>
               </div>
               <div className="flex items-center gap-2">
-                <GroupIcon className="text-purple-700" />
-                <span>Assigned to: {task.assignedOfficer}</span>
-              </div>
+              <GroupIcon className="text-purple-700" />
+              <span>
+                Assigned to:{" "}
+                {task.assignedMembers
+                  ? Array.isArray(task.assignedMembers) 
+                    ? task.assignedMembers.join(", ") 
+                    : task.assignedMembers 
+                  : task.assignedOfficer || "N/A"}
+              </span>
+            </div>
               <div className="flex items-center gap-2">
                 <PriorityHighIcon className="text-purple-700" />
                 <span>Priority: {task.priority}</span>
