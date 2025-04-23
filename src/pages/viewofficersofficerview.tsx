@@ -1,15 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router"; 
+import { useRouter } from "next/router";
 import { db } from "../firebaseConfig";
-import { collection, doc, getDoc, getDocs, query, where, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  setDoc,
+  serverTimestamp
+} from "firebase/firestore";
 import { auth } from "../firebaseConfig";
 import OfficerSidebar from "../components/officersidebar";
+import Select from "react-select";
 
 const OfficerEditForm: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [officerPositions, setOfficerPositions] = useState({
+  const [officerPositions, setOfficerPositions] = useState<{
+    president: string;
+    vicePresident: string;
+    secretary: string;
+    treasurer: string;
+    auditor: string;
+  }>({
     president: '',
     vicePresident: '',
     secretary: '',
@@ -17,10 +33,10 @@ const OfficerEditForm: React.FC = () => {
     auditor: ''
   });
   const [organizationId, setOrganizationId] = useState<string>("");
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
 
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
-  // Fetch the current user and their organization details
   useEffect(() => {
     const getUser = async () => {
       const currentUser = auth.currentUser;
@@ -48,6 +64,25 @@ const OfficerEditForm: React.FC = () => {
                 auditor: officersData.auditor || ''
               });
             }
+
+            const membersQuery = query(collection(db, "Members"), where("organizationId", "==", orgId));
+            const membersSnapshot = await getDocs(membersQuery);
+
+            const memberList: { id: string; name: string }[] = [];
+            for (const memberDoc of membersSnapshot.docs) {
+              const memberData = memberDoc.data();
+              const userUid = memberData.uid;
+
+              const userDoc = await getDoc(doc(db, "Users", userUid));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                memberList.push({
+                  id: userUid,
+                  name: userData.fullName || userData.email || "Unnamed User",
+                });
+              }
+            }
+            setMembers(memberList);
           }
         } catch (err) {
           console.error("Error fetching data:", err);
@@ -114,6 +149,7 @@ const OfficerEditForm: React.FC = () => {
       </div>
     );
   }
+
   return (
     <div className="flex bg-white">
       <OfficerSidebar />
@@ -144,19 +180,22 @@ const OfficerEditForm: React.FC = () => {
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 {label}:
               </label>
-              <input
-                type="text"
-                value={officerPositions[key as keyof typeof officerPositions]}
-                onChange={(e) => setOfficerPositions(prev => ({
-                  ...prev,
-                  [key]: e.target.value
-                }))}
-                className="w-full p-2 border rounded-md"
-                placeholder={`Enter ${label}'s Name`}
+              <Select
+                options={members.map((m) => ({ label: m.name, value: m.id }))}  // Use 'id' (UID) as value
+                value={{
+                  label: members.find((m) => m.id === officerPositions[key as keyof typeof officerPositions])?.name || '',
+                  value: officerPositions[key as keyof typeof officerPositions]
+                }}
+                onChange={(option) =>
+                  setOfficerPositions((prev) => ({
+                    ...prev,
+                    [key]: option?.value || '',  // Save 'uid' as value
+                  }))
+                }
               />
             </div>
           ))}
-          
+
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"

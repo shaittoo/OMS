@@ -94,10 +94,25 @@ const AcceptMembers: React.FC = () => {
   const handleApproval = async (memberId: string, newStatus: "approved" | "rejected") => {
     try {
       const memberDocRef = doc(db, "Members", memberId);
-      await updateDoc(memberDocRef,
-         { status: newStatus,
-          seenByUser: false //for notification purposes
-          });
+      const memberSnap = await getDoc(memberDocRef);
+  
+      if (!memberSnap.exists()) {
+        console.error("Member document not found.");
+        return;
+      }
+  
+      const memberData = memberSnap.data();
+      const uid = memberData.uid;
+  
+      const userDoc = await getDoc(doc(db, "Users", uid));
+      const fullName = userDoc.exists() ? userDoc.data().fullName || "Unknown" : "Unknown";
+  
+      await updateDoc(memberDocRef, {
+        status: newStatus,
+        seenByUser: false,
+        fullName: fullName, 
+      });
+  
 
       setMembers((prevMembers) =>
         prevMembers.filter((member) => member.id !== memberId)
