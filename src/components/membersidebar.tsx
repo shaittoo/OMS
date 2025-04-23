@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import InfoIcon from "@mui/icons-material/Info";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import SettingsIcon from "@mui/icons-material/Settings";
-import { auth, db } from "../firebaseConfig"; // Import your firebase config
+import { auth, db } from "../firebaseConfig"; 
 import {
   collection,
   getDocs,
@@ -15,6 +16,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import MemberProfileSettings from "./memberprofilesettings";
+import ApplicationStatusLink from "./AppStatusLink";
 
 const MemberSidebar: React.FC = () => {
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
@@ -44,7 +46,7 @@ const MemberSidebar: React.FC = () => {
         if (orgData) {
           orgs.push({
             ...orgData,
-            id: orgId // Store the organization ID
+            id: orgId
           });
         }
       }
@@ -89,6 +91,11 @@ const MemberSidebar: React.FC = () => {
           <DashboardIcon />
           <span className="ml-3 text-md font-medium">Dashboard</span>
         </Link>
+      
+      {/*application status*/}
+        <ApplicationStatusLink/>
+
+
         {userOrganizations.map((org, index) => (
           <div 
             key={index} 

@@ -88,7 +88,10 @@ const AcceptMembers: React.FC = () => {
   const handleApproval = async (memberId: string, newStatus: "approved" | "rejected") => {
     try {
       const memberDocRef = doc(db, "Members", memberId);
-      await updateDoc(memberDocRef, { status: newStatus });
+      await updateDoc(memberDocRef,
+         { status: newStatus,
+          seenByUser: false //for notification purposes
+          });
 
       setMembers((prevMembers) =>
         prevMembers.filter((member) => member.id !== memberId)
@@ -112,6 +115,7 @@ const AcceptMembers: React.FC = () => {
         status: "rejected",
         rejectionReason: rejectionReason,
         rejectionDetails: rejectionDetails,
+        seenByUser: false //for notification purposes
       });
 
       setMembers((prevMembers) =>
