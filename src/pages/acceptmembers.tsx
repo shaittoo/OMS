@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
+import { useRouter } from "next/router"; 
 import { collection, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
@@ -26,6 +27,8 @@ const AcceptMembers: React.FC = () => {
   const [customOtherReason, setCustomOtherReason] = useState("");
 
 
+
+  const router = useRouter();
 
   const fetchPendingMembers = async () => {
     while (!user){
@@ -155,7 +158,13 @@ const AcceptMembers: React.FC = () => {
       <OfficerSidebar />
 
       <div className="flex flex-col bg-[#F3E8FF] min-h-screen w-full bg-white ">
-        <header className="bg-white p-7 text-black ">
+        <header className="bg-white p-7 text-black flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
+          >
+            &#8592;
+          </button>
           <h1 className="text-3xl font-bold">Manage Member Requests</h1>
         </header>
 

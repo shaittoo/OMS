@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router"; 
 import { db } from "../firebaseConfig";
 import { collection, doc, getDoc, getDocs, query, where, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth } from "../firebaseConfig"; // Assuming you use Firebase Auth
+import { auth } from "../firebaseConfig";
 import OfficerSidebar from "../components/officersidebar";
 
 const OfficerEditForm: React.FC = () => {
@@ -17,27 +18,25 @@ const OfficerEditForm: React.FC = () => {
   });
   const [organizationId, setOrganizationId] = useState<string>("");
 
+  const router = useRouter(); // Initialize useRouter
+
   // Fetch the current user and their organization details
   useEffect(() => {
     const getUser = async () => {
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.uid) {
         try {
-          // Get user document directly using uid
           const userDoc = await getDoc(doc(db, "Users", currentUser.uid));
-          
           if (userDoc.exists()) {
             const userData = userDoc.data();
             const orgId = userData.organizationId;
             setOrganizationId(orgId);
 
-            // Get organization name
             const orgDoc = await getDoc(doc(db, "Organizations", orgId));
             if (orgDoc.exists()) {
               setOrganizationName(orgDoc.data().name);
             }
 
-            // Get existing officers data if any
             const officersDoc = await getDoc(doc(db, "officers", orgId));
             if (officersDoc.exists()) {
               const officersData = officersDoc.data();
@@ -75,7 +74,6 @@ const OfficerEditForm: React.FC = () => {
         throw new Error("No user logged in");
       }
 
-      // Get user's organization ID
       const usersRef = collection(db, "Users");
       const userQuery = query(usersRef, where("email", "==", currentUser.email));
       const userDocs = await getDocs(userQuery);
@@ -85,8 +83,7 @@ const OfficerEditForm: React.FC = () => {
       }
 
       const organizationId = userDocs.docs[0].data().organizationId;
-      
-      // Prepare the data
+
       const officerData = {
         president: officerPositions.president,
         vicePresident: officerPositions.vicePresident,
@@ -97,7 +94,6 @@ const OfficerEditForm: React.FC = () => {
         updatedAt: serverTimestamp()
       };
 
-      // Save to Firestore
       const officerRef = doc(db, "officers", organizationId);
       await setDoc(officerRef, officerData);
 
@@ -122,11 +118,16 @@ const OfficerEditForm: React.FC = () => {
     <div className="flex bg-white">
       <OfficerSidebar />
       <main className="main-content flex-grow p-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2 text-black">
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => router.back()}
+            className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
+          >
+            &#8592;
+          </button>
+          <h1 className="text-3xl font-bold text-black">
             Edit Officers of {organizationName}
           </h1>
-          <hr className="border-t-2 border-gray mb-6" />
         </div>
 
         {error && <div className="text-red-500 mb-4">{error}</div>}

@@ -5,6 +5,7 @@ import { getAuth } from "firebase/auth";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import { useRouter } from "next/router";
 
 interface Task {
   id: string;
@@ -16,12 +17,16 @@ interface Task {
   completed: boolean;
 }
 
-const TaskList: React.FC = () => {
+interface TaskListProps {
+  showBackButton?: boolean; // Optional prop to show the Back button
+}
+
+const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("All"); 
-  
+  const [activeTab, setActiveTab] = useState<string>("All");
+  const router = useRouter(); // Initialize useRouter
 
   useEffect(() => {
     const fetchUserTasks = async () => {
@@ -131,18 +136,32 @@ const TaskList: React.FC = () => {
         gap: "8px",
       }}
     >
-        <div className="header flex justify-between items-center mb-4" style={{ position: 'relative' }}>
-        <h1 className="font-bold text-2xl text-purple-700 z-10">
-          Assigned Tasks
-        </h1>
- 
+      <div
+        className="header flex justify-between items-center mb-4"
+        style={{ position: "relative" }}
+      >
+        <div className="flex items-center">
+          {/* Conditionally render the Back Button */}
+          {showBackButton && (
+            <button
+              onClick={() => router.back()}
+              className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
+            >
+              &#8592;
+            </button>
+          )}
+          <h1 className="font-bold text-2xl text-purple-700 z-10">
+            Assigned Tasks
+          </h1>
+        </div>
+
         {/* Filter Dropdown */}
         <div
           className="filter-dropdown"
           style={{
-            position: 'absolute',
-            right: 0, 
-            zIndex: 20,  
+            position: "absolute",
+            right: 0,
+            zIndex: 20,
           }}
         >
           <select
@@ -157,7 +176,6 @@ const TaskList: React.FC = () => {
           </select>
         </div>
       </div>
-
 
       <hr className="border-purple-700 border-1" />
       <div className="task-list flex flex-col gap-2">

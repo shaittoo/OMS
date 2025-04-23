@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router"; 
 import { db, auth } from "../firebaseConfig";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import OfficerSidebar from "../components/officersidebar";
@@ -15,6 +16,8 @@ const ViewOfficers: React.FC = () => {
     treasurer: '',
     auditor: ''
   });
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchOfficers = async () => {
@@ -89,26 +92,30 @@ const ViewOfficers: React.FC = () => {
       <OfficerSidebar />
       <main className="main-content flex-grow p-6">
       <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center mb-2">
+            <button
+              onClick={() => router.back()}
+              className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
+            >
+              &#8592;
+            </button>
             <h1 className="text-3xl font-bold text-black">
               Officers of {organizationName}
             </h1>
-            <Link href="/viewofficersofficerview">
-              <button
-                className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
-              >
+            <Link href="/viewofficersofficerview" className="ml-auto">
+              <button className="text-blue-600 hover:text-blue-800 font-medium flex items-center">
                 <span>Edit Officers</span>
-                <svg 
-                  className="w-5 h-5 ml-1" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-5 h-5 ml-1"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                   />
                 </svg>
               </button>
