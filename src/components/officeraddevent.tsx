@@ -6,6 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { s3Client } from "./awsConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
+import { toast } from "react-hot-toast";
 
 interface OfficerAddEventProps {
   close: () => void;
@@ -125,19 +126,23 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
         eventPrice: isFree ? 0 : parseFloat(eventPrice),
         isOpenForAll,
         tags: tags.split(",").map((tag) => tag.trim()),
-        status,
+        status: "pending",
         eventLocation,
         eventImages: imageUrls,
-        organizationId, 
+        organizationId,
+        organizationVerified: true,
+        createdAt: new Date(),
         likes: 0,
         interested: 0,
       });
   
-      alert("Event added successfully!");
+      toast.success("Event submitted for approval! You'll be notified once it's reviewed.", {
+        duration: 5000,
+      });
       close();
     } catch (error) {
       console.error("Error adding event:", error);
-      alert("An error occurred while adding the event. Please try again.");
+      toast.error("An error occurred while adding the event. Please try again.");
     }
   };  
 

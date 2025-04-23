@@ -25,7 +25,18 @@ function Login() {
       if (userData?.role === "member") {
         router.push("/memberpage");
       } else if (userData?.role === "organization") {
+        // Check organization status
+        const orgDoc = await getDoc(doc(db, "Organizations", userData.organizationId));
+        const orgData = orgDoc.data();
+        
+        if (orgData?.status === "pending") {
+          router.push("/registration-submitted");
+          return;
+        }
+        
         router.push("/orgpage");
+      } else if (userData?.role === "admin") {
+        router.push("/admin/dashboard");
       } else {
         router.push("/restrictedpage");
       }
