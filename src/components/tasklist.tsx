@@ -13,7 +13,7 @@ interface Task {
   description: string;
   dueDate: string;
   priority: string;
-  assignedOfficer: string;
+  assignedMembers: string[]; // Updated to handle multiple assigned members
   completed: boolean;
 }
 
@@ -29,57 +29,83 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
   const router = useRouter(); // Initialize useRouter
 
   useEffect(() => {
-    const fetchUserTasks = async () => {
+    const fetchOrganizationTasks = async () => {
       setLoading(true);
       setError(null);
-
+  
       try {
         const auth = getAuth();
         const user = auth.currentUser;
-
+  
         if (!user) {
           setError("You must be logged in to view tasks.");
           setLoading(false);
           return;
         }
-
+  
         // Fetch user document to get organizationId
         const userDocRef = doc(db, "Users", user.uid);
         const userDoc = await getDoc(userDocRef);
-
+  
         if (!userDoc.exists()) {
           setError("User not found.");
           setLoading(false);
           return;
         }
-
+  
         const userData = userDoc.data();
         const organizationId = userData?.organizationId;
-
+  
         if (!organizationId) {
           setError("Organization ID not found for the user.");
           setLoading(false);
           return;
         }
-
-        // Fetch tasks belonging to the organization
+  
+        // Fetch all tasks for the organization
         const tasksRef = collection(db, "tasks");
-        const tasksQuery = query(tasksRef, where("organizationId", "==", organizationId));
+        const tasksQuery = query(
+          tasksRef,
+          where("organizationId", "==", organizationId) // Fetch all tasks for the organization
+        );
+  
         const tasksSnapshot = await getDocs(tasksQuery);
-
-        const taskList = tasksSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            taskName: data.taskName,
-            description: data.description,
-            dueDate: new Date(data.dueDate.seconds * 1000).toLocaleString(),
-            priority: data.priority,
-            assignedOfficer: data.assignedOfficer,
-            completed: data.completed || false,
-          } as Task;
-        });
-
+  
+        const taskList = await Promise.all(
+          tasksSnapshot.docs.map(async (taskDoc) => {
+            const data = taskDoc.data();
+        
+            const memberNames = await Promise.all(
+              (data.assignedMembers || []).map(async (uid: string) => {
+                try {
+                  const userDocRef = doc(db, "Users", uid); 
+                  const userDoc = await getDoc(userDocRef);
+                  if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    return userData.fullName || "Unknown Member";
+                  }
+                } catch (error) {
+                  console.error("Error fetching member details:", error);
+                }
+                return "Unknown Member";
+              })
+            );
+        
+            return {
+              id: taskDoc.id,
+              taskName: data.taskName,
+              description: data.description,
+              dueDate: data.dueDate
+                ? new Date(data.dueDate.seconds * 1000).toLocaleString()
+                : "No due date",
+              priority: data.priority,
+              assignedMembers: memberNames,
+              completed: data.completed || false,
+            } as Task;
+          })
+        );
+        
+  
         setTasks(taskList);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
@@ -88,10 +114,10 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
         setLoading(false);
       }
     };
-
-    fetchUserTasks();
+  
+    fetchOrganizationTasks();
   }, []);
-
+  
   const handleCheckbox = async (taskId: string, completed: boolean) => {
     try {
       const taskRef = doc(db, "tasks", taskId);
@@ -103,7 +129,7 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
         )
       );
     } catch (err) {
-      setError("error updating status for task");
+      setError("Error updating status for task");
     }
   };
 
@@ -122,7 +148,7 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
       return <p className="text-gray-700">All tasks completed.</p>;
     }
     if (activeTab === "All" && filteredTasks.length === 0) {
-      return <p className="text-gray-700">No tasks assigned yet.</p>;
+      return <p className="text-gray-700">No tasks available for this organization.</p>;
     }
   };
 
@@ -151,7 +177,7 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
             </button>
           )}
           <h1 className="font-bold text-2xl text-purple-700 z-10">
-            Assigned Tasks
+            Organization Tasks
           </h1>
         </div>
 
@@ -179,56 +205,64 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
 
       <hr className="border-purple-700 border-1" />
       <div className="task-list flex flex-col gap-2">
-        {loading && 
-                    <div className="flex justify-center items-center h-screen">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                  </div>}
+        {loading && (
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        )}
         {error && <p className="text-gray-700">{error}</p>}
         {noTasksMessage()}
-        {!loading && !error && filteredTasks.map((task) => (
-          <div
-            key={task.id}
-            className="task-item bg-gray-100 p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
-            style={{
-              wordWrap: "break-word",
-              textDecoration: task.completed ? "line-through" : "none", //strike through
-              opacity: task.completed ? 0.6 : 1
-            }}
-          >
-            {/* Task Name and Checkbox */}
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => handleCheckbox(task.id, task.completed)}
-                className="cursor-pointer transform scale-125"
-              />
-              <h3 className="font-semibold text-md text-purple-700">{task.taskName}</h3>
+        {!loading &&
+          !error &&
+          filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              className="task-item bg-gray-100 p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
+              style={{
+                wordWrap: "break-word",
+                textDecoration: task.completed ? "line-through" : "none", // Strike-through for completed tasks
+                opacity: task.completed ? 0.6 : 1,
+              }}
+            >
+              {/* Task Name and Checkbox */}
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => handleCheckbox(task.id, task.completed)}
+                  className="cursor-pointer transform scale-125"
+                />
+                <h3 className="font-semibold text-md text-purple-700">{task.taskName}</h3>
+              </div>
+
+              {/* Due Date, Assigned Members, and Priority */}
+              <div className="flex gap-4 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <CalendarTodayIcon className="text-purple-700" />
+                  <span>Due: {task.dueDate}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <GroupIcon className="text-purple-700" />
+                  <span>
+                    Assigned to:{" "}
+                    {task.assignedMembers.length > 0
+                      ? task.assignedMembers.join(", ")
+                      : "No members assigned"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <PriorityHighIcon className="text-purple-700" />
+                  <span>Priority: {task.priority}</span>
+                </div>
+              </div>
+
+              {/* Task Description */}
+              <p className="mt-2 text-gray-500 text-sm">{task.description}</p>
+
+              {/* Purple Horizontal Line */}
+              <hr className="mt-2 border-purple-700 border-2" />
             </div>
-
-            {/* Due Date, Assigned Officer, and Priority */}
-            <div className="flex gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <CalendarTodayIcon className="text-purple-700" />
-                <span>Due: {task.dueDate}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <GroupIcon className="text-purple-700" />
-                <span>Assigned to: {task.assignedOfficer}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <PriorityHighIcon className="text-purple-700" />
-                <span>Priority: {task.priority}</span>
-              </div>
-            </div>
-
-            {/* Task Description */}
-            <p className="mt-2 text-gray-500 text-sm">{task.description}</p>
-
-            {/* Purple Horizontal Line */}
-            <hr className="mt-2 border-purple-700 border-2" />
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );
