@@ -53,7 +53,7 @@ const rejectionReasons = {
 };
 
 const getRejectionReasonLabel = (reason: keyof typeof rejectionReasons) => {
-  return rejectionReasons[reason] || "Unknown Reason"; // Fallback in case of an undefined reason
+  return rejectionReasons[reason] || "Unknown Reason"; 
 };
 
 
