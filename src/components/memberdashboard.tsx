@@ -166,7 +166,7 @@ const MemberDashboard: React.FC = () => {
             style={{ fontSize: "16px", fontFamily: "Arial" }}
           >
             {" "}
-            Check out what's trending...
+            Trending Events
           </p>
           <div style={{width: '90%'}}>
             <MemberEventList/>

@@ -26,6 +26,7 @@ interface Event {
   isOpenForAll: boolean;
   status: string;
   tags: string[];
+  isPastEvent: boolean;
 }
 
 interface MemberEventListProps {
@@ -136,11 +137,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             }
           }
 
+          const eventDate = data.eventDate ? new Date(data.eventDate.seconds * 1000) : null;
+          const isPastEvent = eventDate ? eventDate < new Date() : false;
+
           return {
             id: eventDoc.id,
             eventName: data.eventName || "Untitled Event",
             eventDescription: data.eventDescription || "",
-            eventDate: data.eventDate ? new Date(data.eventDate.seconds * 1000).toISOString() : "",
+            eventDate: eventDate ? eventDate.toISOString() : "",
             eventLocation: data.eventLocation || "",
             eventPrice: data.eventPrice || "Free",
             eventImages: data.eventImages || [],
@@ -150,9 +154,20 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             interested: data.interested || [],
             isOpenForAll: data.isOpenForAll || false,
             status: data.status || "active",
-            tags: data.tags || []
-          } as Event;
+            tags: data.tags || [],
+            isPastEvent: isPastEvent
+          } as Event & { isPastEvent: boolean };
         }));
+
+        // Only filter out past events if not in organization view
+        if (!organizationId) {
+          const currentDate = new Date();
+          eventsList = eventsList.filter(event => {
+            if (!event.eventDate) return false;
+            const eventDate = new Date(event.eventDate);
+            return eventDate >= currentDate;
+          });
+        }
 
         // Sort events by likes count (descending) and then by date
         eventsList.sort((a, b) => {
@@ -168,30 +183,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
         // Always take top 4 events with highest likes
         eventsList = eventsList.slice(0, 4);
-
-        // If we have less than 4 events, pad with empty events
-        if (eventsList.length < 4) {
-          const emptyEvent = {
-            id: "empty",
-            eventName: "No Event",
-            eventDescription: "There are no more events at this time.",
-            eventDate: "",
-            eventLocation: "",
-            eventPrice: "",
-            eventImages: [],
-            organizationId: "",
-            organizationName: "",
-            likes: [],
-            interested: [],
-            isOpenForAll: false,
-            status: "active",
-            tags: []
-          };
-          
-          while (eventsList.length < 4) {
-            eventsList.push({ ...emptyEvent, id: `empty-${eventsList.length}` });
-          }
-        }
 
         console.log("Final processed events list:", eventsList);
         setEvents(eventsList);
@@ -291,8 +282,9 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             interested: data.interested || [],
             isOpenForAll: data.isOpenForAll || false,
             status: data.status || "active",
-            tags: data.tags || []
-          } as Event;
+            tags: data.tags || [],
+            isPastEvent: false
+          } as Event & { isPastEvent: boolean };
         });
 
         eventsList.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
@@ -331,8 +323,9 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       {!loading && error && <div>{error}</div>}
 
       {!loading && !error && events.length === 0 && (
-        <div className="text-gray-500 text-center py-8">
-          No events found.
+        <div className="text-center py-8">
+          <div className="text-gray-500 text-lg mb-2">No events available</div>
+          <div className="w-24 h-px bg-gray-300 mx-auto"></div>
         </div>
       )}
       
@@ -341,7 +334,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           <div className="space-y-2">
             {/* Show all events when in organization view or when userOrganizations is available */}
             {(organizationId || userOrganizations.length > 0 ? events : events.slice(0, 4)).map((event) => (
-              <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.id.startsWith('empty-') ? 'opacity-50' : ''}`}>
+              <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
                 <div className="flex p-3">
                   {/* Event Image */}
                   <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
@@ -371,6 +364,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                         {!organizationId && (
                           <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
                             {event.organizationName}
+                          </span>
+                        )}
+                        {event.isPastEvent && (
+                          <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded flex-shrink-0">
+                            Completed
                           </span>
                         )}
                       </div>
@@ -440,6 +438,13 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
               </div>
             ))}
           </div>
+          {events.length > 0 && events.length < 4 && (
+            <div className="text-center mt-4">
+              <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
+                <p className="text-gray-600 text-sm">That's all the events for now!</p>
+              </div>
+            </div>
+          )}
           {!organizationId && events.length > 4 && (
             <Link href="/memberviewevents">
               <p className="text-right text-sm text-purple-600 hover:text-purple-800 mt-2 cursor-pointer">
