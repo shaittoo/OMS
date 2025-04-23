@@ -12,6 +12,7 @@ import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ViewEvent from "../components/viewEvent";
 
 interface Event {
   uid: string;
@@ -92,7 +93,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
     if (filterValue === "most") return "↑";
     return "-";
   };
-
+  
   return (
     <div className="relative flex items-center bg-white p-4 rounded-md mt-6 shadow-lg border border-gray-300 justify-center">
       <div className="relative flex-grow">
@@ -147,7 +148,18 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
   const [interested, setInterested] = useState(event.isInterested);
   const [liked, setLiked] = useState(event.isLiked);
-  
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleViewEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
+  };
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
+  };
+
   useEffect(() => {
     const fetchOrganizationName = async () => {
       if (event.organizationId) {
@@ -209,33 +221,42 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4">
-      {event.eventImages && event.eventImages.length > 0 ? (
-        <img
-          src={event.eventImages[event.eventImages.length - 1]}
-          alt={event.eventImages[event.eventImages.length - 1]}
-          className="w-full h-48 object-cover rounded-md"
-        />
-      ) : (
-        <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
-          <p className="text-gray-500">No Image Available</p>
-        </div>
-      )}
-      <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-      <p className="text-gray-600 mt-2">
-        {truncateText(event.eventDescription)}
-      </p>
-      <p className="text-gray-500 mt-2">
-        <CorporateFareIcon />
-        &nbsp; {orgName}
-      </p>
-      <p className="text-gray-400 mt-2">
-        <EventIcon />
-        &nbsp;
-        {event.eventDate instanceof Date
-          ? event.eventDate.toLocaleDateString()
-          : event.eventDate}
-      </p>
+    <div className="bg-white shadow-md rounded-lg p-4 mb-4 hover:shadow-lg">
+      <div onClick={() => handleViewEventClick(event)}>
+        {event.eventImages && event.eventImages.length > 0 ? (
+          <img
+            src={event.eventImages[event.eventImages.length - 1]}
+            alt={event.eventImages[event.eventImages.length - 1]}
+            className="w-full h-48 object-cover rounded-md"
+          />
+        ) : (
+          <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
+            <p className="text-gray-500">No Image Available</p>
+          </div>
+        )}
+        <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
+        <p className="text-gray-600 mt-2">
+          {truncateText(event.eventDescription)}
+        </p>
+        <p className="text-gray-500 mt-2">
+          <CorporateFareIcon />
+          &nbsp; {orgName}
+        </p>
+        <p className="text-gray-400 mt-2">
+          <EventIcon />
+          &nbsp;
+          {event.eventDate instanceof Date
+            ? event.eventDate.toLocaleDateString()
+            : event.eventDate}
+        </p>
+      </div>
+      
+      {isViewEventOpen && selectedEvent && (
+        <ViewEvent 
+          close={handleCloseEventClick} 
+          event={selectedEvent}
+          orgName={orgName}
+          />)}
 
       <div className="flex items-center mt-4">
         <div
