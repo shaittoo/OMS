@@ -10,6 +10,11 @@ import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import Link from "next/link";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import toast, { Toaster } from 'react-hot-toast';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import InfoIcon from '@mui/icons-material/Info';
 
 interface Event {
   id: string;
@@ -219,88 +224,149 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     const userRef = doc(db, "Users", user.uid);
     const eventRef = doc(db, "events", eventId);
   
-    // Prepare the object to update user's event lists based on the action
-    const updatedUserEvents: { [key: string]: any } = {};
-  
-    if (action === "like") {
-      updatedUserEvents.likedEvents = arrayUnion(eventId);
-      updatedUserEvents.interestedEvents = arrayRemove(eventId);
-    } else if (action === "interest") {
-      updatedUserEvents.interestedEvents = arrayUnion(eventId);
-      updatedUserEvents.likedEvents = arrayRemove(eventId);
-    }
-  
-    // Update the user's document in Firestore
-    await updateDoc(userRef, updatedUserEvents);
-  
-    // Update the event's interactions (like, interested)
-    await updateDoc(eventRef, {
-      likes: action === "like" ? arrayUnion(user.uid) : arrayRemove(user.uid),
-      interested: action === "interest" ? arrayUnion(user.uid) : arrayRemove(user.uid),
-    });
-  
-    // Refresh the events list
-    const fetchEvents = async () => {
-      setLoading(true);
-      setError(null);
+    try {
+      // Update the event's interactions (like, interested)
+      await updateDoc(eventRef, {
+        likes: action === "like" ? arrayUnion(user.uid) : arrayRemove(user.uid),
+        interested: action === "interest" ? arrayUnion(user.uid) : arrayRemove(user.uid),
+      });
 
-      try {
-        let eventsQuery;
-        
-        if (organizationId) {
-          eventsQuery = query(
-            collection(db, "events"),
-            where("organizationId", "==", organizationId)
-          );
-        } 
-        else if (userOrganizations.length > 0) {
-          eventsQuery = query(
-            collection(db, "events"),
-            where("organizationId", "in", userOrganizations)
-          );
+      // Update local state to reflect changes immediately
+      setEvents(currentEvents => 
+        currentEvents.map(event => {
+          if (event.id === eventId) {
+            const updatedEvent = { ...event };
+            if (action === "like") {
+              if (event.likes.includes(user.uid)) {
+                updatedEvent.likes = event.likes.filter(id => id !== user.uid);
+              } else {
+                updatedEvent.likes = [...event.likes, user.uid];
+              }
+            } else if (action === "interest") {
+              if (event.interested.includes(user.uid)) {
+                updatedEvent.interested = event.interested.filter(id => id !== user.uid);
+              } else {
+                updatedEvent.interested = [...event.interested, user.uid];
+              }
+            }
+            return updatedEvent;
+          }
+          return event;
+        })
+      );
+
+      // Update user's event lists
+      const updatedUserEvents: { [key: string]: any } = {};
+      if (action === "like") {
+        if (events.find(e => e.id === eventId)?.likes.includes(user.uid)) {
+          updatedUserEvents.likedEvents = arrayRemove(eventId);
         } else {
-          setEvents([]);
-          setLoading(false);
-          return;
+          updatedUserEvents.likedEvents = arrayUnion(eventId);
         }
-        
-        const eventsSnapshot = await getDocs(eventsQuery);
-
-        const eventsList = eventsSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            eventName: data.eventName || "Untitled Event",
-            eventDescription: data.eventDescription || "",
-            eventDate: data.eventDate ? new Date(data.eventDate.seconds * 1000).toISOString() : "",
-            eventLocation: data.eventLocation || "",
-            eventPrice: data.eventPrice || "Free",
-            eventImages: data.eventImages || [],
-            organizationId: data.organizationId || "",
-            organizationName: data.organizationName || "Unknown Organization",
-            likes: data.likes || [],
-            interested: data.interested || [],
-            isOpenForAll: data.isOpenForAll || false,
-            status: data.status || "active",
-            tags: data.tags || [],
-            isPastEvent: false
-          } as Event & { isPastEvent: boolean };
-        });
-
-        eventsList.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
-        setEvents(eventsList);
-      } catch (error) {
-        console.error("Error refreshing events:", error);
-      } finally {
-        setLoading(false);
+      } else if (action === "interest") {
+        if (events.find(e => e.id === eventId)?.interested.includes(user.uid)) {
+          updatedUserEvents.interestedEvents = arrayRemove(eventId);
+        } else {
+          updatedUserEvents.interestedEvents = arrayUnion(eventId);
+        }
       }
-    };
+      await updateDoc(userRef, updatedUserEvents);
 
-    fetchEvents();
+    } catch (error) {
+      console.error("Error updating event interaction:", error);
+      showToast('error', `Failed to update ${action} status`);
+    }
   };
 
   const truncateText = (text: string | undefined) => {
     return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
+  };
+
+  const showToast = (type: 'success' | 'error' | 'info', message: string) => {
+    const toastOptions = {
+      duration: 3000,
+      style: {
+        padding: '16px',
+        borderRadius: '10px',
+        background: '#ffffff',
+        color: '#1a1a1a',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        fontSize: '14px',
+        maxWidth: '350px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        border: type === 'success' ? '1px solid #4CAF50' :
+               type === 'error' ? '1px solid #FF5733' :
+               '1px solid #6B46C1'
+      },
+      icon: type === 'success' ? <CheckCircleIcon style={{ color: '#4CAF50' }} /> :
+            type === 'error' ? <ErrorIcon style={{ color: '#FF5733' }} /> :
+            <InfoIcon style={{ color: '#6B46C1' }} />
+    };
+
+    switch (type) {
+      case 'success':
+        toast.success(message, {
+          ...toastOptions,
+          className: 'border-l-4 border-l-green-500'
+        });
+        break;
+      case 'error':
+        toast.error(message, {
+          ...toastOptions,
+          className: 'border-l-4 border-l-red-500'
+        });
+        break;
+      case 'info':
+        toast(message, {
+          ...toastOptions,
+          className: 'border-l-4 border-l-purple-600'
+        });
+        break;
+    }
+  };
+
+  const handleAddToCalendar = async (event: Event) => {
+    if (!event.eventDate) return;
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      // Get user's calendar events
+      const userRef = doc(db, "Users", user.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      const calendarEvents = userData?.calendarEvents || [];
+
+      // Check if event is already in calendar
+      if (calendarEvents.some((e: any) => e.id === event.id)) {
+        showToast('info', 'This event is already in your calendar');
+        return;
+      }
+
+      // Add event to calendar
+      const newCalendarEvent = {
+        id: event.id,
+        title: event.eventName,
+        start: event.eventDate,
+        description: event.eventDescription,
+        location: event.eventLocation,
+        organizationName: event.organizationName,
+        organizationId: event.organizationId
+      };
+
+      await updateDoc(userRef, {
+        calendarEvents: arrayUnion(newCalendarEvent)
+      });
+
+      showToast('success', 'Event added to your calendar');
+    } catch (error) {
+      console.error("Error adding event to calendar:", error);
+      showToast('error', 'Failed to add event to calendar');
+    }
   };
 
   if (loading) {
@@ -314,6 +380,21 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
   return (
     <div>
+      <Toaster 
+        position="bottom-right"
+        toastOptions={{
+          // Default options for all toasts
+          className: '',
+          style: {
+            maxWidth: '350px',
+          },
+        }}
+        containerStyle={{
+          bottom: 40,
+          right: 40,
+          fontSize: '14px',
+        }}
+      />
       {loading && (
         <div className="flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -431,6 +512,13 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                         <span>
                           {event.interested.includes(auth.currentUser?.uid || "") ? "Interested" : "Interested?"}
                         </span>
+                      </button>
+                      <button
+                        className="flex items-center text-xs text-blue-600 hover:text-blue-800"
+                        onClick={() => handleAddToCalendar(event)}
+                      >
+                        <CalendarMonthIcon fontSize="small" />
+                        <span className="ml-1">Add to Calendar</span>
                       </button>
                     </div>
                   </div>
