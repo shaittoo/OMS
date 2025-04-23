@@ -3,13 +3,24 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { getAuth } from "firebase/auth";
 import { db } from "../firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
-// Define Task type (adjust based on your actual task structure)
+// Define Event type
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  description?: string;
+  location?: string;
+  organizationName?: string;
+  organizationId?: string;
+  isTask?: boolean;
+}
+
 interface Task {
   id: string;
   taskName: string;
-  dueDate: string; // Due date as a string in a readable format
+  dueDate: string;
 }
 
 interface CalendarProps {
@@ -17,13 +28,12 @@ interface CalendarProps {
 }
 
 export default function Calendar({ organizationId }: CalendarProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetching tasks and mapping them to FullCalendar format
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchEventsAndTasks = async () => {
       setLoading(true);
       setError(null);
 
@@ -31,64 +41,78 @@ export default function Calendar({ organizationId }: CalendarProps) {
       const user = auth.currentUser;
 
       if (!user) {
-        setError("You must be logged in to view tasks.");
+        setError("You must be logged in to view the calendar.");
         setLoading(false);
         return;
       }
 
       try {
+        // Fetch user's calendar events
+        const userRef = doc(db, "Users", user.uid);
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+        const calendarEvents = userData?.calendarEvents || [];
+
+        // Filter events based on organizationId if provided
+        let filteredEvents = organizationId 
+          ? calendarEvents.filter((event: CalendarEvent) => event.organizationId === organizationId)
+          : calendarEvents;
+
+        // Fetch tasks
         let tasksQuery;
-        
         if (organizationId) {
           tasksQuery = query(
             collection(db, "tasks"),
             where("organizationId", "==", organizationId)
           );
         } else {
+          // If no organizationId is provided, fetch user's personal tasks
           tasksQuery = query(
             collection(db, "tasks"),
             where("memberId", "==", user.uid)
           );
         }
-        
         const tasksSnapshot = await getDocs(tasksQuery);
 
-        const memTaskList = tasksSnapshot.docs.map((doc) => {
+        const tasksList = tasksSnapshot.docs.map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
-            taskName: data.taskName,
-            dueDate: new Date(data.dueDate.seconds * 1000).toISOString(), // Convert to ISO string
-          } as Task;
+            title: data.taskName,
+            start: new Date(data.dueDate.seconds * 1000).toISOString(),
+            isTask: true,
+            organizationId: data.organizationId,
+            backgroundColor: '#FF5733', // Different color for tasks
+            borderColor: '#FF5733',
+            textColor: 'white',
+            display: 'block'
+          };
         });
 
-        setTasks(memTaskList);
+        // Combine filtered events and tasks
+        const allEvents = [
+          ...filteredEvents.map((event: CalendarEvent) => ({
+            ...event,
+            backgroundColor: '#4CAF50', // Different color for events
+            borderColor: '#4CAF50',
+            textColor: 'white',
+            display: 'block'
+          })),
+          ...tasksList
+        ];
+
+        setEvents(allEvents);
       } catch (error) {
+        console.error("Error fetching calendar items:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-        setError("Error fetching tasks: " + errorMessage);
+        setError("Error fetching calendar items: " + errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTasks();
+    fetchEventsAndTasks();
   }, [organizationId]);
-
-  // Group tasks by dueDate
-  const groupedTasks = tasks.reduce((acc, task) => {
-    const date = task.dueDate.split("T")[0]; // Get only the date part (YYYY-MM-DD)
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
-
-  // Map the tasks to FullCalendar event format
-  const calendarEvents = Object.keys(groupedTasks).map((date) => ({
-    title: groupedTasks[date].map((task) => task.taskName).join(", "), // Join tasks by comma
-    start: date, // FullCalendar requires a start date (ISO string or Date)
-    // backgroundColor: "lightblue", // Example color
-    // borderColor: "blue", // Example border color
-  }));
 
   return (
     <div className="App">
@@ -107,46 +131,57 @@ export default function Calendar({ organizationId }: CalendarProps) {
             right: "prev,next",
           }}
           plugins={[dayGridPlugin]}
-          events={calendarEvents}  // Pass the mapped tasks to FullCalendar
-          eventColor={"#" + Math.floor(Math.random() * 16777215).toString(16)}
+          events={events}
+          dayMaxEvents={2}
+          moreLinkContent={(args) => `+${args.num} more`}
+          fixedWeekCount={false}
+          showNonCurrentDates={false}
           eventContent={(eventInfo) => {
-            // Get the list of tasks for this day
-            const date = eventInfo.event.startStr.split("T")[0]; // Get date part (YYYY-MM-DD)
-            const tasksForDay = groupedTasks[date];
-
+            const event = eventInfo.event;
+            
             return (
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  padding: "0.5px",
-                  margin: "0",
-                  height: "100%",
+                  padding: "2px",
                   overflow: "hidden",
+                  backgroundColor: event.backgroundColor,
+                  borderRadius: "4px",
+                  margin: "1px 0",
+                  minHeight: "22px",
                 }}
+                title={`${event.title}${event.extendedProps.organizationName ? ` - ${event.extendedProps.organizationName}` : ''}`}
               >
-                {tasksForDay.length > 0 ? (
-                  tasksForDay.map((task, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        fontSize: "12px",
-                        padding: "1px",
-                        // backgroundColor: "#FF5733", // Task background color
-                        marginBottom: "2px",
-                        color: "white",
-                        borderRadius: "4px",
-                        whiteSpace: "nowrap", // Prevent text wrapping
-                        overflow: "hidden",
-                        textOverflow: "ellipsis", // Show "..." for overflowed text
-                      }}
-                    >
-                      {task.taskName}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    padding: "1px 4px",
+                    color: "white",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {event.extendedProps.isTask ? "📋 " : "📅 "}{event.title}
+                  {event.extendedProps.organizationName && !event.extendedProps.isTask && (
+                    <div style={{ fontSize: "10px", opacity: 0.8 }}>
+                      {event.extendedProps.organizationName}
                     </div>
-                  ))
-                ) : (
-                  <div>No tasks</div>
-                )}
+                  )}
+                </div>
+              </div>
+            );
+          }}
+          eventDidMount={(info) => {
+            info.el.title = `${info.event.title}${info.event.extendedProps.organizationName ? ` - ${info.event.extendedProps.organizationName}` : ''}`;
+          }}
+          height="auto"
+          dayCellContent={(args) => {
+            return (
+              <div className="fc-daygrid-day-number" style={{ padding: "4px" }}>
+                {args.dayNumberText}
               </div>
             );
           }}

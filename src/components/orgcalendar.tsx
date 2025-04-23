@@ -5,21 +5,30 @@ import { getAuth } from "firebase/auth";
 import { db } from "../firebaseConfig";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 
-// Define Task type (adjust based on your actual task structure)
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  description?: string;
+  location?: string;
+  organizationName?: string;
+  organizationId?: string;
+  isTask?: boolean;
+}
+
 interface Task {
   id: string;
   taskName: string;
-  dueDate: string; // Due date as a string in a readable format
+  dueDate: string;
 }
 
 export default function OrgCalendar() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetching tasks and mapping them to FullCalendar format
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchEventsAndTasks = async () => {
       setLoading(true);
       setError(null);
 
@@ -27,16 +36,16 @@ export default function OrgCalendar() {
       const user = auth.currentUser;
 
       if (!user) {
-        setError("You must be logged in to view tasks.");
+        setError("You must be logged in to view the calendar.");
         setLoading(false);
         return;
       }
 
       try {
-        // Assuming organizationId is stored in user's auth data or Firestore
+        // Get organization ID
         const orgRef = doc(db, "Users", user.uid);
         const orgSnapshot = await getDoc(orgRef);
-        const organizationId = orgSnapshot.data()?.organizationId; // Fetch organizationId for the logged-in user
+        const organizationId = orgSnapshot.data()?.organizationId;
 
         if (!organizationId) {
           setError("User is not associated with an organization.");
@@ -44,52 +53,68 @@ export default function OrgCalendar() {
           return;
         }
 
-        const tasksQuery = query(
-          collection(db, "tasks"),
-          where("organizationId", "==", organizationId) // Fetch tasks based on organizationId
+        // Fetch organization's events
+        const eventsQuery = query(
+          collection(db, "events"),
+          where("organizationId", "==", organizationId)
         );
-        const tasksSnapshot = await getDocs(tasksQuery);
-
-        const orgTaskList = tasksSnapshot.docs.map((doc) => {
+        const eventsSnapshot = await getDocs(eventsQuery);
+        
+        const eventsList = eventsSnapshot.docs.map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
-            taskName: data.taskName,
-            dueDate: new Date(data.dueDate.seconds * 1000).toISOString(), // Convert to ISO string
-          } as Task;
+            title: data.eventName,
+            start: new Date(data.eventDate.seconds * 1000).toISOString(),
+            description: data.eventDescription,
+            location: data.eventLocation,
+            organizationId: organizationId,
+            backgroundColor: '#4CAF50',
+            borderColor: '#4CAF50',
+            textColor: 'white',
+            display: 'block'
+          };
         });
 
-        setTasks(orgTaskList);
+        // Fetch organization's tasks
+        const tasksQuery = query(
+          collection(db, "tasks"),
+          where("organizationId", "==", organizationId)
+        );
+        const tasksSnapshot = await getDocs(tasksQuery);
+
+        const tasksList = tasksSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.taskName,
+            start: new Date(data.dueDate.seconds * 1000).toISOString(),
+            isTask: true,
+            organizationId: organizationId,
+            backgroundColor: '#FF5733',
+            borderColor: '#FF5733',
+            textColor: 'white',
+            display: 'block'
+          };
+        });
+
+        // Combine events and tasks
+        setEvents([...eventsList, ...tasksList]);
       } catch (error) {
+        console.error("Error fetching calendar items:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-        setError("Error fetching tasks: " + errorMessage);
+        setError("Error fetching calendar items: " + errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTasks();
+    fetchEventsAndTasks();
   }, []);
 
-  // Group tasks by dueDate
-  const groupedTasks = tasks.reduce((acc, task) => {
-    const date = task.dueDate.split("T")[0]; // Get only the date part (YYYY-MM-DD)
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
-
-  // Map the tasks to FullCalendar event format
-  const calendarEvents = Object.keys(groupedTasks).map((date) => ({
-    title: groupedTasks[date].map((task) => task.taskName).join(", "), // Join tasks by comma
-    start: date, // FullCalendar requires a start date (ISO string or Date)
-    // backgroundColor: "lightblue", // Example color
-    // borderColor: "blue", // Example border color
-  }));
-
   return (
-    <div className="App ">
-      {loading &&
+    <div className="App">
+      {loading && 
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>}
@@ -104,46 +129,52 @@ export default function OrgCalendar() {
             right: "prev,next",
           }}
           plugins={[dayGridPlugin]}
-          events={calendarEvents}  // Pass the mapped tasks to FullCalendar
-          eventColor={"#" + Math.floor(Math.random() * 16777215).toString(16)}
+          events={events}
+          dayMaxEvents={2}
+          moreLinkContent={(args) => `+${args.num} more`}
+          fixedWeekCount={false}
+          showNonCurrentDates={false}
           eventContent={(eventInfo) => {
-            // Get the list of tasks for this day
-            const date = eventInfo.event.startStr.split("T")[0]; // Get date part (YYYY-MM-DD)
-            const tasksForDay = groupedTasks[date];
-
+            const event = eventInfo.event;
+            
             return (
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  padding: "0.5px",
-                  margin: "0",
-                  height: "100%",
+                  padding: "2px",
                   overflow: "hidden",
+                  backgroundColor: event.backgroundColor,
+                  borderRadius: "4px",
+                  margin: "1px 0",
+                  minHeight: "22px",
                 }}
+                title={`${event.title}${event.extendedProps.location ? ` - ${event.extendedProps.location}` : ''}`}
               >
-                {tasksForDay.length > 0 ? (
-                  tasksForDay.map((task, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        fontSize: "12px",
-                        padding: "1px",
-                        // backgroundColor: "#FF5733", // Task background color
-                        marginBottom: "2px",
-                        color: "white",
-                        borderRadius: "4px",
-                        whiteSpace: "nowrap", // Prevent text wrapping
-                        overflow: "hidden",
-                        textOverflow: "ellipsis", // Show "..." for overflowed text
-                      }}
-                    >
-                      {task.taskName}
-                    </div>
-                  ))
-                ) : (
-                  <div>No tasks</div>
-                )}
+                <div
+                  style={{
+                    fontSize: "12px",
+                    padding: "1px 4px",
+                    color: "white",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {event.extendedProps.isTask ? "📋 " : "📅 "}{event.title}
+                </div>
+              </div>
+            );
+          }}
+          eventDidMount={(info) => {
+            info.el.title = `${info.event.title}${info.event.extendedProps.location ? ` - ${info.event.extendedProps.location}` : ''}`;
+          }}
+          height="auto"
+          dayCellContent={(args) => {
+            return (
+              <div className="fc-daygrid-day-number" style={{ padding: "4px" }}>
+                {args.dayNumberText}
               </div>
             );
           }}
