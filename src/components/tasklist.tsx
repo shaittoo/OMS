@@ -32,58 +32,80 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
     const fetchOrganizationTasks = async () => {
       setLoading(true);
       setError(null);
-
+  
       try {
         const auth = getAuth();
         const user = auth.currentUser;
-
+  
         if (!user) {
           setError("You must be logged in to view tasks.");
           setLoading(false);
           return;
         }
-
+  
         // Fetch user document to get organizationId
         const userDocRef = doc(db, "Users", user.uid);
         const userDoc = await getDoc(userDocRef);
-
+  
         if (!userDoc.exists()) {
           setError("User not found.");
           setLoading(false);
           return;
         }
-
+  
         const userData = userDoc.data();
         const organizationId = userData?.organizationId;
-
+  
         if (!organizationId) {
           setError("Organization ID not found for the user.");
           setLoading(false);
           return;
         }
-
+  
         // Fetch all tasks for the organization
         const tasksRef = collection(db, "tasks");
         const tasksQuery = query(
           tasksRef,
           where("organizationId", "==", organizationId) // Fetch all tasks for the organization
         );
-
+  
         const tasksSnapshot = await getDocs(tasksQuery);
-
-        const taskList = tasksSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            taskName: data.taskName,
-            description: data.description,
-            dueDate: data.dueDate ? new Date(data.dueDate.seconds * 1000).toLocaleString() : "No due date",
-            priority: data.priority,
-            assignedMembers: data.assignedMembers || [], // Handle multiple assigned members
-            completed: data.completed || false,
-          } as Task;
-        });
-
+  
+        const taskList = await Promise.all(
+          tasksSnapshot.docs.map(async (taskDoc) => {
+            const data = taskDoc.data();
+        
+            const memberNames = await Promise.all(
+              (data.assignedMembers || []).map(async (uid: string) => {
+                try {
+                  const userDocRef = doc(db, "Users", uid); 
+                  const userDoc = await getDoc(userDocRef);
+                  if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    return userData.fullName || "Unknown Member";
+                  }
+                } catch (error) {
+                  console.error("Error fetching member details:", error);
+                }
+                return "Unknown Member";
+              })
+            );
+        
+            return {
+              id: taskDoc.id,
+              taskName: data.taskName,
+              description: data.description,
+              dueDate: data.dueDate
+                ? new Date(data.dueDate.seconds * 1000).toLocaleString()
+                : "No due date",
+              priority: data.priority,
+              assignedMembers: memberNames,
+              completed: data.completed || false,
+            } as Task;
+          })
+        );
+        
+  
         setTasks(taskList);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
@@ -92,10 +114,10 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
         setLoading(false);
       }
     };
-
+  
     fetchOrganizationTasks();
   }, []);
-
+  
   const handleCheckbox = async (taskId: string, completed: boolean) => {
     try {
       const taskRef = doc(db, "tasks", taskId);
