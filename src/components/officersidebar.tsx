@@ -8,6 +8,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import Link from "next/link";
 import ProfileSettings from './profilesetting';
 import { createPortal } from 'react-dom';
+import PendingApplicantsLink from "./PendingApplicationsLink";
 
 const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
@@ -53,6 +54,8 @@ const OfficerSidebar: React.FC = () => {
               <span className="ml-3 text-md font-medium">Calendar</span>
             </a>
           </Link>
+          
+          <PendingApplicantsLink/>
 
           <hr className="my-4 border-gray-300" />
 
