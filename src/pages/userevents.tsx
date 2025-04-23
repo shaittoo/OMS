@@ -224,7 +224,7 @@ const MyEventsView: React.FC = () => {
             data.eventDate instanceof Timestamp
               ? data.eventDate.toDate()
               : new Date(data.eventDate);
-          const status = eventDate < new Date() ? "Completed" : data.status;
+          const status = data.status === "Cancelled" ? "Cancelled" : (eventDate < new Date() ? "Completed" : data.status);
 
           return {
             ...data,
