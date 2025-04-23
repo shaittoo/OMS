@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import MemberSidebar from "./membersidebar";
 import Link from 'next/link';
@@ -12,6 +12,7 @@ const MemberDashboard: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [hasOrganizations, setHasOrganizations] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -39,6 +40,16 @@ const MemberDashboard: React.FC = () => {
           // Set the first name from the 'members' collection
           setFirstName(memberData.firstName);
         }
+
+        // Check if user has any approved organizations
+        const membersRef = collection(db, "Members");
+        const q = query(
+          membersRef,
+          where("uid", "==", userId),
+          where("status", "==", "approved")
+        );
+        const querySnapshot = await getDocs(q);
+        setHasOrganizations(!querySnapshot.empty);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -153,7 +164,7 @@ const MemberDashboard: React.FC = () => {
             <button 
               className="officer-action-buttons flex-grow"
               onClick={handleOrgListRedirect}>
-              View All Orgs
+              {hasOrganizations ? "View All Orgs" : "Apply to Orgs"}
             </button>
             <Link href="/memberviewevents" >
             <button className="officer-action-buttons flex-grow">
