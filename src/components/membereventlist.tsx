@@ -79,10 +79,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
       const user = auth.currentUser;
 
-      console.log("Current user:", user?.uid);
-      console.log("Organization ID:", organizationId);
-      console.log("User Organizations:", userOrganizations);
-
       if (!user) {
         setError("You must be logged in to view events.");
         setLoading(false);
@@ -91,10 +87,9 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
       try {
         let eventsQuery;
-        
+
         // If a specific organization is selected, filter by that organization
         if (organizationId) {
-          console.log("Filtering by specific organization:", organizationId);
           eventsQuery = query(
             collection(db, "events"),
             where("organizationId", "==", organizationId)
@@ -102,24 +97,20 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
         } 
         // Otherwise, fetch events from all organizations the user is a member of
         else if (userOrganizations.length > 0) {
-          console.log("Filtering by user organizations:", userOrganizations);
           eventsQuery = query(
             collection(db, "events"),
             where("organizationId", "in", userOrganizations)
           );
         } else {
-          console.log("No organization ID or user organizations provided");
           setEvents([]);
           setLoading(false);
           return;
         }
-        
+
         const eventsSnapshot = await getDocs(eventsQuery);
-        console.log("Number of events found:", eventsSnapshot.size);
 
         let eventsList = await Promise.all(eventsSnapshot.docs.map(async (eventDoc) => {
           const data = eventDoc.data();
-          console.log("Event data:", data);
 
           // Fetch organization name
           let organizationName = "Unknown Organization";
@@ -156,45 +147,16 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
         // Sort events by likes count (descending) and then by date
         eventsList.sort((a, b) => {
-          // First sort by likes count (descending)
           const likesDiff = (b.likes?.length || 0) - (a.likes?.length || 0);
           if (likesDiff !== 0) return likesDiff;
-          
-          // If likes are equal, sort by date
+
           const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
           const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
           return dateB - dateA; // Most recent first
         });
 
-        // Always take top 4 events with highest likes
-        eventsList = eventsList.slice(0, 4);
-
-        // If we have less than 4 events, pad with empty events
-        if (eventsList.length < 4) {
-          const emptyEvent = {
-            id: "empty",
-            eventName: "No Event",
-            eventDescription: "There are no more events at this time.",
-            eventDate: "",
-            eventLocation: "",
-            eventPrice: "",
-            eventImages: [],
-            organizationId: "",
-            organizationName: "",
-            likes: [],
-            interested: [],
-            isOpenForAll: false,
-            status: "active",
-            tags: []
-          };
-          
-          while (eventsList.length < 4) {
-            eventsList.push({ ...emptyEvent, id: `empty-${eventsList.length}` });
-          }
-        }
-
-        console.log("Final processed events list:", eventsList);
         setEvents(eventsList);
+
       } catch (error) {
         console.error("Error fetching events:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -311,15 +273,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-  if (error) return <div>{error}</div>;
-
   return (
     <div>
       {loading && (
@@ -327,7 +280,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       )}
-      
+
       {!loading && error && <div>{error}</div>}
 
       {!loading && !error && events.length === 0 && (
@@ -335,25 +288,30 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           No events found.
         </div>
       )}
-      
+
       {!loading && !error && events.length > 0 && (
         <>
           <div className="space-y-2">
-            {/* Show all events when in organization view or when userOrganizations is available */}
-            {(organizationId || userOrganizations.length > 0 ? events : events.slice(0, 4)).map((event) => (
-              <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.id.startsWith('empty-') ? 'opacity-50' : ''}`}>
+            {/* Render all event cards */}
+            {events.map((event) => (
+              <div
+                key={event.id}
+                className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${
+                  event.id === "nothing-follows" ? "opacity-50" : ""
+                }`}
+              >
                 <div className="flex p-3">
                   {/* Event Image */}
                   <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
                     {event.eventImages && event.eventImages.length > 0 ? (
-                      <img 
-                        src={event.eventImages[0]} 
+                      <img
+                        src={event.eventImages[0]}
                         alt={event.eventName}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <img 
+                        <img
                           src="/assets/default.jpg"
                           alt="Default event"
                           className="w-full h-full object-cover"
@@ -367,7 +325,9 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                     {/* Title and Organization */}
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+                        <h3 className="text-base font-semibold text-gray-800 truncate">
+                          {event.eventName}
+                        </h3>
                         {!organizationId && (
                           <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
                             {event.organizationName}
@@ -377,22 +337,25 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                     </div>
 
                     {/* Description */}
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">
+                      {event.eventDescription}
+                    </p>
 
                     {/* Details Row */}
                     <div className="flex items-center justify-between text-xs text-gray-600">
                       <div className="space-y-1">
                         {/* Date */}
                         <p>
-                          <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+                          <span className="font-medium">Date:</span>{" "}
+                          {formatDate(event.eventDate)}
                         </p>
 
                         {/* Tags */}
                         {event.tags && event.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1">
                             {event.tags.map((tag, index) => (
-                              <span 
-                                key={index} 
+                              <span
+                                key={index}
                                 className="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded"
                               >
                                 {tag}
@@ -406,12 +369,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                       <div className="text-right ml-4 space-y-1">
                         {event.eventLocation && (
                           <p>
-                            <span className="font-medium">Location:</span> {event.eventLocation}
+                            <span className="font-medium">Location:</span>{" "}
+                            {event.eventLocation}
                           </p>
                         )}
                         {event.eventPrice && (
                           <p>
-                            <span className="font-medium">Price:</span> {event.eventPrice}
+                            <span className="font-medium">Price:</span>{" "}
+                            {event.eventPrice}
                           </p>
                         )}
                       </div>
@@ -419,19 +384,33 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
                     {/* Interaction Buttons */}
                     <div className="flex justify-end items-center space-x-3 mt-2 pt-2 border-t">
-                      <button 
-                        className={`flex items-center text-xs ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-green-600' : 'text-gray-600'}`}
+                      <button
+                        className={`flex items-center text-xs ${
+                          event.likes.includes(auth.currentUser?.uid || "")
+                            ? "text-green-600"
+                            : "text-gray-600"
+                        }`}
                         onClick={() => handleEventAction(event.id, "like")}
                       >
-                        {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                        {event.likes.includes(auth.currentUser?.uid || "") ? (
+                          <ThumbUpIcon fontSize="small" />
+                        ) : (
+                          <ThumbUpOffAltIcon fontSize="small" />
+                        )}
                         <span className="ml-1">Like</span>
                       </button>
-                      <button 
-                        className={`flex items-center text-xs ${event.interested.includes(auth.currentUser?.uid || "") ? 'text-purple-600' : 'text-gray-600'}`}
+                      <button
+                        className={`flex items-center text-xs ${
+                          event.interested.includes(auth.currentUser?.uid || "")
+                            ? "text-purple-600"
+                            : "text-gray-600"
+                        }`}
                         onClick={() => handleEventAction(event.id, "interest")}
                       >
                         <span>
-                          {event.interested.includes(auth.currentUser?.uid || "") ? "Interested" : "Interested?"}
+                          {event.interested.includes(auth.currentUser?.uid || "")
+                            ? "Interested"
+                            : "Interested?"}
                         </span>
                       </button>
                     </div>
@@ -439,7 +418,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                 </div>
               </div>
             ))}
+
+            {events.length < 4 && (
+              <div className="text-center text-gray-500 py-4">
+                -- Nothing Follows --
+              </div>
+            )}
           </div>
+
           {!organizationId && events.length > 4 && (
             <Link href="/memberviewevents">
               <p className="text-right text-sm text-purple-600 hover:text-purple-800 mt-2 cursor-pointer">
