@@ -237,18 +237,18 @@ const OfficerDashboard: React.FC = () => {
                 </p>
               </div>
               
-              <div className="text-black rounded-lg shadow-lg pending-tasks bg-gray-100 h-72 col-span-2 p-4 relative">
+              <div className="text-black rounded-lg shadow-lg pending-tasks bg-gray-100 col-span-2 p-4 flex flex-col gap-2" style={{ height: "305px" }}>
                 <div className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto">
                   <TaskList />
                 </div>
+                <div className="flex justify-end">
+                  <Link href="/orgviewtasks">
+                    <p className="text-purple-700 underline text-sm hover:text-purple-800" style={{ fontSize: "16px", fontFamily: "Arial" }}>
+                      View More
+                    </p>
+                  </Link>
+                </div>
               </div>
-              <Link href="/orgviewtasks"> <p
-                className="text-purple-700 text-right underline absolute bottom-3 text-sm z-50 mx-100 my-0.5 hover:text-purple-700"
-                style={{ fontSize: "16px", fontFamily: "Arial", right: "24rem"}}
-              >
-                {" "}
-                View More
-              </p></Link>
             </div>
             <div className="text-black relative flex flex-col w-full justify-end">
               <div className="-mt-6 text-black calendar h-96 bg-white self-end">
