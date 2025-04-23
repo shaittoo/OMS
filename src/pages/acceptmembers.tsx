@@ -113,9 +113,17 @@ const AcceptMembers: React.FC = () => {
   const handleRejectionReasonSubmit = async () => {
     try {
       const memberDocRef = doc(db, "Members", selectedMemberId);
+
+      const updatedRejectionReason = rejectionReason === "other" && customOtherReason.trim() === "" 
+      ? "Other"  
+      : rejectionReason === "other"
+      ? customOtherReason 
+      : rejectionReason; 
+
+
       await updateDoc(memberDocRef, {
         status: "rejected",
-        rejectionReason: rejectionReason === "other" ? customOtherReason : rejectionReason,
+        rejectionReason: updatedRejectionReason,
         rejectionDetails: rejectionDetails,
         seenByUser: false //for notification purposes
       });
