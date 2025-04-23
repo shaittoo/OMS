@@ -99,6 +99,7 @@ function RegisterOrg() {
           photo: photoURL,
           description: description,
           members: [user.uid],
+          officers: [user.uid],
           createdAt: new Date(),
           tags: tags,
         });

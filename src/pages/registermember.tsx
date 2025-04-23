@@ -6,6 +6,33 @@ import { ToastContainer } from 'react-toastify';
 import { setDoc, doc, where, collection, query, getDocs } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
+import Select from 'react-select';
+
+const courseOptions = [
+  { label: "BS in Accountancy (5 yrs)", value: "BS in Accountancy (5 yrs)" },
+  { label: "BS in Business Administration (Marketing)", value: "BS in Business Administration (Marketing)" },
+  { label: "BS in Management", value: "BS in Management" },
+  { label: "BS in Applied Mathematics", value: "BS in Applied Mathematics" },
+  { label: "BS in Biology", value: "BS in Biology" },
+  { label: "BS in Chemistry", value: "BS in Chemistry" },
+  { label: "BA in Communication & Media Studies", value: "BA in Communication & Media Studies" },
+  { label: "BA in Community Development", value: "BA in Community Development" },
+  { label: "BS in Computer Science", value: "BS in Computer Science" },
+  { label: "BS in Economics", value: "BS in Economics" },
+  { label: "BA in History", value: "BA in History" },
+  { label: "BA in Literature", value: "BA in Literature" },
+  { label: "BA in Political Science", value: "BA in Political Science" },
+  { label: "BA in Psychology", value: "BA in Psychology" },
+  { label: "BS in Public Health", value: "BS in Public Health" },
+  { label: "BA in Sociology", value: "BA in Sociology" },
+  { label: "BS in Statistics", value: "BS in Statistics" },
+  { label: "BS in Fisheries", value: "BS in Fisheries" }
+];
+
+const yearOptions = [
+  "1st Year", "2nd Year", "3rd Year", "4th Year", "Nth Year"
+];
+
 
 function RegisterMember() {
   const [email, setEmail] = useState<string>("");
@@ -180,23 +207,44 @@ function RegisterMember() {
               />
             </div>
             <div className="mb-4">
-              <input
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                placeholder="Course"
-                onChange={(e) => setCourse(e.target.value)}
-                required
-              />
+            <Select
+            placeholder="Select Course"
+            options={courseOptions}
+            onChange={(selected) => setCourse(selected?.value || "")}
+            className="text-sm"
+            classNamePrefix="react-select"
+            styles={{
+              menuList: (base) => ({
+                ...base,
+                maxHeight: 200,
+                overflowY: 'auto',
+              }),
+            }}
+          />
+
+
             </div>
-            <div className="mb-4">
-              <input
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                placeholder="Year Level"
-                onChange={(e) => setYearLevel(e.target.value)}
-                required
-              />
+            <div className="mb-4 relative">
+            <select
+              onChange={(e) => setYearLevel(e.target.value)}
+              value={yearLevel}
+              className="select-native appearance-none pr-10"
+              required
+            >
+              <option value="" disabled hidden className="text-gray-400">
+                Select Year Level
+              </option>
+              {yearOptions.map((year, index) => (
+                <option key={index} value={year}>{year}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" />
+              </svg>
             </div>
+          </div>
+
             <div className="mb-4">
               <input
                 type="tel"

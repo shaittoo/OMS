@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router"; 
+import { useRouter } from "next/router";
 import { db, auth } from "../firebaseConfig";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import OfficerSidebar from "../components/officersidebar";
-import Link from "next/link"
+import Link from "next/link";
 
 const ViewOfficers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [officers, setOfficers] = useState({
-    president: '',
-    vicePresident: '',
-    secretary: '',
-    treasurer: '',
-    auditor: ''
+    president: "",
+    vicePresident: "",
+    secretary: "",
+    treasurer: "",
+    auditor: ""
   });
 
   const router = useRouter();
@@ -24,7 +24,6 @@ const ViewOfficers: React.FC = () => {
       const currentUser = auth.currentUser;
       if (currentUser && currentUser.email) {
         try {
-          // Get user's organization ID
           const usersRef = collection(db, "Users");
           const userQuery = query(usersRef, where("email", "==", currentUser.email));
           const userDocs = await getDocs(userQuery);
@@ -33,24 +32,52 @@ const ViewOfficers: React.FC = () => {
             const userData = userDocs.docs[0].data();
             const orgId = userData.organizationId;
 
-            // Fetch organization name
             const orgDoc = await getDoc(doc(db, "Organizations", orgId));
             if (orgDoc.exists()) {
               setOrganizationName(orgDoc.data()?.name || "Unknown Organization");
             }
 
-            // Fetch officers data
             const officerDoc = await getDoc(doc(db, "officers", orgId));
-            if (officerDoc.exists()) {
-              const data = officerDoc.data();
-              setOfficers({
-                president: data.president || 'Not assigned',
-                vicePresident: data.vicePresident || 'Not assigned',
-                secretary: data.secretary || 'Not assigned',
-                treasurer: data.treasurer || 'Not assigned',
-                auditor: data.auditor || 'Not assigned'
-              });
-            }
+            const officerData = officerDoc.exists() ? officerDoc.data() : {};
+
+            const officerUids = {
+              president: officerData.president || "",
+              vicePresident: officerData.vicePresident || "",
+              secretary: officerData.secretary || "",
+              treasurer: officerData.treasurer || "",
+              auditor: officerData.auditor || ""
+            };
+
+            const memberPromises = Object.entries(officerUids).map(async ([position, uid]) => {
+              if (uid) {
+                const memberDoc = await getDoc(doc(db, "Users", uid));
+                if (memberDoc.exists()) {
+                  const memberData = memberDoc.data();
+                  return {
+                    position,
+                    name: memberData?.fullName || "Full name not available"
+                  };
+                } else {
+                  return {
+                    position,
+                    name: "Member document not found"
+                  };
+                }
+              } else {
+                return { position, name: "Not assigned" };
+              }
+            });
+            
+            
+
+            const officerList = await Promise.all(memberPromises);
+
+            const officerMap: any = {};
+            officerList.forEach(({ position, name }) => {
+              officerMap[position] = name;
+            });
+
+            setOfficers(officerMap);
           }
         } catch (err) {
           console.error("Error fetching officers:", err);
@@ -67,7 +94,6 @@ const ViewOfficers: React.FC = () => {
     fetchOfficers();
   }, []);
 
-  // Add this function for generating random gradients
   const generateRandomGradient = () => {
     const gradients = [
       'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -77,6 +103,10 @@ const ViewOfficers: React.FC = () => {
       'linear-gradient(135deg, #5E5AEC 0%, #3F9EFC 100%)'
     ];
     return gradients[Math.floor(Math.random() * gradients.length)];
+  };
+
+  const capitalizePosition = (position: string) => {
+    return position.replace(/([A-Z])/g, ' $1').toUpperCase(); 
   };
 
   if (loading) {
@@ -91,7 +121,7 @@ const ViewOfficers: React.FC = () => {
     <div className="flex bg-white">
       <OfficerSidebar />
       <main className="main-content flex-grow p-6">
-      <div className="mb-6">
+        <div className="mb-6">
           <div className="flex items-center mb-2">
             <button
               onClick={() => router.back()}
@@ -131,13 +161,7 @@ const ViewOfficers: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Object.entries({
-            'President': officers.president,
-            'Vice President': officers.vicePresident,
-            'Secretary': officers.secretary,
-            'Treasurer': officers.treasurer,
-            'Auditor': officers.auditor
-          }).map(([position, name]) => (
+          {Object.entries(officers).map(([position, name]) => (
             <div
               key={position}
               className="p-4 rounded shadow transition-all duration-300 ease-linear hover:scale-105 group"
@@ -151,7 +175,7 @@ const ViewOfficers: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <h2 className="text-lg font-semibold text-white">{name}</h2>
-                  <p className="text-gray-200">{position}</p>
+                  <p className="text-gray-200">{capitalizePosition(position)}</p>
                 </div>
               </div>
             </div>
