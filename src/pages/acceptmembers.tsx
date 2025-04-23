@@ -170,9 +170,10 @@ const AcceptMembers: React.FC = () => {
 
   return (
     <div className="flex">
-      <OfficerSidebar />
-
-      <div className="flex flex-col bg-[#F3E8FF] min-h-screen w-full bg-white ">
+      <div className="w-[280px]"> 
+        <OfficerSidebar />
+      </div>
+      <div className="flex flex-col bg-[#F3E8FF] min-h-screen w-full bg-white">
         <header className="bg-white p-7 text-black flex items-center">
           <button
             onClick={() => router.back()}

@@ -46,7 +46,7 @@ const MemberSidebar: React.FC = () => {
         if (orgData) {
           orgs.push({
             ...orgData,
-            id: orgId
+            id: orgId,
           });
         }
       }
@@ -87,18 +87,30 @@ const MemberSidebar: React.FC = () => {
       </div>
 
       <nav className="flex-grow mt-4">
-        <Link href="/memberpage" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <Link
+          href="/memberpage"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
           <DashboardIcon />
           <span className="ml-3 text-md font-medium">Dashboard</span>
         </Link>
-      
-      {/*application status*/}
-        <ApplicationStatusLink/>
 
+        {/* Application Status */}
+        <ApplicationStatusLink />
 
+        {/* My Events */}
+        <Link
+          href="/myevents"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
+          <AssignmentIndIcon />
+          <span className="ml-3 text-md font-medium">My Events</span>
+        </Link>
+
+        {/* User Organizations */}
         {userOrganizations.map((org, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             onClick={() => handleOrgClick(org.id)}
             className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
           >
@@ -112,12 +124,15 @@ const MemberSidebar: React.FC = () => {
         ))}
 
         <hr className="my-4 border-gray-300" />
-        <Link href="/memberaboutus" className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <Link
+          href="/memberaboutus"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
           <InfoIcon />
           <span className="ml-3 text-md font-medium">Information</span>
         </Link>
 
-        <div 
+        <div
           className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
           onClick={() => setIsProfileOpen(true)}
         >
