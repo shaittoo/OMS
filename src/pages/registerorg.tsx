@@ -4,7 +4,10 @@ import { auth, db, storage } from "../firebaseConfig";
 import { setDoc, doc, where, collection, query, getDocs } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import s3 from "../components/awsConfig";
+import { S3Client } from "@aws-sdk/client-s3";
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/router";
+import AWS from "aws-sdk";
 
 function RegisterOrg() {
   const [email, setEmail] = useState<string>("");
@@ -19,6 +22,7 @@ function RegisterOrg() {
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const router = useRouter();
 
   const validateInputs = (): boolean => {
     if (oname.trim().length < 3) {
@@ -63,6 +67,12 @@ function RegisterOrg() {
       ContentType: file.type,
     };
 
+    const s3 = new AWS.S3({
+      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY,
+      region: process.env.NEXT_PUBLIC_AWS_REGION
+    });
+
     await s3.upload(params).promise();
 
     const downloadURL = `https://${params.Bucket}.s3.amazonaws.com/${params.Key}`;
@@ -101,6 +111,7 @@ function RegisterOrg() {
           members: [user.uid],
           officers: [user.uid],
           createdAt: new Date(),
+          status: "pending",
           tags: tags,
         });
 
@@ -110,13 +121,20 @@ function RegisterOrg() {
           role: "organization",
         });
 
-        setSuccessMessage("User Registered Successfully! Redirecting...");
-        setTimeout(() => (window.location.href = "/login"), 3000);
+        toast.success("Organization registered successfully!", {
+          position: "top-center",
+        });
+        
+        // Redirect to registration submitted page
+        router.push('/registration-submitted');
       }
 
     } catch (error) {
       const errorMessage = (error as Error).message || "An unexpected error occurred.";
       setErrorMessage(errorMessage);
+      toast.error(errorMessage, {
+        position: "bottom-center",
+      });
     } finally {
       setLoading(false);
     }

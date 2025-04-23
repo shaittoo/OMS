@@ -19,6 +19,15 @@ const OrgPage = () => {
           const userData = userDoc.data();
 
           if (userData?.role === "organization") {
+            // Check organization status
+            const orgDoc = await getDoc(doc(db, "Organizations", userData.organizationId));
+            const orgData = orgDoc.data();
+            
+            if (orgData?.status === "pending") {
+              router.push("/registration-submitted");
+              return;
+            }
+            
             setIsOrganizationMember(true); // User is authorized
           } else {
             router.push("/"); // Redirect non-organization users to home
