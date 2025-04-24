@@ -45,7 +45,6 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: number;
-  registrations: number;
   likedBy: string[];
   interestedBy: string[];
   isLiked: boolean;
