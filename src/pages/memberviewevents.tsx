@@ -221,7 +221,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4 hover:shadow-lg">
+    <div className="w-96 bg-white shadow-md rounded-lg p-4 mb-4 hover:shadow-lg hover:shadow-gray-500">
       <div onClick={() => handleViewEventClick(event)}>
         {event.eventImages && event.eventImages.length > 0 ? (
           <img
