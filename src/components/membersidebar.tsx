@@ -79,7 +79,7 @@ const MemberSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 h-auto bg-gray-100 shadow-lg flex flex-col">
+    <aside className="w-64 h-auto bg-gray-100 shadow-lg flex flex-col w-100">
       <div className="p-6 bg-gray-100 flex justify-center items-center">
         <Link href="/memberpage">
           <img src="/assets/OMSLOGO.png" alt="OMS Logo" className="h-12 mt-4" />

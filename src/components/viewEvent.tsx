@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig"; // Adjust the import path based on your project structure
+import { getAuth } from "firebase/auth";
+import { Event, Comments } from "../types/event";
 
 interface ViewEventProps {
   close: () => void;
@@ -11,66 +13,77 @@ interface ViewEventProps {
   orgName: string;
 }
 
-interface Event {
-    uid: string;
-    eventDate: string | Date;
-    eventName: string;
-    eventDescription: string;
-    eventImages: string[];
-    eventLocation: string;
-    eventPrice: string;
-    eventType: string;
-    isFree: string;
-    isOpenForAll: boolean;
-    tags: string[];
-    status: string;
-    organizationId: string;
-    registrations: number;
-    organizationName?: string;
-    likedBy: string[];
-    interestedBy: string[];
+interface MemberData {
+    contactNumber: string;
+    course: string;
+    email: string;
+    firstName: string;
+    fullName: string;
+    joinedAt: Date;
+    lastName: string;
+    role: string;
+    yearLevel: string;
 }
-
-interface Comments {
-    uid: string;
-    eventId: Event['uid'];
-    comment: string;
-    replies: string[];
-    userName: string;
-}
-
 
 const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
-    const [name, setName] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [comments, setComments] = useState<Comments[]>([]);
     const [newComment, setNewComment] = useState<string>("");
+    const [currentUserName, setCurrentUserName] = useState<string>("");
+    const auth = getAuth();
 
-    // Function to fetch the username based on userId
-    const fetchUserData = async (userId: string) => {
+    // Function to fetch the current user's full name
+    const fetchCurrentUserName = async () => {
+        if (!auth.currentUser) return;
+        
         try {
-          // Fetch the user's data from the 'Users' collection
-          const userDoc = await getDoc(doc(db, "Users", userId));
-          const userData = userDoc.data();
-    
-          // Ensure the user exists and has a memberId
-          if (userData?.memberId) {
-            // Fetch the user details from the 'members' collection using memberId
-            const memberDoc = await getDoc(doc(db, "members", userData.memberId));
-            const memberData = memberDoc.data();
-    
-            if (memberData) {
-              // Set the first name from the 'members' collection
-              setName(memberData.fullName);
-            }
-            }
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-          } finally {
-            setLoading(false);
-          }
-        };
+            const userDoc = await getDoc(doc(db, "Users", auth.currentUser.uid));
+            const userData = userDoc.data();
             
+            if (userData?.email) {
+                const membersQuery = query(
+                    collection(db, "members"),
+                    where("email", "==", userData.email)
+                );
+                const memberSnapshot = await getDocs(membersQuery);
+                
+                if (!memberSnapshot.empty) {
+                    const memberData = memberSnapshot.docs[0].data() as MemberData;
+                    setCurrentUserName(memberData.fullName);
+                    return memberData.fullName;
+                }
+            }
+            return "Unknown User";
+        } catch (error) {
+            console.error("Error fetching current user data:", error);
+            return "Unknown User";
+        }
+    };
+
+    // Function to fetch commenter's full name
+    const fetchCommenterName = async (userId: string) => {
+        try {
+            const userDoc = await getDoc(doc(db, "Users", userId));
+            const userData = userDoc.data();
+            
+            if (userData?.email) {
+                const membersQuery = query(
+                    collection(db, "members"),
+                    where("email", "==", userData.email)
+                );
+                const memberSnapshot = await getDocs(membersQuery);
+                
+                if (!memberSnapshot.empty) {
+                    const memberData = memberSnapshot.docs[0].data() as MemberData;
+                    return memberData.fullName;
+                }
+            }
+            return "Unknown User";
+        } catch (error) {
+            console.error("Error fetching commenter data:", error);
+            return "Unknown User";
+        }
+    };
 
     // Fetch comments from Firestore
     const fetchComments = async () => {
@@ -78,12 +91,19 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
             const q = query(collection(db, "comments"), where("eventId", "==", event.uid));
             const querySnapshot = await getDocs(q);
             const fetchedComments: Comments[] = [];
+            
             for (const doc of querySnapshot.docs) {
-                const data = doc.data() as Comments;
+                const data = doc.data();
                 if (data.eventId === event.uid) {
-                    const userName = await name;
-                    const { uid, userName: fetchedUserName, ...rest } = data; // Rename userName to fetchedUserName
-                    fetchedComments.push({ uid: doc.id, userName: userName || "Anonymous", ...rest });
+                    const userName = await fetchCommenterName(data.uid);
+                    fetchedComments.push({
+                        uid: doc.id,
+                        eventId: data.eventId,
+                        comment: data.comment,
+                        replies: data.replies || [],
+                        userName: userName,
+                        userEmail: data.userEmail
+                    });
                 }
             }
             setComments(fetchedComments);
@@ -94,32 +114,46 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
 
     // Add a new comment to Firestore
     const addComment = async () => {
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || !auth.currentUser) return;
+        
         try {
-            const userId = "currentUserId"; // Replace with the actual user ID from your auth context
-            const userName = await name;
-            const docRef = await addDoc(collection(db, "comments"), {
+            const userId = auth.currentUser.uid;
+            const userDoc = await getDoc(doc(db, "Users", userId));
+            const userData = userDoc.data();
+            
+            const commentData: Comments = {
                 uid: userId,
                 eventId: event.uid,
                 comment: newComment,
                 replies: [],
-                timestamp: serverTimestamp(),
-                userName: userName || "Anonymous",
-            });
-            setComments((prev) => [
-                            ...prev,
-                            { uid: docRef.id, eventId: event.uid, comment: newComment, replies: [], userName: userName || "Anonymous" },
-                        ]);
+                userName: currentUserName,
+                userEmail: userData?.email,
+                timestamp: serverTimestamp()
+            };
+
+            const docRef = await addDoc(collection(db, "comments"), commentData);
+
+            setComments(prev => [
+                ...prev,
+                {
+                    ...commentData,
+                    uid: docRef.id
+                }
+            ]);
             setNewComment("");
         } catch (error) {
-            console.error("Error adding comment: ", error);
+            console.error("Error adding comment:", error);
         }
     };
 
-    // Fetch comments when the component mounts
-    React.useEffect(() => {
-        fetchComments();
-    }, []);
+    // Fetch current user's name and comments when component mounts
+    useEffect(() => {
+        const initialize = async () => {
+            await fetchCurrentUserName();
+            await fetchComments();
+        };
+        initialize();
+    }, [event.uid]);
     
     const truncateText = (text: string | undefined) => {
         return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
@@ -188,7 +222,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                                         className="p-2 border border-gray-200 rounded-lg bg-white shadow-sm"
                                     >
                                         <p className="text-sm font-semibold text-gray-900">
-                                            {comment.userName || "Anonymous"}
+                                            {comment.userName}
                                         </p>
                                         <p className="text-sm text-gray-700">{comment.comment}</p>
                                         {comment.replies.length > 0 && (

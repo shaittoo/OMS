@@ -1,18 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, Timestamp, updateDoc, query, where, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbDownIcon from "@mui/icons-material/ThumbDown";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import EventIcon from "@mui/icons-material/Event";
 import MemberSidebar from "../components/membersidebar";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import ViewEvent from "../components/viewEvent";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import SendIcon from '@mui/icons-material/Send';
+import { Comments } from "../types/event";
+
+interface MemberData {
+  contactNumber: string;
+  course: string;
+  email: string;
+  firstName: string;
+  fullName: string;
+  joinedAt: Date;
+  lastName: string;
+  role: string;
+  yearLevel: string;
+}
 
 interface Event {
   uid: string;
@@ -27,11 +44,13 @@ interface Event {
   isOpenForAll: boolean;
   status: string;
   organizationId: string;
-  registrations: string;
+  registrations: number;
   likedBy: string[];
   interestedBy: string[];
   isLiked: boolean;
   isInterested: boolean;
+  comments?: Comments[];
+  tags: string[];
 }
 
 const Header: React.FC = () => {
@@ -150,14 +169,78 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [liked, setLiked] = useState(event.isLiked);
   const [isViewEventOpen, setViewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [comments, setComments] = useState<Comments[]>([]);
 
-  const handleViewEventClick = (event: Event) => {
-    setSelectedEvent(event);
+  // Function to fetch comments
+  const fetchComments = async (eventId: string) => {
+    try {
+      const q = query(collection(db, "comments"), where("eventId", "==", eventId));
+      const querySnapshot = await getDocs(q);
+      const fetchedComments: Comments[] = [];
+      
+      for (const doc of querySnapshot.docs) {
+        const data = doc.data();
+        fetchedComments.push({
+          uid: doc.id,
+          ...data,
+        } as Comments);
+      }
+      
+      // Sort comments by timestamp
+      fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
+      setComments(fetchedComments);
+      return fetchedComments;
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      return [];
+    }
+  };
+
+  const handleViewEventClick = async (event: Event) => {
+    const eventComments = await fetchComments(event.uid);
+    setSelectedEvent({
+      ...event,
+      comments: eventComments
+    });
     setViewEventOpen(true);
   };
+
   const handleCloseEventClick = () => {
     setViewEventOpen(false);
     setSelectedEvent(null);
+  };
+
+  const handleAddToCalendar = async (event: Event) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    try {
+      const userRef = doc(db, "Users", userId);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      const calendarEvents = userData?.calendarEvents || [];
+
+      if (calendarEvents.some((e: any) => e.uid === event.uid)) {
+        return;
+      }
+
+      const newCalendarEvent = {
+        id: event.uid,
+        title: event.eventName,
+        start: event.eventDate,
+        description: event.eventDescription,
+        location: event.eventLocation,
+        organizationName: orgName,
+        organizationId: event.organizationId
+      };
+
+      await updateDoc(userRef, {
+        calendarEvents: arrayUnion(newCalendarEvent)
+      });
+
+    } catch (err) {
+      console.error("Error adding event to calendar:", err);
+    }
   };
 
   useEffect(() => {
@@ -216,64 +299,152 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     });
   };
 
-  const truncateText = (text: string | undefined) => {
-    return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
+  const formatDate = (dateString: string | Date) => {
+    if (!dateString) return "Date not specified";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
+  // Function to fetch the current user's full name
+  const fetchCurrentUserName = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      const userDoc = await getDoc(doc(db, "Users", auth.currentUser.uid));
+      const userData = userDoc.data();
+      
+      if (userData?.email) {
+        const membersQuery = query(
+          collection(db, "members"),
+          where("email", "==", userData.email)
+        );
+        const memberSnapshot = await getDocs(membersQuery);
+        
+        if (!memberSnapshot.empty) {
+          const memberData = memberSnapshot.docs[0].data() as MemberData;
+          return memberData.fullName;
+        }
+      }
+      return "Unknown User";
+    } catch (error) {
+      console.error("Error fetching current user data:", error);
+      return "Unknown User";
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentUserName();
+  }, []);
+
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4 hover:shadow-lg">
-      <div onClick={() => handleViewEventClick(event)}>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+      {/* Event Image */}
+      <div className="w-full h-48 bg-gray-200">
         {event.eventImages && event.eventImages.length > 0 ? (
           <img
-            src={event.eventImages[event.eventImages.length - 1]}
-            alt={event.eventImages[event.eventImages.length - 1]}
-            className="w-full h-48 object-cover rounded-md"
+            src={event.eventImages[0]}
+            alt={event.eventName}
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
-            <p className="text-gray-500">No Image Available</p>
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              src="/assets/default.jpg"
+              alt="Default event"
+              className="w-full h-full object-cover"
+            />
           </div>
         )}
-        <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-        <p className="text-gray-600 mt-2">
-          {truncateText(event.eventDescription)}
-        </p>
-        <p className="text-gray-500 mt-2">
-          <CorporateFareIcon />
-          &nbsp; {orgName}
-        </p>
-        <p className="text-gray-400 mt-2">
-          <EventIcon />
-          &nbsp;
-          {event.eventDate instanceof Date
-            ? event.eventDate.toLocaleDateString()
-            : event.eventDate}
-        </p>
       </div>
-      
+
+      {/* Content */}
+      <div className="p-4">
+        {/* Title and Organization */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+              {orgName}
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+
+        {/* Details */}
+        <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+          <div className="space-y-1">
+            <p>
+              <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+            </p>
+            <p>
+              <span className="font-medium">Location:</span> {event.eventLocation}
+            </p>
+          </div>
+          <div className="text-right space-y-1">
+            <p>
+              <span className="font-medium">Price:</span> {event.eventPrice}
+            </p>
+            <p>
+              <span className="font-medium">Type:</span> {event.eventType}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end items-center space-x-3 pt-2 border-t">
+          <div className="flex items-center">
+            <button
+              onClick={handleLikeClick}
+              className={`p-1.5 rounded-full hover:bg-gray-100 ${liked ? 'text-blue-600' : 'text-gray-600'}`}
+              aria-label={liked ? "Unlike" : "Like"}
+            >
+              {liked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{event.likedBy?.length || 0}</span>
+          </div>
+          <button
+            onClick={handleInterestedClick}
+            className={`p-1.5 rounded-full hover:bg-gray-100 ${interested ? 'text-blue-600' : 'text-gray-600'}`}
+            aria-label={interested ? "Remove bookmark" : "Bookmark"}
+          >
+            {interested ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+          </button>
+          <button
+            onClick={() => handleAddToCalendar(event)}
+            className="p-1.5 rounded-full hover:bg-gray-100 text-blue-600 hover:text-blue-800"
+            aria-label="Add to Calendar"
+          >
+            <CalendarMonthIcon fontSize="small" />
+          </button>
+          <div className="flex items-center">
+            <button
+              onClick={() => handleViewEventClick(event)}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
+              aria-label="View comments"
+            >
+              <ChatBubbleOutlineIcon fontSize="small" />
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
+          </div>
+        </div>
+      </div>
+
       {isViewEventOpen && selectedEvent && (
         <ViewEvent 
           close={handleCloseEventClick} 
           event={selectedEvent}
           orgName={orgName}
-          />)}
-
-      <div className="flex items-center mt-4">
-        <div
-          className={`mr-3 flex items-center cursor-pointer ${liked ? "text-green-500" : "text-gray-500"}`}
-          onClick={handleLikeClick}
-        >
-          {liked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
-          <span className="ml-1">Like</span>
-        </div>
-
-        <button
-          className={`ml-44 px-4 py-2 rounded-md ${interested ? "bg-gray-500 text-white" : "bg-blue-500 text-white"}`}
-          onClick={handleInterestedClick}
-        >
-          {interested ? "Interested" : "Interested?"}
-        </button>
-      </div>
+        />
+      )}
     </div>
   );
 };
@@ -289,6 +460,7 @@ const EventsView: React.FC = () => {
     participation: "none",
     date: "none",
   });
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -375,31 +547,64 @@ const EventsView: React.FC = () => {
     return () => unsubscribe();
   }, [filters]);
 
-  return (
-    <div className="flex h-screen">
-      <MemberSidebar />
-      <div className="flex-grow p-6 bg-white overflow-y-auto">
-        <Header />
-        <SearchAndFilter onFilterChange={setFilters} />
-        <div className="mt-6">
-          {loading ? (
-            <div className="text-center text-gray-500 py-4">Loading events...</div>
-          ) : error ? (
-            <div className="text-center text-red-500 py-4">{error}</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {events.length > 0 ? (
-                events.map((event) => (
-                  <EventCard key={event.uid} event={event} />
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  No events found.
-                </div>
-              )}
-            </div>
-          )}
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 500) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  return (  
+    <div className="flex h-full bg-gray-50">
+      <div className="flex h-50%">
+        <MemberSidebar />
+      </div>
+      <div className="flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Header />
+          <SearchAndFilter onFilterChange={setFilters} />
+          <div className="mt-6">
+            {loading ? (
+              <div className="text-center text-gray-500 py-4">Loading events...</div>
+            ) : error ? (
+              <div className="text-center text-red-500 py-4">{error}</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.length > 0 ? (
+                  events.map((event) => (
+                    <EventCard key={event.uid} event={event} />
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-4 col-span-full">
+                    No events found.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200"
+            aria-label="Back to top"
+          >
+            <KeyboardArrowUpIcon />
+          </button>
+        )}
       </div>
     </div>
   );
