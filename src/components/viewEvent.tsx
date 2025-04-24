@@ -161,7 +161,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[16.5%] z-50"
+      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[17%] z-50"
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
     >
       <div
