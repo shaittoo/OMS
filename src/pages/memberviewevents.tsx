@@ -27,11 +27,12 @@ interface Event {
   isOpenForAll: boolean;
   status: string;
   organizationId: string;
-  registrations: string;
+  registrations: number;
   likedBy: string[];
   interestedBy: string[];
   isLiked: boolean;
   isInterested: boolean;
+  tags: string[];
 }
 
 const Header: React.FC = () => {
@@ -256,7 +257,8 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
           close={handleCloseEventClick} 
           event={selectedEvent}
           orgName={orgName}
-          />)}
+        />
+      )}
 
       <div className="flex items-center mt-4">
         <div
