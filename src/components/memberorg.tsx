@@ -3,17 +3,16 @@ import { auth, db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import MemberSidebar from "./membersidebar";
-import Link from "next/link";
 import MemTaskList from "./memtasklist";
 import MemberEventList from "./membereventlist";
 import Calendar from "./calendar";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useRouter } from "next/router";
 
 const MemberOrg: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [organizationData, setOrganizationData] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const router = useRouter();
   const { orgId } = router.query;
 
@@ -22,6 +21,7 @@ const MemberOrg: React.FC = () => {
     try {
       await signOut(auth);
       console.log("User logged out successfully.");
+      router.push("/login"); // Redirect to login page after logout
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -67,6 +67,7 @@ const MemberOrg: React.FC = () => {
         fetchUserData(user.uid);
       } else {
         setLoading(false);
+        router.push("/login"); // Redirect to login if user is not authenticated
       }
     });
 
@@ -75,7 +76,7 @@ const MemberOrg: React.FC = () => {
 
   // Fetch organization data when orgId changes
   useEffect(() => {
-    if (orgId && typeof orgId === 'string') {
+    if (orgId && typeof orgId === "string") {
       fetchOrganizationData(orgId);
     }
   }, [orgId]);
@@ -89,61 +90,78 @@ const MemberOrg: React.FC = () => {
   }
 
   return (
-    <div
-      className="grid lg:grid-cols-3 bg-white"
-      style={{ gridTemplateColumns: "20% 40% 40%" }}
-    >
-      {/* Sidebar */}
-      <div className="flex lg:col-start-1">
-        <MemberSidebar />
-      </div>
-
-      {/* Main Content - Events */}
-      <div className="lg:col-start-2 mt-4 px-6">
-        {/* Back to Dashboard Link */}
-        <div className="py-2">
-          <Link
-            href="/memberpage"
-            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowBackIcon />
-            <span>Back to Dashboard</span>
-          </Link>
-        </div>
-
-        {/* Organization Header */}
-        {organizationData && (
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{organizationData.name}</h1>
-            <p className="text-gray-600">{organizationData.description}</p>
+    <div>
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowLogoutModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Log Out
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Events Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Events</h2>
-          <MemberEventList organizationId={orgId as string} />
         </div>
-      </div>
+      )}
 
-      {/* Right Content - Calendar and Tasks */}
-      <div className="lg:col-start-3 mt-4 px-6">
-        {/* Logout Button */}
-        <button
-          className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-6 top-6"
-          onClick={handleLogout}
-        >
-          Log Out
-        </button>
-
-        {/* Calendar Section */}
-        <div className="mt-16 mb-8">
-          <Calendar organizationId={orgId as string} />
+      <div
+        className="grid lg:grid-cols-3 bg-white"
+        style={{ gridTemplateColumns: "20% 40% 40%" }}
+      >
+        {/* Sidebar */}
+        <div className="flex lg:col-start-1">
+          <MemberSidebar />
         </div>
 
-        {/* Tasks Section */}
-        <div className="mb-8">
-          <MemTaskList organizationId={orgId as string} />
+        {/* Main Content - Events */}
+        <div className="lg:col-start-2 mt-4 px-6">
+          {/* Organization Header */}
+          {organizationData && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">{organizationData.name}</h1>
+              <p className="text-gray-600">{organizationData.description}</p>
+            </div>
+          )}
+
+          {/* Events Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Events</h2>
+            <MemberEventList organizationId={orgId as string} />
+          </div>
+        </div>
+
+        {/* Right Content - Calendar and Tasks */}
+        <div className="lg:col-start-3 mt-4 px-6">
+          {/* Logout Button */}
+          <button
+            className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-6 top-6"
+            onClick={() => setShowLogoutModal(true)}
+          >
+            Log Out
+          </button>
+
+          {/* Calendar Section */}
+          <div className="mt-16 mb-8">
+            <Calendar organizationId={orgId as string} />
+          </div>
+
+          {/* Tasks Section */}
+          <div className="mb-8">
+            <MemTaskList organizationId={orgId as string} />
+          </div>
         </div>
       </div>
     </div>
