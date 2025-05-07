@@ -212,7 +212,7 @@ const OfficerDashboard: React.FC = () => {
           {isAddEventOpen && <OfficerAddEvent close={handleCloseEventForm} />}
 
           {/* Organization Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1" style={{ gridTemplateColumns: "70% 30%" }}>
             <div className="org-overview flex flex-col gap-0">
               <div className="org-logo-container flex items-center gap-3 bg-transparent">
                 {organizationData?.organizationLogo ? (
@@ -237,17 +237,17 @@ const OfficerDashboard: React.FC = () => {
                 </p>
               </div>
               
-              <div className="text-black rounded-lg shadow-lg pending-tasks bg-gray-100 col-span-2 p-4 flex flex-col gap-2" style={{ height: "305px" }}>
-                <div className="pending-tasks-container bg-gray-100 p-4 rounded w-full h-64 overflow-auto">
+              <div className="text-black rounded-lg shadow-lg pending-tasks col-span-2 p-4 flex flex-col gap-2" style={{ height: "305px" }}>
+                <div className="pending-tasks-container p-4 rounded w-full h-64 overflow-auto">
                   <TaskList />
                 </div>
-                <div className="flex justify-end">
-                  <Link href="/orgviewtasks">
+              </div>
+              <div className="text-right mt-2 mr-20">
                     <p className="text-purple-700 underline text-sm hover:text-purple-800" style={{ fontSize: "16px", fontFamily: "Arial" }}>
-                      View More
-                    </p>
-                  </Link>
-                </div>
+                      <Link href="/orgviewtasks">
+                        View More
+                      </Link>
+                    </p>          
               </div>
             </div>
             <div className="text-black relative flex flex-col w-full justify-end">
