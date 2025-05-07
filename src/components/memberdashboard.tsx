@@ -135,19 +135,21 @@ const MemberDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-8 rounded-lg shadow-lg gap-2 p-4">
             <div
-            className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
+            className="pending-tasks-container w-full overflow-auto">
             <MemTaskList />
+            </div>
           </div>
+          <div className="text-right mt-2 mb-2">
+            <p
+              className="text-purple-700 underline text-sm hover:text-purple-800" style={{ fontSize: "16px", fontFamily: "Arial" }}
+            >
+              <Link href="/memviewtasks">
+                View More
+              </Link>
+            </p>
           </div>
-          <p
-            className="my-2 text-right hover:text-purple-700"
-            style={{ fontSize: "13px", fontFamily: "Arial" }}
-          >
-            {" "}
-            View More
-          </p>
         </div>
         <div className="lg:col-start-3 mt-8 ml-6">
           <button 
