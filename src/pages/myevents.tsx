@@ -1,31 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { db, auth } from "../firebaseConfig";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, updateDoc, arrayRemove, arrayUnion } from "firebase/firestore";
 import MemberSidebar from "../components/membersidebar";
-import Link from "next/link";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EventIcon from "@mui/icons-material/Event";
+import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 
 interface Event {
   id: string;
   eventName: string;
   eventDescription: string;
-  eventDate: string;
+  eventDate: string | Date;
   eventLocation: string;
   eventImages: string[];
+  isInterested: boolean;
 }
-
-const AppHeader: React.FC = () => (
-  <div className="pb-4 border-b border-gray-200">
-    <Link href="/memberpage" className="flex items-center text-gray-600 hover:text-gray-800">
-      <ArrowBackIcon />
-      <span className="ml-2">Back to Dashboard</span>
-    </Link>
-  </div>
-);
 
 const MyEvents: React.FC = () => {
   const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [undoTimeouts, setUndoTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     const fetchInterestedEvents = async () => {
@@ -57,7 +50,12 @@ const MyEvents: React.FC = () => {
               const eventDoc = await getDoc(eventDocRef);
 
               if (eventDoc.exists()) {
-                return { id: eventDoc.id, ...eventDoc.data() } as Event;
+                const eventData = eventDoc.data();
+                return {
+                  id: eventDoc.id,
+                  ...eventData,
+                  isInterested: true,
+                } as Event;
               } else {
                 console.warn(`Event with ID ${eventId} does not exist.`);
               }
@@ -78,6 +76,71 @@ const MyEvents: React.FC = () => {
 
     fetchInterestedEvents();
   }, []);
+
+  const handleInterestedClick = async (eventId: string, isInterested: boolean) => {
+    const authUser = auth.currentUser;
+
+    if (!authUser) {
+      alert("User not authenticated");
+      return;
+    }
+
+    try {
+      const userDocRef = doc(db, "Users", authUser.uid);
+      const eventDocRef = doc(db, "events", eventId);
+
+      // Update Firestore
+      await updateDoc(userDocRef, {
+        interestedEvents: isInterested ? arrayRemove(eventId) : arrayUnion(eventId),
+      });
+
+      await updateDoc(eventDocRef, {
+        interestedBy: isInterested ? arrayRemove(authUser.uid) : arrayUnion(authUser.uid),
+      });
+
+      if (isInterested) {
+        // Temporarily keep the event visible for 3 seconds
+        const timeout = setTimeout(() => {
+          setInterestedEvents((prevEvents) =>
+            prevEvents.filter((event) => event.id !== eventId)
+          );
+          setUndoTimeouts((prevTimeouts) => {
+            const { [eventId]: _, ...rest } = prevTimeouts;
+            return rest;
+          });
+        }, 3000);
+
+        setUndoTimeouts((prevTimeouts) => ({
+          ...prevTimeouts,
+          [eventId]: timeout,
+        }));
+      } else {
+        // Clear the undo timeout if the user re-adds the event
+        if (undoTimeouts[eventId]) {
+          clearTimeout(undoTimeouts[eventId]);
+          setUndoTimeouts((prevTimeouts) => {
+            const { [eventId]: _, ...rest } = prevTimeouts;
+            return rest;
+          });
+        }
+      }
+
+      // Update local state
+      setInterestedEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, isInterested: !isInterested } : event
+        )
+      );
+
+      console.log(
+        `Event with ID ${eventId} ${
+          isInterested ? "removed from" : "added to"
+        } interested list.`
+      );
+    } catch (error) {
+      console.error("Failed to update interested status:", error);
+    }
+  };
 
   const formatDate = (date: any) => {
     if (!date) return "Date not specified";
@@ -100,9 +163,8 @@ const MyEvents: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <main className="ml-64 p-6">
-        <AppHeader />
 
+      <main className="flex-grow p-6 bg-white">
         <div className="mt-6">
           <h2 className="text-2xl font-semibold text-gray-800">My Interested Events</h2>
 
@@ -112,30 +174,50 @@ const MyEvents: React.FC = () => {
             </div>
           ) : interestedEvents.length === 0 ? (
             <div className="text-center text-gray-600 mt-8">
-              <p>You haven't marked any events as interested.</p>
-              <Link href="/memberviewevents">
-                <span className="text-blue-600 hover:underline mt-2 inline-block">
-                  View Available Events
-                </span>
-              </Link>
+              <p>You haven’t marked any events as interested.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
               {interestedEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white border rounded-lg shadow-sm p-4 hover:shadow-md transition"
+                  className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition"
                 >
-                  <img
-                    src={event.eventImages[0]} 
-                    alt={event.eventName}
-                    className="w-full h-40 object-cover rounded-md mb-3"
-                  />
-                  <h3 className="text-lg font-semibold text-gray-800">{event.eventName}</h3>
-                  <p className="text-sm text-gray-600 truncate">{event.eventDescription}</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {event.eventDate ? formatDate(event.eventDate) : "Date not specified"} - {event.eventLocation}
+                  {event.eventImages && event.eventImages.length > 0 ? (
+                    <img
+                      src={event.eventImages[0]}
+                      alt={event.eventName}
+                      className="w-full h-48 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
+                      <p className="text-gray-500">No Image Available</p>
+                    </div>
+                  )}
+                  <h3 className="text-lg font-semibold text-gray-800 mt-4">
+                    {event.eventName}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {event.eventDescription}
                   </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    <CorporateFareIcon /> {event.eventLocation}
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    <EventIcon /> {formatDate(event.eventDate)}
+                  </p>
+                  <div className="flex items-center mt-4">
+                    <button
+                      onClick={() => handleInterestedClick(event.id, event.isInterested)}
+                      className={`px-4 py-2 rounded-md ${
+                        event.isInterested
+                          ? "bg-gray-500 text-white"
+                          : "bg-blue-500 text-white"
+                      }`}
+                    >
+                      {event.isInterested ? "Interested" : "Interested?"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

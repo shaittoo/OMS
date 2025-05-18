@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebaseConfig";
 import { useRouter } from "next/router"; 
-import { collection, getDocs, query, where, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 import OfficerSidebar from "../components/officersidebar";
@@ -112,6 +112,30 @@ const AcceptMembers: React.FC = () => {
         seenByUser: false,
         fullName: fullName, 
       });
+
+      //Notifications:
+
+      const orgId = memberData.organizationId;
+      let orgName = "";
+      let orgProfilePic = "";
+      if (orgId) {
+        const orgDoc = await getDoc(doc(db, "Organizations", orgId));
+        if (orgDoc.exists()) {
+          orgName = orgDoc.data().name || "";
+          orgProfilePic = orgDoc.data().profilePic || "";
+        }
+      }
+
+     await addDoc(collection(db, "notifications"), {
+      recipientUid: uid,
+      type: "application-status",
+      message: `Your application status is now: ${newStatus === "approved" ? "Approved" : "Rejected"}`,
+      orgName: orgName,
+      orgProfilePic: orgProfilePic,
+      timestamp: serverTimestamp(),
+      read: false,
+      relatedId: memberId,
+    });
   
 
       setMembers((prevMembers) =>
@@ -132,19 +156,48 @@ const AcceptMembers: React.FC = () => {
   const handleRejectionReasonSubmit = async () => {
     try {
       const memberDocRef = doc(db, "Members", selectedMemberId);
+      const memberSnap = await getDoc(memberDocRef);
+      if (!memberSnap.exists()) {
+        console.error("Member document not found.");
+        return;
+      }
+      const memberData = memberSnap.data();
+      const uid = memberData.uid;
 
       const updatedRejectionReason = rejectionReason === "other" && customOtherReason.trim() === "" 
-      ? "Other"  
-      : rejectionReason === "other"
-      ? customOtherReason 
-      : rejectionReason; 
-
+        ? "Other"  
+        : rejectionReason === "other"
+        ? customOtherReason 
+        : rejectionReason; 
 
       await updateDoc(memberDocRef, {
         status: "rejected",
         rejectionReason: updatedRejectionReason,
         rejectionDetails: rejectionDetails,
         seenByUser: false //for notification purposes
+      });
+
+      //Notifications:
+      const orgId = memberData?.organizationId;
+      let orgName = "";
+      let orgProfilePic = "";
+      if (orgId) {
+        const orgDoc = await getDoc(doc(db, "Organizations", orgId));
+        if (orgDoc.exists()) {
+          orgName = orgDoc.data().name || "";
+          orgProfilePic = orgDoc.data().profilePic || "";
+        }
+      }
+
+      await addDoc(collection(db, "notifications"), {
+        recipientUid: uid,
+        type: "application-status",
+        message: `Your application status is now: Rejected.`,
+        orgName: orgName,
+        orgProfilePic: orgProfilePic,
+        timestamp: serverTimestamp(),
+        read: false,
+        relatedId: selectedMemberId,
       });
 
       setMembers((prevMembers) =>
