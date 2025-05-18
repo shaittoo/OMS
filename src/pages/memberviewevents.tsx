@@ -170,6 +170,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [isViewEventOpen, setViewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [comments, setComments] = useState<Comments[]>([]);
+  const [likeCount, setLikeCount] = useState(event.likedBy?.length || 0);
 
   // Function to fetch comments
   const fetchComments = async (eventId: string) => {
@@ -284,7 +285,11 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
   const handleLikeClick = async () => {
     const userId = auth.currentUser?.uid;
-    setLiked(!liked);
+    setLiked((prev) => {
+      const newLiked = !prev;
+      setLikeCount((count) => newLiked ? count + 1 : count - 1);
+      return newLiked;
+    });
 
     if (userId) {
       const userRef = doc(db, "Users", userId);
@@ -409,7 +414,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             >
               {liked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
             </button>
-            <span className="ml-1 text-sm text-gray-600">{event.likedBy?.length || 0}</span>
+            <span className="ml-1 text-sm text-gray-600">{likeCount}</span>
           </div>
           <button
             onClick={handleInterestedClick}
@@ -568,11 +573,9 @@ const EventsView: React.FC = () => {
   };
 
   return (  
-    <div className="flex h-full bg-gray-50">
-      <div className="flex h-50%">
-        <MemberSidebar />
-      </div>
-      <div className="flex-1">
+    <div className="min-h-screen bg-white">
+      <MemberSidebar />
+      <main className="ml-64">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Header />
           <SearchAndFilter onFilterChange={setFilters} />
@@ -595,17 +598,17 @@ const EventsView: React.FC = () => {
               </div>
             )}
           </div>
+          {showBackToTop && (
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-8 right-8 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200"
+              aria-label="Back to top"
+            >
+              <KeyboardArrowUpIcon />
+            </button>
+          )}
         </div>
-        {showBackToTop && (
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-8 right-8 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200"
-            aria-label="Back to top"
-          >
-            <KeyboardArrowUpIcon />
-          </button>
-        )}
-      </div>
+      </main>
     </div>
   );
 };
