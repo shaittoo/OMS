@@ -11,17 +11,7 @@ import Calendar from "./calendar";
 const MemberDashboard: React.FC = () => {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [hasOrganizations, setHasOrganizations] = useState(false);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      console.log("User logged out successfully.");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
 
   // Function to fetch user's first name from the 'members' collection
   const fetchUserData = async (userId: string) => {
@@ -87,104 +77,71 @@ const MemberDashboard: React.FC = () => {
   };
 
   return (
-    <>
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setShowLogoutModal(false);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Log Out
-              </button>
-            </div>
+    <div
+      className="grid lg:grid-cols-3 bg-white"
+      style={{ gridTemplateColumns: "20% 40% 40%" }}
+    >
+      <div className="flex lg:col-start-1">
+        <MemberSidebar />
+      </div>
+      <div className="lg:col-start-2 mt-8">
+        <div className="welcome-message ml-auto" style={{ fontSize: "24px", fontFamily: "Arial", fontWeight: "bold" }}>
+          Welcome back, {firstName || "User"}! {/* Display first name */}
+        </div>
+        <p style={{ fontSize: "16px", fontFamily: "Arial" }}>
+          {" "}
+          How are we doing today?
+        </p>
+        <hr className="my-4 border-black" />
+        <div className="text-black rounded-lg shadow-lg bg-white relative">
+          <div className="ml-6 py-6" style={{width: '90%'}}>
+            <Calendar />
           </div>
         </div>
-      )}
 
-      <div
-        className="grid lg:grid-cols-3 bg-white"
-        style={{ gridTemplateColumns: "20% 40% 40%" }}
-      >
-        <div className="flex lg:col-start-1">
-          <MemberSidebar />
+        <div className="mt-8">
+          <div
+          className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
+          <MemTaskList />
         </div>
-        <div className="lg:col-start-2 mt-8">
-          <div className="welcome-message ml-auto">
-            Welcome back, {firstName || "User"}! {/* Display first name */}
-          </div>
-          <p style={{ fontSize: "16px", fontFamily: "Arial" }}>
-            {" "}
-            How are we doing today?
-          </p>
-          <hr className="my-4 border-black" />
-          <div className="text-black rounded-lg shadow-lg bg-white relative">
-            <div className="ml-6 py-6" style={{width: '90%'}}>
-              <Calendar />
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <div
-            className=" text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
-            <MemTaskList />
-          </div>
-          </div>
-          <p
-            className="my-2 text-right hover:text-purple-700"
-            style={{ fontSize: "13px", fontFamily: "Arial" }}
-          >
-            {" "}
-            View More
-          </p>
         </div>
-        <div className="lg:col-start-3 mt-8 ml-6">
+        {/* <p
+          className="my-2 text-right hover:text-purple-700"
+          style={{ fontSize: "13px", fontFamily: "Arial" }}
+        >
+          {" "}
+          View More
+        </p> */}
+      </div>
+      <div className="lg:col-start-3 mt-8 ml-6">
+        <p className="pt-7" style={{ fontSize: "16px", fontFamily: "Arial" }}>
+          {" "}
+          What else would you like to do?
+        </p>
+        <div className="flex py-4 gap-4 w-min">
           <button 
-            className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
-            onClick={() => setShowLogoutModal(true)}
-          >
-            Log Out
+            className="officer-action-buttons flex-grow"
+            onClick={handleOrgListRedirect}>
+            {hasOrganizations ? "View All Orgs" : "Apply to Orgs"}
           </button>
-          <p className="pt-7" style={{ fontSize: "16px", fontFamily: "Arial" }}>
-            {" "}
-            What else would you like to do?
-          </p>
-          <div className="flex py-4 gap-4 w-min">
-            <button 
-              className="officer-action-buttons flex-grow"
-              onClick={handleOrgListRedirect}>
-              {hasOrganizations ? "View All Orgs" : "Apply to Orgs"}
-            </button>
-            <Link href="/memberviewevents" >
-            <button className="officer-action-buttons flex-grow">
-              View All Events
-            </button>
-            </Link>
-          </div>
-          <p
-            className="pt-2 pb-2"
-            style={{ fontSize: "16px", fontFamily: "Arial" }}
-          >
-            {" "}
-            Trending Events
-          </p>
-          <div style={{width: '90%'}}>
-            <MemberEventList/>
-          </div>
+          <Link href="/memberviewevents" >
+          <button className="officer-action-buttons flex-grow">
+            View All Events
+          </button>
+          </Link>
+        </div>
+        <p
+          className="pt-2 pb-2"
+          style={{ fontSize: "16px", fontFamily: "Arial" }}
+        >
+          {" "}
+          Trending Events
+        </p>
+        <div style={{width: '90%'}}>
+          <MemberEventList/>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -166,12 +166,23 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
         // Filter and sort based on view type
         if (!organizationId) {
-          // Member Dashboard View: Filter out past events and sort by likes
+          // Member Dashboard View: Filter for current month events starting from today
           const currentDate = new Date();
+          const currentMonth = currentDate.getMonth();
+          const currentYear = currentDate.getFullYear();
+          
           eventsList = eventsList.filter(event => {
             if (!event.eventDate) return false;
             const eventDate = new Date(event.eventDate);
-            return eventDate >= currentDate;
+            
+            // Check if event is in current month and year
+            const isCurrentMonth = eventDate.getMonth() === currentMonth && 
+                                 eventDate.getFullYear() === currentYear;
+            
+            // Check if event is today or future
+            const isTodayOrFuture = eventDate >= currentDate;
+            
+            return isCurrentMonth && isTodayOrFuture;
           });
 
           // Sort by likes count (descending) and then by date
@@ -183,7 +194,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             // If likes are equal, sort by date
             const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
             const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
-            return dateB - dateA;
+            return dateA - dateB; // Sort by date ascending (earlier dates first)
           });
 
           // Take top 4 events

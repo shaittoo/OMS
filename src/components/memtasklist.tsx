@@ -5,6 +5,7 @@ import { getAuth } from "firebase/auth";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import Link from "next/link";
 
 interface Task {
   id: string;
@@ -28,6 +29,7 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [userOrganizations, setUserOrganizations] = useState<string[]>([]);
+  const [displayedTasks, setDisplayedTasks] = useState<Task[]>([]);
   const auth = getAuth();
 
   // Fetch user's organizations
@@ -156,6 +158,8 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
         });
   
         setTasks(resolvedTasks);
+        // Initially show only 4 tasks
+        setDisplayedTasks(resolvedTasks.slice(0, 4));
       } catch (error) {
         console.error("Error fetching tasks:", error);
         setError("Error fetching tasks. Please try again later.");
@@ -166,6 +170,17 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
   
     fetchTasks();
   }, [organizationId, userOrganizations, auth]);
+
+  // Update displayed tasks when activeTab changes
+  useEffect(() => {
+    const filteredTasks = tasks.filter((task) => {
+      if (activeTab === "All") return true;
+      if (activeTab === "Completed") return task.completed;
+      if (activeTab === "Not Completed") return !task.completed;
+      return true;
+    });
+    setDisplayedTasks(filteredTasks.slice(0, 4));
+  }, [activeTab, tasks]);
 
   const handleCheckbox = async (taskId: string, completed: boolean) => {
     try {
@@ -182,34 +197,27 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Completed") return task.completed;
-    if (activeTab === "Not Completed") return !task.completed;
-    return true;
-  });
-
   const noTasksMessage = () => {
     if (loading) return null;
     if (error) return null;
-    if (activeTab === "Completed" && filteredTasks.length === 0) {
+    if (activeTab === "Completed" && tasks.length === 0) {
       return <p className="text-gray-700">No completed tasks yet.</p>;
     }
-    if (activeTab === "Not Completed" && filteredTasks.length === 0) {
+    if (activeTab === "Not Completed" && tasks.length === 0) {
       return <p className="text-gray-700">All tasks completed.</p>;
     }
-    if (activeTab === "All" && filteredTasks.length === 0) {
+    if (activeTab === "All" && tasks.length === 0) {
       return <p className="text-gray-700">No tasks assigned yet.</p>;
     }
   };
 
   return (
     <div
-      className="pending-tasks-container bg-white rounded-lg shadow-lg p-4 w-full h-64 overflow-auto"
+      className={`pending-tasks-container bg-white rounded-lg shadow-lg ${organizationId ? 'p-4' : 'p-2'} w-full mb-12`}
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: organizationId ? "8px" : "4px",
       }}
     >
       <div className="header flex justify-between items-center mb-4">
@@ -220,7 +228,7 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
         {/* Filter Dropdown */}
         <div className="filter-dropdown">
           <select
-            className="border border-purple-700 rounded p-2"
+            className={`border border-purple-700 rounded ${organizationId ? 'p-2' : 'p-1 text-xs'}`}
             value={activeTab}
             onChange={(e) => setActiveTab(e.target.value)}
           >
@@ -242,14 +250,16 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
         {noTasksMessage()}
         {!loading &&
           !error &&
-          filteredTasks.map((task) => (
+          displayedTasks.map((task) => (
             <div
               key={task.id}
-              className="task-item bg-white p-3 rounded shadow-md transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
+              onClick={() => handleCheckbox(task.id, task.completed)}
+              className={`task-item bg-white ${organizationId ? 'p-4' : 'p-2'} rounded shadow-md transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300`}
               style={{
                 wordWrap: "break-word",
                 textDecoration: task.completed ? "line-through" : "none",
                 opacity: task.completed ? 0.6 : 1,
+                fontSize: organizationId ? undefined : "12px",
               }}
             >
               {/* Task Name, Checkbox, and Organization */}
@@ -259,46 +269,61 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId }) => {
                     type="checkbox"
                     checked={task.completed}
                     onChange={() => handleCheckbox(task.id, task.completed)}
-                    className="cursor-pointer transform scale-125"
+                    className={`cursor-pointer ${organizationId ? 'transform scale-125' : 'transform scale-100'}`}
                   />
-                  <h3 className="font-semibold text-md text-purple-700">{task.taskName}</h3>
+                  <h3 className={`font-semibold ${organizationId ? 'text-md' : 'text-sm'} text-purple-700`}>{task.taskName}</h3>
                 </div>
                 {!organizationId && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    {task.organizationName}
+                  <span className="flex items-center gap-2">
+                    {/* Priority indicator to the left of org name */}
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                      (task.priority || '').toLowerCase() === 'high' ? 'bg-red-100 text-red-600' :
+                      (task.priority || '').toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {task.priority}
+                    </span>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {task.organizationName}
+                    </span>
                   </span>
                 )}
               </div>
 
-              {/* Due Date, Assigned Members, and Priority */}
-              <div className="flex gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
-                  <CalendarTodayIcon className="text-purple-700" />
+              {/* Due Date and Assigned Members (no priority here in dashboard) */}
+              <div className={`flex flex-wrap items-center gap-2 text-gray-500 ${organizationId ? 'text-sm mb-3' : 'text-xs mb-1'}`}>
+                <div className="flex items-center gap-1">
+                  <CalendarTodayIcon className="text-purple-700" style={{ fontSize: organizationId ? 18 : 14 }} />
                   <span>Due: {task.dueDate}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <GroupIcon className="text-purple-700" />
+                <span className="mx-1">|</span>
+                <div className="flex items-center gap-1">
+                  <GroupIcon className="text-purple-700" style={{ fontSize: organizationId ? 18 : 14 }} />
                   <span>
-                    Assigned to:{" "}
-                    {task.assignedMembers.length > 0
-                      ? task.assignedMembers.join(", ")
-                      : "No members assigned"}
+                    Assigned to: {task.assignedMembers.length > 0 ? task.assignedMembers.join(", ") : "No members assigned"}
                   </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <PriorityHighIcon className="text-purple-700" />
-                  <span>Priority: {task.priority}</span>
                 </div>
               </div>
 
               {/* Task Description */}
-              <p className="mt-2 text-gray-500 text-sm">{task.description}</p>
+              <p className={`mt-2 text-gray-500 ${organizationId ? 'text-sm' : 'text-xs'}`}>{task.description}</p>
 
               {/* Purple Horizontal Line */}
-              <hr className="mt-2 border-purple-700 border-2" />
+              <hr className={`mt-2 border-purple-700 border-2 ${organizationId ? '' : 'mb-1'}`} />
             </div>
           ))}
       </div>
+
+      {/* View More Link */}
+      {tasks.length > 4 && !organizationId && (
+        <div className="mt-4 text-right">
+          <Link href="/memberviewtasks">
+            <p className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer">
+              View More
+            </p>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };

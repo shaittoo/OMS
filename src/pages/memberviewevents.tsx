@@ -378,9 +378,9 @@ const EventsView: React.FC = () => {
   }, [filters]);
 
   return (
-    <div className="flex h-screen">
+    <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <div className="flex-grow p-6 bg-white overflow-y-auto">
+      <main className="ml-64 p-6 overflow-y-auto">
         <Header />
         <SearchAndFilter onFilterChange={setFilters} />
         <div className="mt-6">
@@ -402,7 +402,7 @@ const EventsView: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

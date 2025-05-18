@@ -3,13 +3,9 @@ import MemberSidebar from "../components/membersidebar";
 
 const AboutUs = () => {
   return (
-    <div className="flex bg-white"> 
-    <div className="flex min-h-screen ">
-      <MemberSidebar /> 
-      </div>
-
-      {/* Main content */}
-      <main className="main-content flex-grow p-6 ">
+    <div className="min-h-screen bg-white">
+      <MemberSidebar />
+      <main className="ml-64 p-6">
         <div className="flex flex-col items-center bg-gray-100 min-h-screen py-10 px-4">
           {/* Logo Section */}
           <div className="flex flex-col lg:flex-row items-center justify-center gap-8 bg-white p-8 rounded-lg shadow-md w-full max-w-6xl mb-12">
@@ -103,8 +99,8 @@ const AboutUs = () => {
                 Join Us
               </h2>
               <p className="text-gray-600">
-                Whether you’re an individual looking to connect or an
-                organization ready to grow, we’re here for you. Together, we can
+                Whether you're an individual looking to connect or an
+                organization ready to grow, we're here for you. Together, we can
                 build a brighter future.
               </p>
             </div>

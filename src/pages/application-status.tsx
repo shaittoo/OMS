@@ -143,9 +143,9 @@ const ApplicationStatus: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <div className="flex-grow p-6 bg-white">
+      <main className="ml-64 p-6">
         <AppHeader />
         <div className="p-6">
           <div className="mt-1">
@@ -207,7 +207,7 @@ const ApplicationStatus: React.FC = () => {
 
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

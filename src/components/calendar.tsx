@@ -58,18 +58,28 @@ export default function Calendar({ organizationId }: CalendarProps) {
           ? calendarEvents.filter((event: CalendarEvent) => event.organizationId === organizationId)
           : calendarEvents;
 
-        // Fetch tasks
+        // Fetch tasks based on organizationId
         let tasksQuery;
         if (organizationId) {
+          // If organizationId is provided, only fetch tasks for that organization
           tasksQuery = query(
             collection(db, "tasks"),
             where("organizationId", "==", organizationId)
           );
         } else {
-          // If no organizationId is provided, fetch user's personal tasks
+          // If no organizationId, fetch tasks from all organizations the user is a member of
+          const membersRef = collection(db, "Members");
+          const membersQuery = query(
+            membersRef,
+            where("uid", "==", user.uid),
+            where("status", "==", "approved")
+          );
+          const membersSnapshot = await getDocs(membersQuery);
+          const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
+          
           tasksQuery = query(
             collection(db, "tasks"),
-            where("memberId", "==", user.uid)
+            where("organizationId", "in", userOrganizations)
           );
         }
         const tasksSnapshot = await getDocs(tasksQuery);
