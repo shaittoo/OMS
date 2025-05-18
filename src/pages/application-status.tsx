@@ -135,7 +135,7 @@ const ApplicationStatus: React.FC = () => {
     <div className="min-h-screen bg-white">
       <MemberSidebar />
       <main className="ml-64 p-6">
-        <AppHeader />
+        {/* <Header /> */}
         <div className="p-6">
           <div className="mt-1">
             <h2 className="text-2xl font-semibold">Your Application Status</h2>

@@ -16,7 +16,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, getAuth } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import MemberProfileSettings from "./memberprofilesettings";
