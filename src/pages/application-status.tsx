@@ -7,17 +7,6 @@ import MemberSidebar from "../components/membersidebar";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { writeBatch } from "firebase/firestore";
 
-const AppHeader: React.FC = () => (
-  <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
-    <div className="py-2">
-      <Link href="/orglist" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
-        <ArrowBackIcon />
-        <span>Back to Org List</span>
-      </Link>
-    </div>
-  </div>
-);
-
 const markAllAsSeen = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
@@ -146,7 +135,6 @@ const ApplicationStatus: React.FC = () => {
     <div className="flex min-h-screen">
       <MemberSidebar />
       <div className="flex-grow p-6 bg-white">
-        <AppHeader />
         <div className="p-6">
           <div className="mt-1">
             <h2 className="text-2xl font-semibold">Your Application Status</h2>
