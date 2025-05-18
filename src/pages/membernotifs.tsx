@@ -119,57 +119,48 @@ const MemberNotifications: React.FC = () => {
             <p>No notifications.</p>
           ) : (
             <ul>
-              <li className="mb-2 flex items-center">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-600">Select All</span>
-              </li>
               {notifications.map((notif) => (
-                <li
-                  key={notif.id}
-                  className={`mb-3 p-3 rounded border flex items-start ${notif.read ? "bg-gray-100 border-gray-300" : "bg-purple-100 border-purple-200"}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(notif.id)}
-                    onChange={() => toggleSelect(notif.id)}
-                    className="mt-1 mr-3"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      {notif.orgProfilePic && (
-                        <img
-                          src={notif.orgProfilePic}
-                          alt={notif.orgName || "Organization"}
-                          className="w-8 h-8 rounded-full mr-3 border border-gray-300 object-cover"
-                        />
-                      )}
-                      <span className="font-semibold text-purple-700">{notif.orgName}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>{notif.message}</span>
-                      <div className="flex items-center space-x-2">
-
-                        {!notif.read && (
-                          <button
-                            className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold hover:bg-purple-200 transition"
-                            onClick={() => markAsRead(notif.id)}
-                          >
-                            Mark as read
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {notif.timestamp?.toDate?.().toLocaleString?.() || ""}
-                    </div>
-                  </div>
-                </li>
-              ))}
+  <li
+    key={notif.id}
+    className={`mb-3 p-3 rounded border flex items-start ${notif.read ? "bg-gray-100 border-gray-300" : "bg-purple-100 border-purple-200"}`}
+  >
+    <input
+      type="checkbox"
+      checked={selected.includes(notif.id)}
+      onChange={async () => {
+        // Toggle selection
+        if (selected.includes(notif.id)) {
+          setSelected(selected.filter((sid) => sid !== notif.id));
+        } else {
+          setSelected([...selected, notif.id]);
+          // Mark as read if not already
+          if (!notif.read) {
+            await markAsRead(notif.id);
+          }
+        }
+      }}
+      className="mt-1 mr-3"
+    />
+    <div className="flex-1">
+      <div className="flex items-center">
+        {notif.orgProfilePic && (
+          <img
+            src={notif.orgProfilePic}
+            alt={notif.orgName || "Organization"}
+            className="w-8 h-8 rounded-full mr-3 border border-gray-300 object-cover"
+          />
+        )}
+        <span className="font-semibold text-purple-700">{notif.orgName}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span>{notif.message}</span>
+      </div>
+      <div className="text-xs text-gray-500">
+        {notif.timestamp?.toDate?.().toLocaleString?.() || ""}
+      </div>
+    </div>
+  </li>
+))}
             </ul>
           )}
         </div>
