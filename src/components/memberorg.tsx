@@ -89,63 +89,52 @@ const MemberOrg: React.FC = () => {
   }
 
   return (
-    <div
-      className="grid lg:grid-cols-3 bg-white"
-      style={{ gridTemplateColumns: "20% 40% 40%" }}
-    >
-      {/* Sidebar */}
-      <div className="flex lg:col-start-1">
-        <MemberSidebar />
-      </div>
+    <div className="min-h-screen bg-white">
+      <MemberSidebar />
+      <main className="ml-64 p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+          {/* Main Content - Events */}
+          <div className="w-full">
+            {/* Back to Dashboard Link */}
+            <div className="py-2">
+              <Link
+                href="/memberpage"
+                className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+              >
+                <ArrowBackIcon />
+                <span>Back to Dashboard</span>
+              </Link>
+            </div>
 
-      {/* Main Content - Events */}
-      <div className="lg:col-start-2 mt-4 px-6">
-        {/* Back to Dashboard Link */}
-        <div className="py-2">
-          <Link
-            href="/memberpage"
-            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowBackIcon />
-            <span>Back to Dashboard</span>
-          </Link>
-        </div>
+            {/* Organization Header */}
+            {organizationData && (
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold">{organizationData.name}</h1>
+                <p className="text-gray-600">{organizationData.description}</p>
+              </div>
+            )}
 
-        {/* Organization Header */}
-        {organizationData && (
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{organizationData.name}</h1>
-            <p className="text-gray-600">{organizationData.description}</p>
+            {/* Events Section */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Events</h2>
+              <MemberEventList organizationId={orgId as string} />
+            </div>
           </div>
-        )}
 
-        {/* Events Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Events</h2>
-          <MemberEventList organizationId={orgId as string} />
+          {/* Right Content - Calendar and Tasks */}
+          <div className="w-full">
+            {/* Calendar Section */}
+            <div className="mt-16 mb-8">
+              <Calendar organizationId={orgId as string} />
+            </div>
+
+            {/* Tasks Section */}
+            <div className="mb-8">
+              <MemTaskList organizationId={orgId as string} />
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Right Content - Calendar and Tasks */}
-      <div className="lg:col-start-3 mt-4 px-6">
-        {/* Logout Button */}
-        <button
-          className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-6 top-6"
-          onClick={handleLogout}
-        >
-          Log Out
-        </button>
-
-        {/* Calendar Section */}
-        <div className="mt-16 mb-8">
-          <Calendar organizationId={orgId as string} />
-        </div>
-
-        {/* Tasks Section */}
-        <div className="mb-8">
-          <MemTaskList organizationId={orgId as string} />
-        </div>
-      </div>
+      </main>
     </div>
   );
 };

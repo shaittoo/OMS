@@ -161,7 +161,7 @@ const MyEvents: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen bg-white">
       <MemberSidebar />
 
       <main className="flex-grow p-6 bg-white">

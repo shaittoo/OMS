@@ -132,9 +132,10 @@ const ApplicationStatus: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <div className="flex-grow p-6 bg-white">
+      <main className="ml-64 p-6">
+        {/* <Header /> */}
         <div className="p-6">
           <div className="mt-1">
             <h2 className="text-2xl font-semibold">Your Application Status</h2>
@@ -195,7 +196,7 @@ const ApplicationStatus: React.FC = () => {
 
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

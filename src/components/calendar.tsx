@@ -42,20 +42,43 @@ export default function Calendar({ organizationId }: CalendarProps) {
       return;
     }
 
-    try {
-      let tasksQuery;
-      if (organizationId) {
-        tasksQuery = query(
-          collection(db, "tasks"),
-          where("organizationId", "==", organizationId)
-        );
-      } else {
-        tasksQuery = query(
-          collection(db, "tasks"),
-          where("memberId", "==", user.uid)
-        );
-      }
-      const tasksSnapshot = await getDocs(tasksQuery);
+      try {
+        // Fetch user's calendar events
+        const userRef = doc(db, "Users", user.uid);
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+        const calendarEvents = userData?.calendarEvents || [];
+
+        // Filter events based on organizationId if provided
+        let filteredEvents = organizationId 
+          ? calendarEvents.filter((event: CalendarEvent) => event.organizationId === organizationId)
+          : calendarEvents;
+
+        // Fetch tasks based on organizationId
+        let tasksQuery;
+        if (organizationId) {
+          // If organizationId is provided, only fetch tasks for that organization
+          tasksQuery = query(
+            collection(db, "tasks"),
+            where("organizationId", "==", organizationId)
+          );
+        } else {
+          // If no organizationId, fetch tasks from all organizations the user is a member of
+          const membersRef = collection(db, "Members");
+          const membersQuery = query(
+            membersRef,
+            where("uid", "==", user.uid),
+            where("status", "==", "approved")
+          );
+          const membersSnapshot = await getDocs(membersQuery);
+          const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
+          
+          tasksQuery = query(
+            collection(db, "tasks"),
+            where("organizationId", "in", userOrganizations)
+          );
+        }
+        const tasksSnapshot = await getDocs(tasksQuery);
 
       const tasksList = tasksSnapshot.docs.map((doc) => {
         const data = doc.data();
