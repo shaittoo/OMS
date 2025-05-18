@@ -210,14 +210,14 @@ const TaskList: React.FC<TaskListProps> = ({ showBackButton = false }) => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         )}
-        {error && <p className="text-gray-700">{error}</p>}
+        {error && <p className="text-red-500">{error}</p>}
         {noTasksMessage()}
         {!loading &&
           !error &&
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className="task-item bg-gray-100 p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
+              className="task-item bg-white p-3 rounded transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300"
               style={{
                 wordWrap: "break-word",
                 textDecoration: task.completed ? "line-through" : "none", // Strike-through for completed tasks

@@ -5,8 +5,8 @@ import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, arrayRem
 import { onAuthStateChanged } from "firebase/auth";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbDownIcon from "@mui/icons-material/ThumbDown";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import Link from "next/link";
@@ -15,6 +15,18 @@ import toast, { Toaster } from 'react-hot-toast';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoIcon from '@mui/icons-material/Info';
+import ViewEvent from "../components/viewEvent";
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+
+interface Comments {
+  uid: string;
+  eventId: string;
+  comment: string;
+  replies: string[];
+  userName: string;
+  userEmail?: string;
+  timestamp: any;
+}
 
 interface Event {
   id: string;
@@ -32,6 +44,13 @@ interface Event {
   status: string;
   tags: string[];
   isPastEvent: boolean;
+  uid?: string;
+  likedBy?: string[];
+  interestedBy?: string[];
+  registrations?: number;
+  eventType?: string;
+  isFree?: string;
+  comments?: Comments[];
 }
 
 interface MemberEventListProps {
@@ -44,6 +63,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const [error, setError] = useState<string | null>(null);
   const [userOrganizations, setUserOrganizations] = useState<string[]>([]);
   const auth = getAuth();
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [comments, setComments] = useState<Comments[]>([]);
+  const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
+  const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
 
   // Fetch user's organizations
   useEffect(() => {
@@ -160,8 +184,15 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
             isOpenForAll: data.isOpenForAll || false,
             status: data.status || "active",
             tags: data.tags || [],
-            isPastEvent: isPastEvent
-          } as Event & { isPastEvent: boolean };
+            isPastEvent: isPastEvent,
+            uid: data.id,
+            likedBy: data.likes,
+            interestedBy: data.interested,
+            registrations: 0,
+            eventType: data.eventType || 'general',
+            isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
+            comments: data.comments || []
+          } as Event;
         }));
 
         // Filter and sort based on view type
@@ -222,6 +253,18 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     fetchEvents();
   }, [organizationId, userOrganizations, auth]);
 
+  useEffect(() => {
+    // Initialize counts for all events
+    const likeCounts: { [key: string]: number } = {};
+    const interestCounts: { [key: string]: number } = {};
+    events.forEach(event => {
+      likeCounts[event.id] = event.likes?.length || 0;
+      interestCounts[event.id] = event.interested?.length || 0;
+    });
+    setEventLikes(likeCounts);
+    setEventInterests(interestCounts);
+  }, [events]);
+
   const formatDate = (dateString: string) => {
     if (!dateString) return "Date not specified";
     
@@ -239,60 +282,76 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const handleEventAction = async (eventId: string, action: "like" | "interest") => {
     const user = auth.currentUser;
     if (!user) return;
-  
-    const userRef = doc(db, "Users", user.uid);
-    const eventRef = doc(db, "events", eventId);
-  
+
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+
+    const isCurrentlyActive = action === "like" 
+      ? event.likes.includes(user.uid)
+      : event.interested.includes(user.uid);
+
+    // Optimistically update UI
+    if (action === "like") {
+      setEventLikes(prev => ({
+        ...prev,
+        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+      }));
+    } else {
+      setEventInterests(prev => ({
+        ...prev,
+        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+      }));
+    }
+
     try {
-      // Update the event's interactions (like, interested)
-      await updateDoc(eventRef, {
-        likes: action === "like" ? arrayUnion(user.uid) : arrayRemove(user.uid),
-        interested: action === "interest" ? arrayUnion(user.uid) : arrayRemove(user.uid),
+      const userRef = doc(db, "Users", user.uid);
+      const eventRef = doc(db, "events", eventId);
+
+      // Update user's events lists
+      await updateDoc(userRef, {
+        [action === "like" ? "likedEvents" : "interestedEvents"]: 
+          isCurrentlyActive ? arrayRemove(eventId) : arrayUnion(eventId)
       });
 
-      // Update local state to reflect changes immediately
+      // Update event's interaction lists
+      await updateDoc(eventRef, {
+        [action === "like" ? "likes" : "interested"]: 
+          isCurrentlyActive ? arrayRemove(user.uid) : arrayUnion(user.uid)
+      });
+
+      // Update local state to reflect changes
       setEvents(currentEvents => 
-        currentEvents.map(event => {
-          if (event.id === eventId) {
-            const updatedEvent = { ...event };
+        currentEvents.map(e => {
+          if (e.id === eventId) {
+            const updatedEvent = { ...e };
             if (action === "like") {
-              if (event.likes.includes(user.uid)) {
-                updatedEvent.likes = event.likes.filter(id => id !== user.uid);
-              } else {
-                updatedEvent.likes = [...event.likes, user.uid];
-              }
-            } else if (action === "interest") {
-              if (event.interested.includes(user.uid)) {
-                updatedEvent.interested = event.interested.filter(id => id !== user.uid);
-              } else {
-                updatedEvent.interested = [...event.interested, user.uid];
-              }
+              updatedEvent.likes = isCurrentlyActive 
+                ? e.likes.filter(id => id !== user.uid)
+                : [...e.likes, user.uid];
+            } else {
+              updatedEvent.interested = isCurrentlyActive
+                ? e.interested.filter(id => id !== user.uid)
+                : [...e.interested, user.uid];
             }
             return updatedEvent;
           }
-          return event;
+          return e;
         })
       );
-
-      // Update user's event lists
-      const updatedUserEvents: { [key: string]: any } = {};
-      if (action === "like") {
-        if (events.find(e => e.id === eventId)?.likes.includes(user.uid)) {
-          updatedUserEvents.likedEvents = arrayRemove(eventId);
-        } else {
-          updatedUserEvents.likedEvents = arrayUnion(eventId);
-        }
-      } else if (action === "interest") {
-        if (events.find(e => e.id === eventId)?.interested.includes(user.uid)) {
-          updatedUserEvents.interestedEvents = arrayRemove(eventId);
-        } else {
-          updatedUserEvents.interestedEvents = arrayUnion(eventId);
-        }
-      }
-      await updateDoc(userRef, updatedUserEvents);
-
     } catch (error) {
       console.error("Error updating event interaction:", error);
+      // Revert UI on error
+      if (action === "like") {
+        setEventLikes(prev => ({
+          ...prev,
+          [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
+        }));
+      } else {
+        setEventInterests(prev => ({
+          ...prev,
+          [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
+        }));
+      }
       showToast('error', `Failed to update ${action} status`);
     }
   };
@@ -377,15 +436,76 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
         organizationId: event.organizationId
       };
 
+      // Update Firestore
       await updateDoc(userRef, {
         calendarEvents: arrayUnion(newCalendarEvent)
       });
+
+      // Update local state immediately
+      setEvents(currentEvents => 
+        currentEvents.map(ev => {
+          if (ev.id === event.id) {
+            return {
+              ...ev,
+              addedToCalendar: true // Add this flag to track calendar status
+            };
+          }
+          return ev;
+        })
+      );
 
       showToast('success', 'Event added to your calendar');
     } catch (error) {
       console.error("Error adding event to calendar:", error);
       showToast('error', 'Failed to add event to calendar');
     }
+  };
+
+  // Function to fetch comments
+  const fetchComments = async (eventId: string) => {
+    try {
+      const q = query(collection(db, "comments"), where("eventId", "==", eventId));
+      const querySnapshot = await getDocs(q);
+      const fetchedComments: Comments[] = [];
+      
+      for (const doc of querySnapshot.docs) {
+        const data = doc.data();
+        fetchedComments.push({
+          uid: doc.id,
+          ...data,
+        } as Comments);
+      }
+      
+      // Sort comments by timestamp
+      fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
+      setComments(fetchedComments);
+      return fetchedComments;
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      return [];
+    }
+  };
+
+  const handleViewEventClick = async (event: Event) => {
+    // Fetch comments before opening the modal
+    const eventComments = await fetchComments(event.id);
+    
+    setSelectedEvent({
+      ...event,
+      uid: event.id,
+      likedBy: event.likes,
+      interestedBy: event.interested,
+      registrations: 0,
+      eventType: event.eventType || 'general',
+      isFree: (event.eventPrice === '0' || event.eventPrice === 'Free' || !event.eventPrice).toString(),
+      comments: eventComments
+    });
+    setViewEventOpen(true);
+  };
+
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
   };
 
   if (loading) {
@@ -430,128 +550,165 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       )}
       
       {!loading && !error && events.length > 0 && (
-        <>
-          <div className={`space-y-2 ${organizationId ? 'h-[calc(150vh-250px)] overflow-y-auto' : ''} pr-2`}>
-            {events.map((event) => (
-              <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
-                <div className="flex p-3">
-                  {/* Event Image */}
-                  <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
-                    {event.eventImages && event.eventImages.length > 0 ? (
+        <div className={`space-y-2 ${organizationId ? 'h-[calc(150vh-250px)] overflow-y-auto' : ''} pr-2`}>
+          {events.map((event) => (
+            <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
+              <div className="flex p-3" onClick={() => handleViewEventClick(event)}>
+                {/* Event Image */}
+                <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
+                  {event.eventImages && event.eventImages.length > 0 ? (
+                    <img 
+                      src={event.eventImages[0]} 
+                      alt={event.eventName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
                       <img 
-                        src={event.eventImages[0]} 
-                        alt={event.eventName}
+                        src="/assets/default.jpg"
+                        alt="Default event"
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <img 
-                          src="/assets/default.jpg"
-                          alt="Default event"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-grow min-w-0">
+                  {/* Title and Organization */}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+                      {!organizationId && (
+                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+                          {event.organizationName}
+                        </span>
+                      )}
+                      {event.isPastEvent && (
+                        <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded flex-shrink-0">
+                          Completed
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Main Content */}
-                  <div className="flex-grow min-w-0">
-                    {/* Title and Organization */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
-                        {!organizationId && (
-                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
-                            {event.organizationName}
-                          </span>
-                        )}
-                        {event.isPastEvent && (
-                          <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded flex-shrink-0">
-                            Completed
-                          </span>
-                        )}
-                      </div>
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+
+                  {/* Details Row */}
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <div className="space-y-1">
+                      {/* Date */}
+                      <p>
+                        <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+                      </p>
+
+                      {/* Tags */}
+                      {event.tags && event.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {event.tags.map((tag, index) => (
+                            <span 
+                              key={index} 
+                              className="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Description */}
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
-
-                    {/* Details Row */}
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <div className="space-y-1">
-                        {/* Date */}
+                    {/* Location and Price */}
+                    <div className="text-right ml-4 space-y-1">
+                      {event.eventLocation && (
                         <p>
-                          <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+                          <span className="font-medium">Location:</span> {event.eventLocation}
                         </p>
-
-                        {/* Tags */}
-                        {event.tags && event.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {event.tags.map((tag, index) => (
-                              <span 
-                                key={index} 
-                                className="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Location and Price */}
-                      <div className="text-right ml-4 space-y-1">
-                        {event.eventLocation && (
-                          <p>
-                            <span className="font-medium">Location:</span> {event.eventLocation}
-                          </p>
-                        )}
-                        {event.eventPrice && (
-                          <p>
-                            <span className="font-medium">Price:</span> {event.eventPrice}
-                          </p>
-                        )}
-                      </div>
+                      )}
+                      {event.eventPrice && (
+                        <p>
+                          <span className="font-medium">Price:</span> {event.eventPrice}
+                        </p>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Interaction Buttons */}
-                    <div className="flex justify-end items-center space-x-3 mt-2 pt-2 border-t">
+                  {/* Interaction Buttons */}
+                  <div className="flex justify-end items-center space-x-3 mt-2 pt-2 border-t">
+                    <div className="flex items-center">
                       <button 
-                        className={`flex items-center text-xs ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-green-600' : 'text-gray-600'}`}
-                        onClick={() => handleEventAction(event.id, "like")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEventAction(event.id, "like");
+                        }}
+                        className={`p-1.5 rounded-full hover:bg-gray-100 ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-blue-600' : 'text-gray-600'}`}
+                        aria-label={event.likes.includes(auth.currentUser?.uid || "") ? "Unlike" : "Like"}
                       >
                         {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
-                        <span className="ml-1">Like</span>
                       </button>
+                      <span className="ml-1 text-sm text-gray-600">{eventLikes[event.id] || 0}</span>
+                    </div>
+                    <div className="flex items-center">
                       <button 
-                        className={`flex items-center text-xs ${event.interested.includes(auth.currentUser?.uid || "") ? 'text-purple-600' : 'text-gray-600'}`}
-                        onClick={() => handleEventAction(event.id, "interest")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEventAction(event.id, "interest");
+                        }}
+                        className={`p-1.5 rounded-full hover:bg-gray-100 ${event.interested.includes(auth.currentUser?.uid || "") ? 'text-blue-600' : 'text-gray-600'}`}
+                        aria-label={event.interested.includes(auth.currentUser?.uid || "") ? "Remove bookmark" : "Bookmark"}
                       >
-                        <span>
-                          {event.interested.includes(auth.currentUser?.uid || "") ? "Interested" : "Interested?"}
-                        </span>
+                        {event.interested.includes(auth.currentUser?.uid || "") ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
                       </button>
+                      <span className="ml-1 text-sm text-gray-600">{eventInterests[event.id] || 0}</span>
+                    </div>
+                    <div className="flex items-center">
                       <button
-                        className="flex items-center text-xs text-blue-600 hover:text-blue-800"
-                        onClick={() => handleAddToCalendar(event)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCalendar(event);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-gray-100 text-blue-600 hover:text-blue-800"
+                        aria-label="Add to Calendar"
                       >
                         <CalendarMonthIcon fontSize="small" />
-                        <span className="ml-1">Add to Calendar</span>
                       </button>
+                    </div>
+                    <div className="flex items-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewEventClick(event);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
+                        aria-label="View comments"
+                      >
+                        <ChatBubbleOutlineIcon fontSize="small" />
+                      </button>
+                      <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          {!organizationId && events.length > 4 && (
-            <Link href="/memberviewevents">
-              <p className="text-right text-sm text-purple-600 hover:text-purple-800 mt-2 cursor-pointer">
-                View More
-              </p>
-            </Link>
-          )}
-        </>
+
+              {isViewEventOpen && selectedEvent && selectedEvent.id === event.id && (
+                <ViewEvent 
+                  close={handleCloseEventClick} 
+                  event={{
+                    ...selectedEvent,
+                    uid: selectedEvent.id,
+                    likedBy: selectedEvent.likes,
+                    interestedBy: selectedEvent.interested,
+                    registrations: 0,
+                    eventType: selectedEvent.eventType || 'general',
+                    isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
+                    comments: comments
+                  }}
+                  orgName={selectedEvent.organizationName}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
