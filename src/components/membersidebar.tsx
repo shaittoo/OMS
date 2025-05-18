@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import InfoIcon from "@mui/icons-material/Info";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from "@mui/icons-material/Settings";
 import { auth, db } from "../firebaseConfig"; 
 import {
@@ -12,7 +13,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import MemberProfileSettings from "./memberprofilesettings";
@@ -23,6 +24,25 @@ const MemberSidebar: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const q = query(
+        collection(db, "notifications"),
+        where("recipientUid", "==", user.uid),
+        where("read", "==", false)
+      );
+      const snapshot = await getDocs(q);
+      setUnreadCount(snapshot.size);
+    };
+
+    fetchUnreadCount();
+  }, []);
 
   const fetchUserOrganizations = async (userId: string) => {
     try {
@@ -94,6 +114,20 @@ const MemberSidebar: React.FC = () => {
           <DashboardIcon />
           <span className="ml-3 text-md font-medium">Dashboard</span>
         </Link>
+
+        <Link
+          href="/membernotifs"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors relative"
+        >
+          <NotificationsIcon />
+          <span className="ml-3 text-md font-medium">Notifications</span>
+          {unreadCount > 0 && (
+            <span className="absolute right-4 top-3 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </Link>
+
 
         {/* Application Status */}
         <ApplicationStatusLink />

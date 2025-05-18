@@ -127,6 +127,7 @@ const MemberDashboard: React.FC = () => {
           <p style={{ fontSize: "16px", fontFamily: "Arial" }}>
             {" "}
             How are we doing today?
+            
           </p>
           <hr className="my-4 border-black" />
           <div className="text-black rounded-lg shadow-lg bg-white relative">

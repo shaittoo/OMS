@@ -35,11 +35,6 @@ const ApplicationStatusLink: React.FC = () => {
     <Link href="/application-status" className="relative flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
       <HowToRegIcon />
       <span className="ml-3 text-md font-medium">Application Status</span>
-      {unreadCount > 0 && (
-        <span className="absolute top-3 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-          {unreadCount}
-        </span>
-      )}
     </Link>
   );
 };

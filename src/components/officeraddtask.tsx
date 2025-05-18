@@ -110,16 +110,35 @@ const OfficerAddTask: React.FC<OfficerAddTaskProps> = ({ close }) => {
         alert("No members selected.");
         return;
       }
-  
-      // Add the task to Firestore
-      await addDoc(collection(db, "tasks"), {
+
+      const taskRef = await addDoc(collection(db, "tasks"), {
         taskName,
         description,
         dueDate: new Date(dueDate),
         priority,
-        assignedMembers, // Save the array of selected member UIDs
+        assignedMembers, 
         organizationId,
       });
+
+      
+      let orgName = "";
+      const orgDoc = await getDoc(doc(db, "Organizations", organizationId));
+      if (orgDoc.exists()) {
+        orgName = orgDoc.data().name || "";
+      }
+      
+      // Send notifications to assigned members
+      for (const uid of assignedMembers) {
+        await addDoc(collection(db, "notifications"), {
+          recipientUid: uid,
+          type: "task-assigned",
+          message: `You have been assigned a new task: ${taskName}`,
+          orgName: orgName,
+          taskId: taskRef.id,
+          timestamp: new Date(),
+          read: false,
+        });
+      }
   
       console.log("Task added successfully!");
       alert("Task added successfully!");
