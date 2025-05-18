@@ -122,7 +122,7 @@ const MemberSidebar: React.FC = () => {
           <NotificationsIcon />
           <span className="ml-3 text-md font-medium">Notifications</span>
           {unreadCount > 0 && (
-            <span className="absolute right-4 top-2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+            <span className="absolute right-4 top-3 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
               {unreadCount}
             </span>
           )}
