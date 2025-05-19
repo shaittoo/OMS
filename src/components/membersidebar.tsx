@@ -121,7 +121,7 @@ const MemberSidebar: React.FC = () => {
         </Link>
       </div>
 
-      <nav className="flex-grow mt-4">
+      <nav className="flex-1">
         <Link
           href="/memberpage"
           className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
@@ -143,7 +143,6 @@ const MemberSidebar: React.FC = () => {
           )}
         </Link>
 
-
         {/* Application Status */}
         <ApplicationStatusLink />
 
@@ -163,7 +162,8 @@ const MemberSidebar: React.FC = () => {
         <div className="px-6 pt-3 pb-1">
           <span className="text-md font-medium text-gray-500 tracking-wide block mb-1">Your Organizations</span>
         </div>
-        {(orgsExpanded ? userOrganizations : userOrganizations.slice(0, 3)).map((org, index) => (
+        
+        {userOrganizations.slice(0, orgsExpanded ? undefined : 3).map((org, index) => (
           <div
             key={index}
             onClick={() => handleOrgClick(org.id)}
@@ -205,7 +205,6 @@ const MemberSidebar: React.FC = () => {
           <span className="ml-3 text-md font-medium">Profile Settings</span>
         </div>
 
-        {/* Log Out Button (styled like nav) */}
         <div
           className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
           onClick={() => setShowLogoutModal(true)}

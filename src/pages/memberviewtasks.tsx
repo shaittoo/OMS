@@ -267,193 +267,185 @@ const MemberViewTasks: React.FC = () => {
     <div className="min-h-screen bg-white">
       <MemberSidebar />
       <main className="ml-64 p-8">
-        <div className="grid lg:grid-cols-3 bg-white" style={{ gridTemplateColumns: "20% 80%" }}>
-          <div className="flex lg:col-start-1">
-            <MemberSidebar />
-          </div>
+        {/* Back to Dashboard Link */}
+        <div className="mb-6 flex justify-between items-center">
+          <Link
+            href="/memberpage"
+            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+          >
+            <ArrowBackIcon />
+            <span>Back to Dashboard</span>
+          </Link>
+          <Button variant="contained" color="secondary" onClick={() => handleOpenModal()}>
+            Add Task
+          </Button>
+        </div>
 
-          <div className="lg:col-start-2 p-8">
-            {/* Back to Dashboard Link */}
-            <div className="mb-6 flex justify-between items-center">
-              <Link
-                href="/memberpage"
-                className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-              >
-                <ArrowBackIcon />
-                <span>Back to Dashboard</span>
-              </Link>
-              <Button variant="contained" color="secondary" onClick={() => handleOpenModal()}>
-                Add Task
+        {/* Modal for Add/Edit Task */}
+        <Modal open={modalOpen} onClose={handleCloseModal}>
+          <form
+            onSubmit={handleFormSubmit}
+            className="absolute top-1/2 left-1/2 bg-white p-8 rounded shadow-lg"
+            style={{ transform: "translate(-50%, -50%)", minWidth: 320 }}
+          >
+            <h2 className="text-xl font-bold mb-4">{editTask ? "Edit Task" : "Add Task"}</h2>
+            <TextField
+              label="Task Name"
+              name="taskName"
+              value={formState.taskName}
+              onChange={handleFormChange}
+              fullWidth
+              required
+              className="mb-4"
+            />
+            <TextField
+              label="Description"
+              name="description"
+              value={formState.description}
+              onChange={handleFormChange}
+              fullWidth
+              multiline
+              rows={2}
+              className="mb-4"
+            />
+            <TextField
+              label="Due Date"
+              name="dueDate"
+              type="datetime-local"
+              value={formState.dueDate}
+              onChange={handleFormChange}
+              fullWidth
+              required
+              className="mb-4"
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Priority"
+              name="priority"
+              value={formState.priority}
+              onChange={handleFormChange}
+              select
+              SelectProps={{ native: true }}
+              fullWidth
+              className="mb-4"
+            >
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </TextField>
+            {formError && <p className="text-red-500 mb-2">{formError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button onClick={handleCloseModal} color="inherit">Cancel</Button>
+              <Button type="submit" variant="contained" color="primary">
+                {editTask ? "Update" : "Add"}
               </Button>
             </div>
+          </form>
+        </Modal>
 
-            {/* Modal for Add/Edit Task */}
-            <Modal open={modalOpen} onClose={handleCloseModal}>
-              <form
-                onSubmit={handleFormSubmit}
-                className="absolute top-1/2 left-1/2 bg-white p-8 rounded shadow-lg"
-                style={{ transform: "translate(-50%, -50%)", minWidth: 320 }}
-              >
-                <h2 className="text-xl font-bold mb-4">{editTask ? "Edit Task" : "Add Task"}</h2>
-                <TextField
-                  label="Task Name"
-                  name="taskName"
-                  value={formState.taskName}
-                  onChange={handleFormChange}
-                  fullWidth
-                  required
-                  className="mb-4"
-                />
-                <TextField
-                  label="Description"
-                  name="description"
-                  value={formState.description}
-                  onChange={handleFormChange}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  className="mb-4"
-                />
-                <TextField
-                  label="Due Date"
-                  name="dueDate"
-                  type="datetime-local"
-                  value={formState.dueDate}
-                  onChange={handleFormChange}
-                  fullWidth
-                  required
-                  className="mb-4"
-                  InputLabelProps={{ shrink: true }}
-                />
-                <TextField
-                  label="Priority"
-                  name="priority"
-                  value={formState.priority}
-                  onChange={handleFormChange}
-                  select
-                  SelectProps={{ native: true }}
-                  fullWidth
-                  className="mb-4"
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </TextField>
-                {formError && <p className="text-red-500 mb-2">{formError}</p>}
-                <div className="flex justify-end gap-2">
-                  <Button onClick={handleCloseModal} color="inherit">Cancel</Button>
-                  <Button type="submit" variant="contained" color="primary">
-                    {editTask ? "Update" : "Add"}
-                  </Button>
-                </div>
-              </form>
-            </Modal>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold text-purple-700">All Tasks</h1>
+            <select
+              className="border border-purple-700 rounded p-2"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+            >
+              <option value="All">All Tasks</option>
+              <option value="Completed">Completed</option>
+              <option value="Not Completed">Not Completed</option>
+            </select>
+          </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-purple-700">All Tasks</h1>
-                <select
-                  className="border border-purple-700 rounded p-2"
-                  value={activeTab}
-                  onChange={(e) => setActiveTab(e.target.value)}
-                >
-                  <option value="All">All Tasks</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Not Completed">Not Completed</option>
-                </select>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+
+          {filteredTasks.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No tasks found.</p>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {currentTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+                    style={{
+                      textDecoration: task.completed ? "line-through" : "none",
+                      opacity: task.completed ? 0.6 : 1,
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => {/* Add completion handler */}}
+                          className="cursor-pointer transform scale-125"
+                        />
+                        <h3 className="font-semibold text-lg text-purple-700">{task.taskName}</h3>
+                      </div>
+                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {task.organizationName}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-4 text-sm text-gray-500 mb-2">
+                      <div className="flex items-center gap-2">
+                        <CalendarTodayIcon className="text-purple-700" />
+                        <span>Due: {task.dueDate}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <GroupIcon className="text-purple-700" />
+                        <span>Assigned to: {task.assignedMembers.join(", ")}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <PriorityHighIcon className="text-purple-700" />
+                        <span>Priority: {task.priority}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-600">{task.description}</p>
+                    <div className="flex gap-2 justify-end mt-2">
+                      <Button size="small" color="primary" onClick={() => handleOpenModal(task)}>Edit</Button>
+                      <Button size="small" color="error" onClick={() => handleDeleteTask(task.id)}>Delete</Button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              {error && <p className="text-red-500 mb-4">{error}</p>}
-
-              {filteredTasks.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No tasks found.</p>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    {currentTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
-                        style={{
-                          textDecoration: task.completed ? "line-through" : "none",
-                          opacity: task.completed ? 0.6 : 1,
-                        }}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={task.completed}
-                              onChange={() => {/* Add completion handler */}}
-                              className="cursor-pointer transform scale-125"
-                            />
-                            <h3 className="font-semibold text-lg text-purple-700">{task.taskName}</h3>
-                          </div>
-                          <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {task.organizationName}
-                          </span>
-                        </div>
-
-                        <div className="flex gap-4 text-sm text-gray-500 mb-2">
-                          <div className="flex items-center gap-2">
-                            <CalendarTodayIcon className="text-purple-700" />
-                            <span>Due: {task.dueDate}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <GroupIcon className="text-purple-700" />
-                            <span>Assigned to: {task.assignedMembers.join(", ")}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <PriorityHighIcon className="text-purple-700" />
-                            <span>Priority: {task.priority}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-gray-600">{task.description}</p>
-                        <div className="flex gap-2 justify-end mt-2">
-                          <Button size="small" color="primary" onClick={() => handleOpenModal(task)}>Edit</Button>
-                          <Button size="small" color="error" onClick={() => handleDeleteTask(task.id)}>Delete</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-center mt-6 space-x-2">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
-                      >
-                        Previous
-                      </button>
-                      {[...Array(totalPages)].map((_, index) => (
-                        <button
-                          key={index + 1}
-                          onClick={() => handlePageChange(index + 1)}
-                          className={`px-3 py-1 rounded ${
-                            currentPage === index + 1
-                              ? "bg-purple-700 text-white"
-                              : "border border-purple-700 text-purple-700"
-                          }`}
-                        >
-                          {index + 1}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-6 space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  {[...Array(totalPages)].map((_, index) => (
+                    <button
+                      key={index + 1}
+                      onClick={() => handlePageChange(index + 1)}
+                      className={`px-3 py-1 rounded ${
+                        currentPage === index + 1
+                          ? "bg-purple-700 text-white"
+                          : "border border-purple-700 text-purple-700"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
               )}
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </main>
     </div>
