@@ -4,6 +4,8 @@ import { getDoc, doc, updateDoc, arrayRemove, arrayUnion } from "firebase/firest
 import MemberSidebar from "../components/membersidebar";
 import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import Link from "next/link";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 interface Event {
   id: string;
@@ -163,8 +165,17 @@ const MyEvents: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
+      <main className="ml-64 p-8">
+        <div className="py-2">
+          <Link
+            href="/memberpage"
+            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+          >
+            <ArrowBackIcon />
+            <span>Back to Dashboard</span>
+          </Link>
+        </div>
 
-      <main className="flex-grow p-6 bg-white">
         <div className="mt-6">
           <h2 className="text-2xl font-semibold text-gray-800">My Interested Events</h2>
 
@@ -174,7 +185,7 @@ const MyEvents: React.FC = () => {
             </div>
           ) : interestedEvents.length === 0 ? (
             <div className="text-center text-gray-600 mt-8">
-              <p>You haven’t marked any events as interested.</p>
+              <p>You haven't marked any events as interested.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
