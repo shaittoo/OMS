@@ -209,12 +209,27 @@ const MembersPageOfficerView: React.FC = () => {
   
           // Determine position by matching UID
           let position = "Member";
+
+          // 1. Check main officer positions
           for (const [key, value] of Object.entries(officerUids)) {
             if (value === memberId) {
               position = key
                 .replace(/([A-Z])/g, " $1")
                 .replace(/^./, (c) => c.toUpperCase());
               break;
+            }
+          }
+
+          // 2. Check additional officers array
+          if (officerDoc.exists()) {
+            const officerData = officerDoc.data();
+            if (Array.isArray(officerData.additionalOfficers)) {
+              const found = officerData.additionalOfficers.find(
+                (o: any) => o.name === memberId
+              );
+              if (found && found.position) {
+                position = found.position;
+              }
             }
           }
   
