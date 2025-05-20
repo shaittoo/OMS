@@ -552,7 +552,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       {!loading && !error && events.length > 0 && (
         <div className={`space-y-2 ${organizationId ? 'h-[calc(150vh-250px)] overflow-y-auto' : ''} pr-2`}>
           {events.map((event) => (
-            <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
+            <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-100' : ''}`}>
               <div className="flex p-3" onClick={() => handleViewEventClick(event)}>
                 {/* Event Image */}
                 <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
