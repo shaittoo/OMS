@@ -31,15 +31,6 @@ const OfficerDashboard: React.FC = () => {
   const handleAddEventClick = () => setAddEventOpen(true);
   const handleCloseEventForm = () => setAddEventOpen(false);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      console.log("User logged out successfully.");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
-
   // Function to fetch organization data
   const fetchOrganizationData = async (userId: string) => {
     try {
@@ -142,31 +133,6 @@ const OfficerDashboard: React.FC = () => {
 
   return (
     <>
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setShowLogoutModal(false);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="flex">
         <div className="sticky left-0 top-0 h-screen overflow-y-auto shadow-md">
         {/* Sidebar */}
@@ -180,12 +146,6 @@ const OfficerDashboard: React.FC = () => {
               </h1>
               <p className="text-gray-600">What would you like to do?</p>
             </div>
-            <button
-              className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
-              onClick={() => setShowLogoutModal(true)}
-            >
-              Log Out
-            </button>
           </header>
 
           {/* Officer Action Buttons */}

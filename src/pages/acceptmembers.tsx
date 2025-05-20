@@ -228,12 +228,6 @@ const AcceptMembers: React.FC = () => {
       </div>
       <div className="flex flex-col bg-[#F3E8FF] min-h-screen w-full bg-white">
         <header className="bg-white p-7 text-black flex items-center">
-          <button
-            onClick={() => router.back()}
-            className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
-          >
-            &#8592;
-          </button>
           <h1 className="text-3xl font-bold">Manage Member Requests</h1>
         </header>
 

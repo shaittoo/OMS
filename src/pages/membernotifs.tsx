@@ -88,13 +88,6 @@ const MemberNotifications: React.FC = () => {
       <MemberSidebar />
       <main className="ml-64 p-8">
         <div className="py-2">
-          <Link
-            href="/memberpage"
-            className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-          >
-            <ArrowBackIcon />
-            <span>Back to Dashboard</span>
-          </Link>
         </div>
 
         <div className="flex items-center justify-between mb-4">
