@@ -8,8 +8,8 @@ interface OrgViewTaskProps {
 
 const OrgViewTask: React.FC<OrgViewTaskProps> = ({ showBackButton = false }) => {
     return (
-        <div className="flex">
-            <div className="sticky left-0 top-0 h-screen overflow-y-auto shadow-md">
+        <div className="flex min-h-screen">
+            <div className="w-64 flex-shrink-0">
                 <OfficerSidebar />
             </div>
             <main className="main-content flex-grow p-6 relative bg-white">
