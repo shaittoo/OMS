@@ -68,9 +68,20 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const [comments, setComments] = useState<Comments[]>([]);
   const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
   const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
+  const [eventCommentsCount, setEventCommentsCount] = useState<{ [key: string]: number }>({});
+
+  const refreshEventCommentCount = async (eventId: string) => {
+  const q = query(collection(db, "comments"), where("eventId", "==", eventId));
+  const querySnapshot = await getDocs(q);
+  setEventCommentsCount(prev => ({
+    ...prev,
+    [eventId]: querySnapshot.size
+  }));
+};
 
   // Fetch user's organizations
   useEffect(() => {
+  
     const fetchUserOrganizations = async () => {
       const user = auth.currentUser;
 
@@ -103,6 +114,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   }, [auth]);
 
   useEffect(() => {
+
     const fetchEvents = async () => {
       setLoading(true);
       setError(null);
@@ -170,30 +182,30 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           const isPastEvent = eventDate ? eventDate < new Date() : false;
 
           return {
-            id: eventDoc.id,
-            eventName: data.eventName || "Untitled Event",
-            eventDescription: data.eventDescription || "",
-            eventDate: eventDate ? eventDate.toISOString() : "",
-            eventLocation: data.eventLocation || "",
-            eventPrice: data.eventPrice || "Free",
-            eventImages: data.eventImages || [],
-            organizationId: data.organizationId || "",
-            organizationName: organizationName,
-            likes: data.likes || [],
-            interested: data.interested || [],
-            isOpenForAll: data.isOpenForAll || false,
-            status: data.status || "active",
-            tags: data.tags || [],
-            isPastEvent: isPastEvent,
-            uid: data.id,
-            likedBy: data.likes,
-            interestedBy: data.interested,
-            registrations: 0,
-            eventType: data.eventType || 'general',
-            isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
-            comments: data.comments || []
-          } as Event;
-        }));
+          id: eventDoc.id,
+          eventName: data.eventName || "Untitled Event",
+          eventDescription: data.eventDescription || "",
+          eventDate: eventDate ? eventDate.toISOString() : "",
+          eventLocation: data.eventLocation || "",
+          eventPrice: data.eventPrice || "Free",
+          eventImages: data.eventImages || [],
+          organizationId: data.organizationId || "",
+          organizationName: organizationName,
+          likes: data.likes || [],
+          interested: data.interested || [],
+          isOpenForAll: data.isOpenForAll || false,
+          status: data.status || "active",
+          tags: data.tags || [],
+          isPastEvent: isPastEvent,
+          uid: data.id,
+          likedBy: data.likes,
+          interestedBy: data.interested,
+          registrations: 0,
+          eventType: data.eventType || 'general',
+          isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
+          comments: data.comments || []
+        } as Event;
+      }));
 
         // Filter and sort based on view type
         if (!organizationId) {
@@ -239,6 +251,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           });
         }
 
+        const counts: { [key: string]: number } = {};
+      for (const event of eventsList) {
+        const q = query(collection(db, "comments"), where("eventId", "==", event.id));
+        const querySnapshot = await getDocs(q);
+        counts[event.id] = querySnapshot.size;
+      }
+      setEventCommentsCount(counts);
+
         console.log("Final processed events list:", eventsList);
         setEvents(eventsList);
       } catch (error) {
@@ -252,6 +272,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     fetchEvents();
   }, [organizationId, userOrganizations, auth]);
+
+
 
   useEffect(() => {
     // Initialize counts for all events
@@ -684,7 +706,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                       >
                         <ChatBubbleOutlineIcon fontSize="small" />
                       </button>
-                      <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
+                      <span className="ml-1 text-sm text-gray-600">{eventCommentsCount[event.id] || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -692,7 +714,10 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
               {isViewEventOpen && selectedEvent && selectedEvent.id === event.id && (
                 <ViewEvent 
-                  close={handleCloseEventClick} 
+                  close={() => {
+                    handleCloseEventClick();
+                    refreshEventCommentCount(event.id); 
+                  }}
                   event={{
                     ...selectedEvent,
                     uid: selectedEvent.id,
