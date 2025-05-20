@@ -11,6 +11,7 @@ interface ViewEventProps {
   close: () => void;
   event: Event;
   orgName: string;
+  onCommentAdded?: () => void;
 }
 
 interface MemberData {
@@ -25,7 +26,7 @@ interface MemberData {
     yearLevel: string;
 }
 
-const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
+const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, onCommentAdded }) => {
     const [loading, setLoading] = useState(true);
     const [comments, setComments] = useState<Comments[]>([]);
     const [newComment, setNewComment] = useState<string>("");
@@ -109,6 +110,8 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
             setComments(fetchedComments);
         } catch (error) {
             console.error("Error fetching comments: ", error);
+         } finally {
+            setLoading(false);
         }
     };
 
@@ -129,6 +132,8 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                 userName: currentUserName,
                 userEmail: userData?.email,
                 timestamp: serverTimestamp()
+            
+                
             };
 
             const docRef = await addDoc(collection(db, "comments"), commentData);
@@ -139,8 +144,9 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                     ...commentData,
                     uid: docRef.id
                 }
-            ]);
+                ]);
             setNewComment("");
+            if (onCommentAdded) onCommentAdded();
         } catch (error) {
             console.error("Error adding comment:", error);
         }
@@ -149,6 +155,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
     // Fetch current user's name and comments when component mounts
     useEffect(() => {
         const initialize = async () => {
+            setLoading(true);
             await fetchCurrentUserName();
             await fetchComments();
         };
@@ -161,7 +168,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[17%] z-50"
+      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[17%]"
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
     >
       <div
@@ -215,30 +222,34 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                             className="space-y-4 overflow-y-auto"
                             style={{ maxHeight: "200px" }}
                         >
-                            {comments.length > 0 ? (
-                                comments.map((comment) => (
-                                    <div
-                                        key={comment.uid}
-                                        className="p-2 border border-gray-200 rounded-lg bg-white shadow-sm"
-                                    >
-                                        <p className="text-sm font-semibold text-gray-900">
-                                            {comment.userName}
-                                        </p>
-                                        <p className="text-sm text-gray-700">{comment.comment}</p>
-                                        {comment.replies.length > 0 && (
-                                            <div className="mt-1 pl-3 border-l border-gray-200">
-                                                {comment.replies.map((reply, index) => (
-                                                    <p key={index} className="text-xs text-gray-500">
-                                                        {reply}
-                                                    </p>
-                                                ))}
+                            {loading ? (
+                                        <div className="flex justify-center items-center h-20">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                                        </div>
+                                    ) : comments.length > 0 ? (
+                                        comments.map((comment) => (
+                                            <div
+                                                key={comment.uid}
+                                                className="p-2 border border-gray-200 rounded-lg bg-white shadow-sm"
+                                            >
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {comment.userName}
+                                                </p>
+                                                <p className="text-sm text-gray-700">{comment.comment}</p>
+                                                {comment.replies.length > 0 && (
+                                                    <div className="mt-1 pl-3 border-l border-gray-200">
+                                                        {comment.replies.map((reply, index) => (
+                                                            <p key={index} className="text-xs text-gray-500">
+                                                                {reply}
+                                                            </p>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-gray-500">No comments yet. Be the first to comment!</p>
-                            )}
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500">No comments yet. Be the first to comment!</p>
+                                    )}
                         </div>
                         <div className="mt-4">
                             <form

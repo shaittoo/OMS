@@ -65,10 +65,13 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const auth = getAuth();
   const [isViewEventOpen, setViewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [comments, setComments] = useState<Comments[]>([]);
-  const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
+const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }>({});  const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
   const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
+  const [statsLoading, setStatsLoading] = useState(true);
 
+  const handleCommentAdded = (eventId: string) => {
+  fetchComments(eventId);
+};
   // Fetch user's organizations
   useEffect(() => {
     const fetchUserOrganizations = async () => {
@@ -252,6 +255,34 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     fetchEvents();
   }, [organizationId, userOrganizations, auth]);
+
+ useEffect(() => {
+  if (events.length === 0) {
+    setStatsLoading(false);
+    return;
+  }
+  setStatsLoading(true);
+  const fetchAllComments = async () => {
+    const newCommentsMap: { [eventId: string]: Comments[] } = {};
+    for (const event of events) {
+      const q = query(collection(db, "comments"), where("eventId", "==", event.id));
+      const querySnapshot = await getDocs(q);
+      const fetchedComments: Comments[] = [];
+      for (const doc of querySnapshot.docs) {
+        const data = doc.data();
+        fetchedComments.push({
+          uid: doc.id,
+          ...data,
+        } as Comments);
+      }
+      fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
+      newCommentsMap[event.id] = fetchedComments;
+    }
+    setCommentsMap(newCommentsMap);
+    setStatsLoading(false);
+  };
+  fetchAllComments();
+}, [events]);
 
   useEffect(() => {
     // Initialize counts for all events
@@ -463,45 +494,40 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
   // Function to fetch comments
   const fetchComments = async (eventId: string) => {
-    try {
-      const q = query(collection(db, "comments"), where("eventId", "==", eventId));
-      const querySnapshot = await getDocs(q);
-      const fetchedComments: Comments[] = [];
-      
-      for (const doc of querySnapshot.docs) {
-        const data = doc.data();
-        fetchedComments.push({
-          uid: doc.id,
-          ...data,
-        } as Comments);
-      }
-      
-      // Sort comments by timestamp
-      fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
-      setComments(fetchedComments);
-      return fetchedComments;
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      return [];
+  try {
+    const q = query(collection(db, "comments"), where("eventId", "==", eventId));
+    const querySnapshot = await getDocs(q);
+    const fetchedComments: Comments[] = [];
+    for (const doc of querySnapshot.docs) {
+      const data = doc.data();
+      fetchedComments.push({
+        uid: doc.id,
+        ...data,
+      } as Comments);
     }
-  };
+    fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
+    setCommentsMap(prev => ({ ...prev, [eventId]: fetchedComments }));
+    return fetchedComments;
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    return [];
+  }
+};
 
   const handleViewEventClick = async (event: Event) => {
-    // Fetch comments before opening the modal
-    const eventComments = await fetchComments(event.id);
-    
-    setSelectedEvent({
-      ...event,
-      uid: event.id,
-      likedBy: event.likes,
-      interestedBy: event.interested,
-      registrations: 0,
-      eventType: event.eventType || 'general',
-      isFree: (event.eventPrice === '0' || event.eventPrice === 'Free' || !event.eventPrice).toString(),
-      comments: eventComments
-    });
-    setViewEventOpen(true);
-  };
+  const eventComments = await fetchComments(event.id);
+  setSelectedEvent({
+    ...event,
+    uid: event.id,
+    likedBy: event.likes,
+    interestedBy: event.interested,
+    registrations: 0,
+    eventType: event.eventType || 'general',
+    isFree: (event.eventPrice === '0' || event.eventPrice === 'Free' || !event.eventPrice).toString(),
+    comments: eventComments
+  });
+  setViewEventOpen(true);
+};
 
   const handleCloseEventClick = () => {
     setViewEventOpen(false);
@@ -552,8 +578,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
       {!loading && !error && events.length > 0 && (
         <div className={`space-y-2 ${organizationId ? 'h-[calc(150vh-250px)] overflow-y-auto' : ''} pr-2`}>
           {events.map((event) => (
-            <div key={event.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}>
-              <div className="flex p-3" onClick={() => handleViewEventClick(event)}>
+          <div
+              key={event.id}
+              className={`relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 ${event.isPastEvent ? 'opacity-75' : ''}`}
+            >              <div className={`flex p-3 ${statsLoading ? 'pointer-events-none opacity-50' : ''}`} onClick={() => handleViewEventClick(event)}>
+               
                 {/* Event Image */}
                 <div className="w-32 h-24 bg-gray-200 flex-shrink-0 rounded-lg overflow-hidden mr-4">
                   {event.eventImages && event.eventImages.length > 0 ? (
@@ -684,7 +713,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                       >
                         <ChatBubbleOutlineIcon fontSize="small" />
                       </button>
-                      <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
+                      <span className="ml-1 text-sm text-gray-600">{commentsMap[event.id]?.length || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -701,9 +730,10 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                     registrations: 0,
                     eventType: selectedEvent.eventType || 'general',
                     isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
-                    comments: comments
+                    comments: commentsMap[event.id]
                   }}
                   orgName={selectedEvent.organizationName}
+                  onCommentAdded={() => handleCommentAdded(event.id)}
                 />
               )}
             </div>
