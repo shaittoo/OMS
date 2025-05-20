@@ -288,7 +288,7 @@ function RegisterOrg() {
 							/>
 						</div>
 
-						<div className="flex items-center">
+						<div className="flex items-center pb-5">
 							<div className="w-full md:w-2/3">
 								<label
 									htmlFor="logo"
@@ -306,13 +306,13 @@ function RegisterOrg() {
 									/>
 									<label
 										htmlFor="logo"
-										className="text-purple-500 text-m font-bold underline cursor-pointer absolute top-0 left-0 w-full h-full flex w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none"
+										className="text-purple-500 text-m font-bold underline cursor-pointer absolute top-0 left-0 h-full flex w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none"
 									>
 										Choose Org Logo
 									</label>
 								</div>
 							</div>
-							<div className="w-24 h-24 rounded-full overflow-hidden ml-4 border-2 border-purple-500">
+							<div className="w-[120px] h-[120px] rounded-full overflow-hidden ml-7 mt-7 border-2 border-purple-500">
 								{logoPreview ? (
 									<img
 										src={logoPreview}
@@ -320,7 +320,7 @@ function RegisterOrg() {
 										className="w-full h-full object-cover"
 									/>
 								) : (
-									<div className="w-full h-full bg-gray-300 flex items-center justify-center">
+									<div className="w-full h-full bg-gray-300 flex items-center justify-center mb-12">
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											className="h-12 w-12 text-gray-500"
@@ -342,7 +342,7 @@ function RegisterOrg() {
 
 						<button
 							type="submit"
-							className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md mt-4 hover:bg-blue-700 focus:outline-none"
+							className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md mt-4 focus:outline-none"
 							disabled={loading}
 						>
 							{loading ? "Registering..." : "Register"}
