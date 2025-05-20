@@ -69,6 +69,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
   const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
   const [eventCommentsCount, setEventCommentsCount] = useState<{ [key: string]: number }>({});
+  const [userLikedEvents, setUserLikedEvents] = useState<{ [key: string]: boolean }>({});
+  
 
   const refreshEventCommentCount = async (eventId: string) => {
   const q = query(collection(db, "comments"), where("eventId", "==", eventId));
@@ -112,6 +114,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     fetchUserOrganizations();
   }, [auth]);
+
+  useEffect(() => {
+  const liked: { [key: string]: boolean } = {};
+  events.forEach(event => {
+    liked[event.id] = event.likes.includes(auth.currentUser?.uid || "");
+  });
+  setUserLikedEvents(liked);
+}, [events, auth.currentUser]);
 
   useEffect(() => {
 
@@ -314,12 +324,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     // Optimistically update UI
     if (action === "like") {
-      setEventLikes(prev => ({
+      setUserLikedEvents(prev => ({
         ...prev,
-        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+        [eventId]: !isCurrentlyActive
       }));
-    } else {
-      setEventInterests(prev => ({
+      setEventLikes(prev => ({
         ...prev,
         [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
       }));
@@ -663,10 +672,10 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                           e.stopPropagation();
                           handleEventAction(event.id, "like");
                         }}
-                        className={`p-1.5 rounded-full hover:bg-gray-100 ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-blue-600' : 'text-gray-600'}`}
-                        aria-label={event.likes.includes(auth.currentUser?.uid || "") ? "Unlike" : "Like"}
+                        className={`p-1.5 rounded-full hover:bg-gray-100 ${userLikedEvents[event.id] ? 'text-blue-600' : 'text-gray-600'}`}
+                        aria-label={userLikedEvents[event.id] ? "Unlike" : "Like"}
                       >
-                        {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                        {userLikedEvents[event.id] ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
                       </button>
                       <span className="ml-1 text-sm text-gray-600">{eventLikes[event.id] || 0}</span>
                     </div>
