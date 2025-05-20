@@ -11,7 +11,7 @@ interface ViewEventProps {
   close: () => void;
   event: Event;
   orgName: string;
-  onCommentAdded?: () => void;
+  onCommentAdded?: (newComment: Comments) => void;
 }
 
 interface MemberData {
@@ -146,7 +146,12 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, onCommentA
                 }
                 ]);
             setNewComment("");
-            if (onCommentAdded) onCommentAdded();
+            if (onCommentAdded) {
+                onCommentAdded({
+                    ...commentData,
+                    uid: docRef.id
+                });
+            }
         } catch (error) {
             console.error("Error adding comment:", error);
         }

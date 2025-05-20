@@ -25,7 +25,7 @@ interface Comments {
   replies: string[];
   userName: string;
   userEmail?: string;
-  timestamp: any;
+  timestamp?: any;
 }
 
 interface Event {
@@ -68,10 +68,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }>({});  const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
   const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
   const [statsLoading, setStatsLoading] = useState(true);
+  const [likedEvents, setLikedEvents] = useState<{ [eventId: string]: boolean }>({});
 
-  const handleCommentAdded = (eventId: string) => {
-  fetchComments(eventId);
-};
+    const handleCommentAdded = (eventId: string, newComment: Comments) => {
+    setCommentsMap(prev => ({
+      ...prev,
+      [eventId]: prev[eventId] ? [...prev[eventId], newComment] : [newComment]
+    }));
+  };
   // Fetch user's organizations
   useEffect(() => {
     const fetchUserOrganizations = async () => {
@@ -105,6 +109,7 @@ const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }
     fetchUserOrganizations();
   }, [auth]);
 
+  
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
@@ -256,6 +261,14 @@ const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }
     fetchEvents();
   }, [organizationId, userOrganizations, auth]);
 
+  useEffect(() => {
+  const liked: { [eventId: string]: boolean } = {};
+  events.forEach(event => {
+    liked[event.id] = event.likes.includes(auth.currentUser?.uid || "");
+  });
+  setLikedEvents(liked);
+}, [events, auth.currentUser]);
+
  useEffect(() => {
   if (events.length === 0) {
     setStatsLoading(false);
@@ -310,82 +323,93 @@ const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }
     });
   };
 
-  const handleEventAction = async (eventId: string, action: "like" | "interest") => {
-    const user = auth.currentUser;
-    if (!user) return;
+const handleEventAction = async (eventId: string, action: "like" | "interest") => {
+  const user = auth.currentUser;
+  if (!user) return;
 
-    const event = events.find(e => e.id === eventId);
-    if (!event) return;
+  const event = events.find(e => e.id === eventId);
+  if (!event) return;
 
-    const isCurrentlyActive = action === "like" 
-      ? event.likes.includes(user.uid)
-      : event.interested.includes(user.uid);
+  const isCurrentlyActive = action === "like" 
+    ? event.likes.includes(user.uid)
+    : event.interested.includes(user.uid);
 
-    // Optimistically update UI
+  // Optimistic UI update
+  if (action === "like") {
+    setEventLikes(prev => ({
+      ...prev,
+      [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+    }));
+    setLikedEvents(prev => ({
+      ...prev,
+      [eventId]: !isCurrentlyActive
+    }));
+    setEvents(currentEvents =>
+      currentEvents.map(e => {
+        if (e.id === eventId) {
+          return {
+            ...e,
+            likes: isCurrentlyActive
+              ? e.likes.filter(id => id !== user.uid)
+              : [...e.likes, user.uid]
+          };
+        }
+        return e;
+      })
+    );
+  } else {
+    setEventInterests(prev => ({
+      ...prev,
+      [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+    }));
+    setEvents(currentEvents =>
+      currentEvents.map(e => {
+        if (e.id === eventId) {
+          return {
+            ...e,
+            interested: isCurrentlyActive
+              ? e.interested.filter(id => id !== user.uid)
+              : [...e.interested, user.uid]
+          };
+        }
+        return e;
+      })
+    );
+  }
+
+  try {
+    const userRef = doc(db, "Users", user.uid);
+    const eventRef = doc(db, "events", eventId);
+
+    await updateDoc(userRef, {
+      [action === "like" ? "likedEvents" : "interestedEvents"]:
+        isCurrentlyActive ? arrayRemove(eventId) : arrayUnion(eventId)
+    });
+
+    await updateDoc(eventRef, {
+      [action === "like" ? "likes" : "interested"]:
+        isCurrentlyActive ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
+  } catch (error) {
+
     if (action === "like") {
       setEventLikes(prev => ({
         ...prev,
-        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+        [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
+      }));
+      setLikedEvents(prev => ({
+        ...prev,
+        [eventId]: isCurrentlyActive
       }));
     } else {
       setEventInterests(prev => ({
         ...prev,
-        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+        [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
       }));
     }
-
-    try {
-      const userRef = doc(db, "Users", user.uid);
-      const eventRef = doc(db, "events", eventId);
-
-      // Update user's events lists
-      await updateDoc(userRef, {
-        [action === "like" ? "likedEvents" : "interestedEvents"]: 
-          isCurrentlyActive ? arrayRemove(eventId) : arrayUnion(eventId)
-      });
-
-      // Update event's interaction lists
-      await updateDoc(eventRef, {
-        [action === "like" ? "likes" : "interested"]: 
-          isCurrentlyActive ? arrayRemove(user.uid) : arrayUnion(user.uid)
-      });
-
-      // Update local state to reflect changes
-      setEvents(currentEvents => 
-        currentEvents.map(e => {
-          if (e.id === eventId) {
-            const updatedEvent = { ...e };
-            if (action === "like") {
-              updatedEvent.likes = isCurrentlyActive 
-                ? e.likes.filter(id => id !== user.uid)
-                : [...e.likes, user.uid];
-            } else {
-              updatedEvent.interested = isCurrentlyActive
-                ? e.interested.filter(id => id !== user.uid)
-                : [...e.interested, user.uid];
-            }
-            return updatedEvent;
-          }
-          return e;
-        })
-      );
-    } catch (error) {
-      console.error("Error updating event interaction:", error);
-      // Revert UI on error
-      if (action === "like") {
-        setEventLikes(prev => ({
-          ...prev,
-          [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
-        }));
-      } else {
-        setEventInterests(prev => ({
-          ...prev,
-          [eventId]: isCurrentlyActive ? (prev[eventId] + 1) : (prev[eventId] - 1)
-        }));
-      }
-      showToast('error', `Failed to update ${action} status`);
-    }
-  };
+    showToast('error', `Failed to update ${action} status`);
+  }
+};
 
   const truncateText = (text: string | undefined) => {
     return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
@@ -670,11 +694,10 @@ const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }
                           e.stopPropagation();
                           handleEventAction(event.id, "like");
                         }}
-                        className={`p-1.5 rounded-full hover:bg-gray-100 ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-blue-600' : 'text-gray-600'}`}
-                        aria-label={event.likes.includes(auth.currentUser?.uid || "") ? "Unlike" : "Like"}
+                        className={`p-1.5 rounded-full hover:bg-gray-100 ${likedEvents[event.id] ? 'text-blue-600' : 'text-gray-600'}`}
+                        aria-label={likedEvents[event.id] ? "Unlike" : "Like"}
                       >
-                        {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
-                      </button>
+                      {likedEvents[event.id] ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}                      </button>
                       <span className="ml-1 text-sm text-gray-600">{eventLikes[event.id] || 0}</span>
                     </div>
                     <div className="flex items-center">
@@ -733,7 +756,7 @@ const [commentsMap, setCommentsMap] = useState<{ [eventId: string]: Comments[] }
                     comments: commentsMap[event.id]
                   }}
                   orgName={selectedEvent.organizationName}
-                  onCommentAdded={() => handleCommentAdded(event.id)}
+                  onCommentAdded={(newComment) => handleCommentAdded(event.id, newComment)}
                 />
               )}
             </div>
