@@ -15,7 +15,7 @@ const OfficerSidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="w-64 h-screen bg-gray-100 shadow-lg flex flex-col">
+          <aside className="w-64 h-screen fixed top-0 left-0 z-30 bg-gray-100 bg-opacity-80 flex flex-col overflow-y-hidden hover:overflow-y-auto">
         {/* Sidebar Title with Logo */}
         <div className="p-6 bg-gray-100 flex justify-center items-center">
           <Link href="/orgpage" legacyBehavior>
