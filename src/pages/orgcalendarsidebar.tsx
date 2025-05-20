@@ -56,19 +56,16 @@ const OrgCalendarSidebar = () => {
   }
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <div style={{ display: "flex", height: "100vh" }}>
-        {/* Sidebar on the left */}
-        <div style={{ width: "250px", backgroundColor: "#f4f4f4", padding: "2px", boxShadow: "2px 0 5px rgba(0, 0, 0, 0.1)" }}>
-          <OfficerSidebar />
-        </div>
-  
+      <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
+      <OfficerSidebar />
+    </div>
         {/* Calendar on the right */}
         <div style={{ flexGrow: 1, padding: "18px", overflowY: "auto", backgroundColor: "white"}}>
           <OrgCalendar />
         </div>
       </div>
-    </div>
+ 
   );
 };
 

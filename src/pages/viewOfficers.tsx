@@ -118,8 +118,10 @@ const ViewOfficers: React.FC = () => {
   }
 
   return (
-    <div className="flex bg-white">
+      <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
       <OfficerSidebar />
+    </div>
       <main className="main-content flex-grow p-6">
         <div className="mb-6">
           <div className="flex items-center mb-2">

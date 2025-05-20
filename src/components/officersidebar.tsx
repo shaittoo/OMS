@@ -5,13 +5,26 @@ import EventIcon from "@mui/icons-material/Event";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import InfoIcon from "@mui/icons-material/Info";
 import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
 import Link from "next/link";
 import ProfileSettings from './profilesetting';
 import { createPortal } from 'react-dom';
 import PendingApplicantsLink from "./PendingApplicationsLink";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebaseConfig";
 
 const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
 
   return (
     <>
@@ -26,7 +39,7 @@ const OfficerSidebar: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-grow mt-4">
+       <nav className="flex-grow mt-4">
           <Link href="/orgpage" legacyBehavior>
             <a className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
               <DashboardIcon />
@@ -73,6 +86,13 @@ const OfficerSidebar: React.FC = () => {
             <SettingsIcon />
             <span className="ml-3 text-md font-medium">Profile Settings</span>
           </button>
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="flex items-center px-6 py-3 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors w-full"
+          >
+            <LogoutIcon />
+            <span className="ml-3 text-md font-medium">Log Out</span>
+          </button>
         </nav>
 
         {/* Footer */}
@@ -80,6 +100,32 @@ const OfficerSidebar: React.FC = () => {
           © 2024 OMS Platform
         </div>
       </aside>
+
+      {showLogoutModal && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setShowLogoutModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showProfileSettings && typeof window !== 'undefined' && createPortal(
         <ProfileSettings close={() => setShowProfileSettings(false)} />,
