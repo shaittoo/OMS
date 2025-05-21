@@ -12,14 +12,17 @@ import { createPortal } from 'react-dom';
 import PendingApplicantsLink from "./PendingApplicationsLink";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { useRouter } from "next/router";
 
 const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      router.push("/login");
     } catch (error) {
       console.error("Error logging out:", error);
     }

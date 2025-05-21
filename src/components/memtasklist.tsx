@@ -214,6 +214,10 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
     }
   };
 
+  // Calculate completed and total tasks
+  const completedCount = tasks.filter((task) => task.completed).length;
+  const totalCount = tasks.length;
+
   return (
     <div
       className={`pending-tasks-container bg-white rounded-lg shadow-lg ${organizationId ? 'p-4' : 'p-2'} w-full mb-12`}
@@ -240,17 +244,24 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
           </h1>
         </div>
 
-        {/* Filter Dropdown */}
-        <div className="filter-dropdown">
-          <select
-            className={`border border-purple-700 rounded ${organizationId ? 'p-2' : 'p-1 text-xs'}`}
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-          >
-            <option value="All">All</option>
-            <option value="Completed">Completed</option>
-            <option value="Not Completed">Not Completed</option>
-          </select>
+        {/* Counter and Filter Dropdown */}
+        <div className="flex items-center gap-4">
+          {/* Task counter */}
+          <span className="text-sm text-gray-700 font-semibold whitespace-nowrap">
+            {completedCount}/{totalCount} tasks done
+          </span>
+          {/* Filter Dropdown */}
+          <div className="filter-dropdown">
+            <select
+              className={`border border-purple-700 rounded ${organizationId ? 'p-2' : 'p-1 text-xs'}`}
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+            >
+              <option value="All">All</option>
+              <option value="Completed">Completed</option>
+              <option value="Not Completed">Not Completed</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -277,7 +288,7 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
                 fontSize: organizationId ? undefined : "12px",
               }}
             >
-              {/* Task Name, Checkbox, and Organization */}
+              {/* Task Name, Priority, Checkbox, and Organization */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <input
@@ -288,9 +299,24 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
                   />
                   <h3 className={`font-semibold ${organizationId ? 'text-md' : 'text-sm'} text-purple-700`}>{task.taskName}</h3>
                 </div>
-                {!organizationId && (
-                  <span className="flex items-center gap-2">
-                    {/* Priority indicator to the left of org name */}
+                <span className="flex items-center gap-2">
+                  {!organizationId && (
+                    <>
+                      {/* Priority badge left of org name in dashboard view */}
+                      <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                        (task.priority || '').toLowerCase() === 'high' ? 'bg-red-100 text-red-600' :
+                        (task.priority || '').toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {task.priority}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {task.organizationName}
+                      </span>
+                    </>
+                  )}
+                  {organizationId && (
+                    // Priority badge at the far right in organization view
                     <span className={`text-xs font-semibold px-2 py-1 rounded ${
                       (task.priority || '').toLowerCase() === 'high' ? 'bg-red-100 text-red-600' :
                       (task.priority || '').toLowerCase() === 'medium' ? 'bg-yellow-100 text-yellow-700' :
@@ -298,11 +324,8 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
                     }`}>
                       {task.priority}
                     </span>
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {task.organizationName}
-                    </span>
-                  </span>
-                )}
+                  )}
+                </span>
               </div>
 
               {/* Due Date and Assigned Members (no priority here in dashboard) */}
@@ -331,7 +354,7 @@ const MemTaskList: React.FC<MemTaskListProps> = ({ organizationId, showBackButto
 
       {/* View More Link */}
       {tasks.length > 4 && !organizationId && (
-        <div className="mt-4 text-right">
+        <div className="text-right">
           <Link href="/memberviewtasks">
             <p className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer">
               View More
