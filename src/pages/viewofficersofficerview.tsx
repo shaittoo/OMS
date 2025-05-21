@@ -101,7 +101,11 @@ const OfficerEditForm: React.FC = () => {
               }
             }
 
-            const membersQuery = query(collection(db, "Members"), where("organizationId", "==", orgId));
+            const membersQuery = query(
+              collection(db, "Members"),
+              where("organizationId", "==", orgId),
+              where("status", "==", "approved")
+            );
             const membersSnapshot = await getDocs(membersQuery);
 
             const memberList: { id: string; name: string }[] = [];
@@ -366,7 +370,14 @@ const OfficerEditForm: React.FC = () => {
                   Additional Officer Name:
                 </label>
                 <Select
-                  options={members.map((m) => ({ label: m.name, value: m.id }))}
+                  options={members
+                    // Exclude members already assigned as main or additional officers
+                    .filter(
+                      (m) =>
+                        !Object.values(officerPositions).includes(m.id) &&
+                        !additionalOfficers.some((o) => o.name === m.id)
+                    )
+                    .map((m) => ({ label: m.name, value: m.id }))}
                   value={
                     members.find((m) => m.id === additionalOfficerName)
                       ? {

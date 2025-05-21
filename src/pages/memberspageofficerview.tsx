@@ -35,14 +35,6 @@ const Header: React.FC = () => {
         <h1 className="text-3xl font-semibold text-gray-800">Organization's Approved Members</h1>
         <p className="text-lg text-gray-500">What would you like to do?</p>
       </div>
-      <div className="flex items-center space-x-4 mt-4 md:mt-0">
-        <button
-          className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200"
-          onClick={handleRedirect}
-        >
-          Pending Requests
-        </button>
-      </div>
     </div>
   );
 };
@@ -169,9 +161,14 @@ const MembersPageOfficerView: React.FC = () => {
   
         // Fetch officer UID mapping once
         let officerUids: Record<string, string> = {};
+        let additionalOfficers: any[] = [];
         const officerDoc = await getDoc(doc(db, "officers", organizationId));
         if (officerDoc.exists()) {
-          officerUids = officerDoc.data() || {};
+          const officerData = officerDoc.data();
+          officerUids = officerData || {};
+          additionalOfficers = Array.isArray(officerData.additionalOfficers)
+            ? officerData.additionalOfficers
+            : [];
         }
   
         // Fetch approved members
@@ -183,15 +180,47 @@ const MembersPageOfficerView: React.FC = () => {
         );
         const querySnapshot = await getDocs(approvedQuery);
   
+        // Prepare a set of all officer UIDs (main + additional)
+        const mainOfficerUids = Object.values(officerUids).filter(uid => typeof uid === "string" && uid);
+        const additionalOfficerUids = additionalOfficers.map((o) => o.name).filter(Boolean);
+        const allOfficerUids = [...mainOfficerUids, ...additionalOfficerUids];
+  
+        // Fetch additional officers' user data
+        const additionalOfficerMembers = await Promise.all(
+          additionalOfficers.map(async (officer) => {
+            const userDoc = await getDoc(doc(db, "Users", officer.name));
+            const memberUserData = userDoc.exists() ? userDoc.data() : {};
+            // Only include if this user is also in Members collection (approved)
+            const memberDoc = await getDoc(doc(db, "Members", officer.name));
+            if (!memberDoc.exists()) return null;
+            const memberData = memberDoc.data();
+            // Apply course and year filters
+            if (courseFilter !== "All" && memberUserData.course !== courseFilter) return null;
+            if (yearFilter !== "All" && memberUserData.yearLevel !== yearFilter) return null;
+            return {
+              uid: officer.name,
+              fullName: memberUserData.fullName || "Unknown",
+              course: memberUserData.course || "Unknown",
+              yearLevel: memberUserData.yearLevel || "Unknown",
+              contactNumber: memberUserData.contactNumber || "Unknown",
+              email: memberUserData.email || "Unknown",
+              joinedAt: memberData.joinedAt || "N/A",
+              role: memberData.role || "Member",
+              position: officer.position || "Officer",
+            };
+          })
+        );
+  
+        // Fetch all approved members as before
         const memberPromises = querySnapshot.docs.map(async (memberDoc) => {
           const memberData = memberDoc.data();
           const memberId = memberData.uid;
   
           // Filter logic for Officers and Members
-          if (roleFilter === "Officers" && !Object.values(officerUids).includes(memberId)) {
+          if (roleFilter === "Officers" && !allOfficerUids.includes(memberId)) {
             return null; // Skip non-officers if "Officers" filter is selected
           }
-          if (roleFilter === "Members" && Object.values(officerUids).includes(memberId)) {
+          if (roleFilter === "Members" && allOfficerUids.includes(memberId)) {
             return null; // Skip officers if "Members" filter is selected
           }
   
@@ -201,15 +230,14 @@ const MembersPageOfficerView: React.FC = () => {
   
           // Apply course and year filters
           if (courseFilter !== "All" && memberUserData.course !== courseFilter) {
-            return null; // Skip members not matching the selected course
+            return null;
           }
           if (yearFilter !== "All" && memberUserData.yearLevel !== yearFilter) {
-            return null; // Skip members not matching the selected year
+            return null;
           }
   
           // Determine position by matching UID
           let position = "Member";
-
           // 1. Check main officer positions
           for (const [key, value] of Object.entries(officerUids)) {
             if (value === memberId) {
@@ -219,17 +247,11 @@ const MembersPageOfficerView: React.FC = () => {
               break;
             }
           }
-
           // 2. Check additional officers array
-          if (officerDoc.exists()) {
-            const officerData = officerDoc.data();
-            if (Array.isArray(officerData.additionalOfficers)) {
-              const found = officerData.additionalOfficers.find(
-                (o: any) => o.name === memberId
-              );
-              if (found && found.position) {
-                position = found.position;
-              }
+          if (Array.isArray(additionalOfficers)) {
+            const found = additionalOfficers.find((o) => o.name === memberId);
+            if (found && found.position) {
+              position = found.position;
             }
           }
   
@@ -246,11 +268,15 @@ const MembersPageOfficerView: React.FC = () => {
           };
         });
   
-        const resolvedMembers = (await Promise.all(memberPromises)).filter(
+        // Combine and filter out nulls, then deduplicate by uid
+        let resolvedMembers = (await Promise.all([...memberPromises, ...additionalOfficerMembers])).filter(
           (member): member is Member => member !== null
-        ); // Remove null values with type guard
-        setMembers(resolvedMembers);
-        setFilteredMembers(resolvedMembers);
+        );
+        // Remove duplicates (in case an additional officer is already in members)
+        const uniqueMembers = Array.from(new Map(resolvedMembers.map(m => [m.uid, m])).values());
+  
+        setMembers(uniqueMembers);
+        setFilteredMembers(uniqueMembers);
       } catch (error) {
         console.error("Error fetching approved members:", error);
       } finally {
