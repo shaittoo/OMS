@@ -1,35 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, Timestamp, updateDoc, query, where, addDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig";
+import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
+import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+import EventIcon from "@mui/icons-material/Event";
+import OfficerSidebar from "../components/officersidebar";
+import CorporateFareIcon from "@mui/icons-material/CorporateFare";
+import { auth } from "../firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline"; 
+import ViewEvent from "../components/viewEvent";
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
-import EventIcon from "@mui/icons-material/Event";
 import MemberSidebar from "../components/membersidebar";
-import CorporateFareIcon from "@mui/icons-material/CorporateFare";
-import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import ViewEvent from "../components/viewEvent";
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import SendIcon from '@mui/icons-material/Send';
-import { Comments } from "../types/event";
-
-interface MemberData {
-  contactNumber: string;
-  course: string;
-  email: string;
-  firstName: string;
-  fullName: string;
-  joinedAt: Date;
-  lastName: string;
-  role: string;
-  yearLevel: string;
-}
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 interface Event {
   uid: string;
@@ -45,26 +33,26 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: number;
-  likedBy: string[];
-  interestedBy: string[];
+  likes: string[];
+  interested: string[];
   isLiked: boolean;
   isInterested: boolean;
-  comments?: Comments[];
-  tags: string[];
+  tags: string[]; // Added missing property
 }
 
 const Header: React.FC = () => {
   return (
-    <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
-      <div className="py-2">
-        <Link href="/memberpage" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
-          <ArrowBackIcon />
-          <span>Back to Dashboard</span>
-        </Link>
-      </div>
+    <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-200">
       <div>
+        <Link
+            href="/memberpage"
+            className="flex items-center space-x-1 mb-3 text-gray-600 hover:text-gray-800"
+          >
+          <ArrowBackIcon className="text-gray-500 hover:text-gray-700" />
+          <span>Back to Dashboard</span>
+          </Link>
         <h1 className="text-3xl font-semibold text-gray-800">
-          Welcome back! 
+          Organization Events
         </h1>
         <p className="text-lg text-gray-500">What would you like to do?</p>
       </div>
@@ -86,7 +74,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
     setActiveFilters(newFilters);
     onFilterChange(newFilters);
   };
-
+  
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value;
     setActiveFilters((prevFilters) => ({ ...prevFilters, searchQuery: query }));
@@ -112,7 +100,7 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
     if (filterValue === "most") return "↑";
     return "-";
   };
-  
+
   return (
     <div className="relative flex items-center bg-white p-4 rounded-md mt-6 shadow-lg border border-gray-300 justify-center">
       <div className="relative flex-grow">
@@ -134,7 +122,13 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
           value={activeFilters.type}
           onChange={(e) => handleFilterChange("type", e.target.value)}
         >
-          {["All", "Academic", "Sports", "Interests", "Others"].map((type) => (
+          {[
+            "All",
+            "Academic",
+            "Sports",
+            "Interests",
+            "Others",
+          ].map((type) => (
             <option key={type} value={type}>
               {type}
             </option>
@@ -163,87 +157,17 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
   );
 };
 
-const EventCard: React.FC<{ event: Event }> = ({ event }) => {
+const EventCard: React.FC<{
+  event: Event;
+  onLikeToggle: () => void;
+  onInterestedToggle: () => void;
+}> = ({ event, onLikeToggle, onInterestedToggle }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
-  const [interested, setInterested] = useState(event.isInterested);
-  const [liked, setLiked] = useState(event.isLiked);
+  const [comments, setComments] = useState<number>(0);
   const [isViewEventOpen, setViewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [comments, setComments] = useState<Comments[]>([]);
-  const [likeCount, setLikeCount] = useState(event.likedBy?.length || 0);
 
-  // Function to fetch comments
-  const fetchComments = async (eventId: string) => {
-    try {
-      const q = query(collection(db, "comments"), where("eventId", "==", eventId));
-      const querySnapshot = await getDocs(q);
-      const fetchedComments: Comments[] = [];
-      
-      for (const doc of querySnapshot.docs) {
-        const data = doc.data();
-        fetchedComments.push({
-          uid: doc.id,
-          ...data,
-        } as Comments);
-      }
-      
-      // Sort comments by timestamp
-      fetchedComments.sort((a, b) => b.timestamp?.toDate() - a.timestamp?.toDate());
-      setComments(fetchedComments);
-      return fetchedComments;
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-      return [];
-    }
-  };
-
-  const handleViewEventClick = async (event: Event) => {
-    const eventComments = await fetchComments(event.uid);
-    setSelectedEvent({
-      ...event,
-      comments: eventComments
-    });
-    setViewEventOpen(true);
-  };
-
-  const handleCloseEventClick = () => {
-    setViewEventOpen(false);
-    setSelectedEvent(null);
-  };
-
-  const handleAddToCalendar = async (event: Event) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) return;
-
-    try {
-      const userRef = doc(db, "Users", userId);
-      const userDoc = await getDoc(userRef);
-      const userData = userDoc.data();
-      const calendarEvents = userData?.calendarEvents || [];
-
-      if (calendarEvents.some((e: any) => e.uid === event.uid)) {
-        return;
-      }
-
-      const newCalendarEvent = {
-        id: event.uid,
-        title: event.eventName,
-        start: event.eventDate,
-        description: event.eventDescription,
-        location: event.eventLocation,
-        organizationName: orgName,
-        organizationId: event.organizationId
-      };
-
-      await updateDoc(userRef, {
-        calendarEvents: arrayUnion(newCalendarEvent)
-      });
-
-    } catch (err) {
-      console.error("Error adding event to calendar:", err);
-    }
-  };
-
+  // Fetch organization name
   useEffect(() => {
     const fetchOrganizationName = async () => {
       if (event.organizationId) {
@@ -256,52 +180,34 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             setOrgName("Organization Not Found");
           }
         } catch (err) {
-          console.error("Error fetching organization name:", err);
           setOrgName("Error fetching organization");
         }
       } else {
         setOrgName("No Organization ID");
       }
     };
-
     fetchOrganizationName();
   }, [event.organizationId]);
 
-  const handleInterestedClick = async () => {
-    setInterested(!interested);
-    const userId = auth.currentUser?.uid;
-    if (userId) {
-      const userRef = doc(db, "Users", userId);
-      await updateDoc(userRef, {
-        interestedEvents: interested ? arrayRemove(event.uid) : arrayUnion(event.uid),
-      });
-    }
+  // Fetch comments count
+  useEffect(() => {
+    const fetchCommentsCount = async () => {
+      const snapshot = await getDocs(collection(db, "comments"));
+      const count = snapshot.docs.filter(doc => doc.data().eventId === event.uid).length;
+      setComments(count);
+    };
+    fetchCommentsCount();
+  }, [event.uid]);
 
-    const eventRef = doc(db, "events", event.uid);
-    await updateDoc(eventRef, {
-      interestedBy: interested ? arrayRemove(auth.currentUser?.uid) : arrayUnion(auth.currentUser?.uid),
-    });
+
+  const handleViewEventClick = () => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
   };
 
-  const handleLikeClick = async () => {
-    const userId = auth.currentUser?.uid;
-    setLiked((prev) => {
-      const newLiked = !prev;
-      setLikeCount((count) => newLiked ? count + 1 : count - 1);
-      return newLiked;
-    });
-
-    if (userId) {
-      const userRef = doc(db, "Users", userId);
-      await updateDoc(userRef, {
-        likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-      });
-    }
-
-    const eventRef = doc(db, "events", event.uid);
-    await updateDoc(eventRef, {
-      likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
-    });
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
   };
 
   const formatDate = (dateString: string | Date) => {
@@ -316,37 +222,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
       minute: '2-digit'
     });
   };
-
-  // Function to fetch the current user's full name
-  const fetchCurrentUserName = async () => {
-    if (!auth.currentUser) return;
-    
-    try {
-      const userDoc = await getDoc(doc(db, "Users", auth.currentUser.uid));
-      const userData = userDoc.data();
-      
-      if (userData?.email) {
-        const membersQuery = query(
-          collection(db, "members"),
-          where("email", "==", userData.email)
-        );
-        const memberSnapshot = await getDocs(membersQuery);
-        
-        if (!memberSnapshot.empty) {
-          const memberData = memberSnapshot.docs[0].data() as MemberData;
-          return memberData.fullName;
-        }
-      }
-      return "Unknown User";
-    } catch (error) {
-      console.error("Error fetching current user data:", error);
-      return "Unknown User";
-    }
-  };
-
-  useEffect(() => {
-    fetchCurrentUserName();
-  }, []);
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
@@ -408,37 +283,31 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
         <div className="flex justify-end items-center space-x-3 pt-2 border-t">
           <div className="flex items-center">
             <button
-              onClick={handleLikeClick}
-              className={`p-1.5 rounded-full hover:bg-gray-100 ${liked ? 'text-blue-600' : 'text-gray-600'}`}
-              aria-label={liked ? "Unlike" : "Like"}
-            >
-              {liked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                onClick={onLikeToggle}
+                className={`p-1.5 rounded-full hover:bg-gray-100 ${event.isLiked ? 'text-blue-600' : 'text-gray-600'}`}
+                aria-label={event.isLiked ? "Unlike" : "Like"}
+              >
+              {event.isLiked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
             </button>
-            <span className="ml-1 text-sm text-gray-600">{likeCount}</span>
+            <span className="ml-1 text-sm text-gray-600">{event.likes?.length || 0}</span>
           </div>
           <button
-            onClick={handleInterestedClick}
-            className={`p-1.5 rounded-full hover:bg-gray-100 ${interested ? 'text-blue-600' : 'text-gray-600'}`}
-            aria-label={interested ? "Remove bookmark" : "Bookmark"}
+            onClick={onInterestedToggle}
+            className={`p-1.5 rounded-full hover:bg-gray-100 ${event.isInterested ? 'text-blue-600' : 'text-gray-600'}`}
+            aria-label={event.isInterested ? "Remove bookmark" : "Bookmark"}
           >
-            {interested ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+            {event.isInterested ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
           </button>
-          <button
-            onClick={() => handleAddToCalendar(event)}
-            className="p-1.5 rounded-full hover:bg-gray-100 text-blue-600 hover:text-blue-800"
-            aria-label="Add to Calendar"
-          >
-            <CalendarMonthIcon fontSize="small" />
-          </button>
+          <span className="ml-1 text-sm text-gray-600">{event.interested?.length || 0}</span>
           <div className="flex items-center">
             <button
-              onClick={() => handleViewEventClick(event)}
+              onClick={handleViewEventClick}
               className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
               aria-label="View comments"
             >
               <ChatBubbleOutlineIcon fontSize="small" />
             </button>
-            <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
+            <span className="ml-1 text-sm text-gray-600">{comments}</span>
           </div>
         </div>
       </div>
@@ -446,18 +315,24 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
       {isViewEventOpen && selectedEvent && (
         <ViewEvent 
           close={handleCloseEventClick} 
-          event={selectedEvent}
+          event={{
+            ...selectedEvent,
+            likedBy: selectedEvent.likes,
+            interestedBy: selectedEvent.interested,
+          }}
           orgName={orgName}
+          canComment={true} 
         />
       )}
     </div>
   );
 };
-
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+
   const [filters, setFilters] = useState<any>({
     searchQuery: "",
     type: "All",
@@ -465,18 +340,17 @@ const EventsView: React.FC = () => {
     participation: "none",
     date: "none",
   });
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
     const userId = auth.currentUser?.uid;
-  
+
     let userEvents = {
       likedEvents: [],
       interestedEvents: [],
     };
-  
+
     try {
       if (userId) {
         const userDoc = await getDoc(doc(db, "Users", userId));
@@ -488,49 +362,50 @@ const EventsView: React.FC = () => {
           };
         }
       }
-  
+
       const eventsRef = collection(db, "events");
       const querySnapshot = await getDocs(eventsRef);
       const eventsList = querySnapshot.docs.map((doc) => {
         const data = doc.data() as Event;
         const eventDate =
           data.eventDate instanceof Timestamp
-            ? data.eventDate.toDate() // Convert to Date object
-            : new Date(data.eventDate); // Ensure it's a Date object
-  
+            ? data.eventDate.toDate()
+            : new Date(data.eventDate);
         return {
           ...data,
           uid: doc.id,
-          eventDate, // Store eventDate as a Date object
+          eventDate,
           isLiked: userEvents.likedEvents.includes(doc.id as never),
           isInterested: userEvents.interestedEvents.includes(doc.id as never),
+          tags: data.tags || [], 
+          registrations: typeof data.registrations === "number" ? data.registrations : Number(data.registrations) || 0,
+          likes: data.likes || [], 
+          interested: data.interested || [], 
+
         };
       });
-  
-      // Apply filters
+
       let filteredEvents = eventsList.filter(event => {
         const matchesSearchQuery =
           event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
         const matchesType = filters.type === "All" || event.eventType === filters.type;
-  
         return matchesSearchQuery && matchesType;
       });
-  
-      // Handle sorting by date
+
       if (filters.date !== "none") {
         filteredEvents = filteredEvents.sort((a, b) => {
           const dateA = a.eventDate;
           const dateB = b.eventDate;
-  
           if (filters.date === "most") {
-            return dateA.getTime() - dateB.getTime(); 
+            return dateA.getTime() - dateB.getTime();
           } else if (filters.date === "least") {
-            return dateB.getTime() - dateA.getTime(); 
+            return dateB.getTime() - dateA.getTime();
           }
-          return 0; 
+          return 0;
         });
       }
-  
+
+ 
       setEvents(filteredEvents);
     } catch (err) {
       console.error("Error fetching events:", err);
@@ -538,7 +413,7 @@ const EventsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -552,65 +427,102 @@ const EventsView: React.FC = () => {
     return () => unsubscribe();
   }, [filters]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 500) {
-        setShowBackToTop(true);
-      } else {
-        setShowBackToTop(false);
-      }
-    };
+  const handleLikeToggle = async (eventId: string, isLiked: boolean) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    // Optimistically update local state
+    setEvents(prevEvents =>
+      prevEvents.map(ev =>
+        ev.uid === eventId
+          ? {
+              ...ev,
+              isLiked: !isLiked,
+              likes: isLiked
+                ? ev.likes.filter(uid => uid !== userId)
+                : [...ev.likes, userId],
+            }
+          : ev
+      )
+    );
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+    // Update Firestore in the background
+    const userRef = doc(db, "Users", userId);
+    await updateDoc(userRef, {
+      likedEvents: isLiked ? arrayRemove(eventId) : arrayUnion(eventId),
+    });
+    const eventRef = doc(db, "events", eventId);
+    await updateDoc(eventRef, {
+      likes: isLiked ? arrayRemove(userId) : arrayUnion(userId),
     });
   };
 
-  return (  
-    <div className="min-h-screen bg-white">
+  const handleInterestedToggle = async (eventId: string, isInterested: boolean) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    setEvents(prevEvents =>
+      prevEvents.map(ev =>
+        ev.uid === eventId
+          ? {
+              ...ev,
+              isInterested: !isInterested,
+              interested: isInterested
+                ? ev.interested.filter(uid => uid !== userId)
+                : [...ev.interested, userId],
+            }
+          : ev
+      )
+    );
+
+    const userRef = doc(db, "Users", userId);
+    await updateDoc(userRef, {
+      interestedEvents: isInterested ? arrayRemove(eventId) : arrayUnion(eventId),
+    });
+    const eventRef = doc(db, "events", eventId);
+    await updateDoc(eventRef, {
+      interested: isInterested ? arrayRemove(userId) : arrayUnion(userId),
+    });
+  };
+
+
+return (
+  <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
       <MemberSidebar />
-      <main className="ml-64">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Header />
-          <SearchAndFilter onFilterChange={setFilters} />
-          <div className="mt-6">
-            {loading ? (
-              <div className="text-center text-gray-500 py-4">Loading events...</div>
-            ) : error ? (
-              <div className="text-center text-red-500 py-4">{error}</div>
+    </div>
+    <div className="flex-grow p-6 bg-white overflow-y-auto">
+      <Header />
+      <SearchAndFilter onFilterChange={setFilters} />
+      <div className="mt-6">
+        {loading ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-4">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {events.length > 0 ? (
+              events.map((event) => (
+                <EventCard
+                key={event.uid}
+                event={event}
+                onLikeToggle={() => handleLikeToggle(event.uid, event.isLiked)}
+                onInterestedToggle={() => handleInterestedToggle(event.uid, event.isInterested)}
+              />
+              ))
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {events.length > 0 ? (
-                  events.map((event) => (
-                    <EventCard key={event.uid} event={event} />
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500 py-4 col-span-full">
-                    No events found.
-                  </div>
-                )}
+              <div className="text-center text-gray-500 py-4">
+                No events found.
               </div>
             )}
           </div>
-          {showBackToTop && (
-            <button
-              onClick={scrollToTop}
-              className="fixed bottom-8 right-8 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200"
-              aria-label="Back to top"
-            >
-              <KeyboardArrowUpIcon />
-            </button>
-          )}
-        </div>
-      </main>
+        )}
+      </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default EventsView;
