@@ -165,10 +165,7 @@ const MyEvents: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <main className="ml-64 p-8">
-        <div className="py-2">
-        </div>
-
+      <main className="ml-64 p-2">
         <div className="mt-6">
           <h2 className="text-2xl font-semibold text-gray-800">My Interested Events</h2>
 
@@ -179,6 +176,9 @@ const MyEvents: React.FC = () => {
           ) : interestedEvents.length === 0 ? (
             <div className="text-center text-gray-600 mt-8">
               <p>You haven't marked any events as interested.</p>
+              <Link href="/memberviewevents" className="text-blue-600 hover:underline mt-4 inline-block">
+                Browse All Events
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">

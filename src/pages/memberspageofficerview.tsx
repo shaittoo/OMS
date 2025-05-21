@@ -35,14 +35,6 @@ const Header: React.FC = () => {
         <h1 className="text-3xl font-semibold text-gray-800">Organization's Approved Members</h1>
         <p className="text-lg text-gray-500">What would you like to do?</p>
       </div>
-      <div className="flex items-center space-x-4 mt-4 md:mt-0">
-        <button
-          className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200"
-          onClick={handleRedirect}
-        >
-          Pending Requests
-        </button>
-      </div>
     </div>
   );
 };
