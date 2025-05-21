@@ -97,13 +97,6 @@ const MemberOrg: React.FC = () => {
           <div className="w-full">
             {/* Back to Dashboard Link */}
             <div className="py-2">
-              <Link
-                href="/memberpage"
-                className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-              >
-                <ArrowBackIcon />
-                <span>Back to Dashboard</span>
-              </Link>
             </div>
 
             {/* Organization Header */}

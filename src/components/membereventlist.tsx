@@ -45,8 +45,6 @@ interface Event {
   tags: string[];
   isPastEvent: boolean;
   uid?: string;
-  likedBy?: string[];
-  interestedBy?: string[];
   registrations?: number;
   eventType?: string;
   isFree?: string;
@@ -208,8 +206,6 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           tags: data.tags || [],
           isPastEvent: isPastEvent,
           uid: data.id,
-          likedBy: data.likes,
-          interestedBy: data.interested,
           registrations: 0,
           eventType: data.eventType || 'general',
           isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
@@ -524,8 +520,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     setSelectedEvent({
       ...event,
       uid: event.id,
-      likedBy: event.likes,
-      interestedBy: event.interested,
+      likes: event.likes,
+      interested: event.interested,
       registrations: 0,
       eventType: event.eventType || 'general',
       isFree: (event.eventPrice === '0' || event.eventPrice === 'Free' || !event.eventPrice).toString(),
@@ -722,24 +718,24 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
               </div>
 
               {isViewEventOpen && selectedEvent && selectedEvent.id === event.id && (
-                <ViewEvent 
-                  close={() => {
-                    handleCloseEventClick();
-                    refreshEventCommentCount(event.id); 
-                  }}
-                  event={{
-                    ...selectedEvent,
-                    uid: selectedEvent.id,
-                    likedBy: selectedEvent.likes,
-                    interestedBy: selectedEvent.interested,
-                    registrations: 0,
-                    eventType: selectedEvent.eventType || 'general',
-                    isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
-                    comments: comments
-                  }}
-                  orgName={selectedEvent.organizationName}
-                />
-              )}
+              <ViewEvent 
+                close={() => {
+                  handleCloseEventClick();
+                  refreshEventCommentCount(event.id); 
+                }}
+                event={{
+                  ...selectedEvent,
+                  uid: selectedEvent.id,
+                  registrations: 0,
+                  eventType: selectedEvent.eventType || 'general',
+                  isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
+                  comments: comments,
+                  likedBy: selectedEvent.likes ?? [],
+                  interestedBy: selectedEvent.interested ?? []
+                }}
+                orgName={selectedEvent.organizationName}
+              />
+)}
             </div>
           ))}
         </div>
