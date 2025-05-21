@@ -27,6 +27,7 @@ const AboutUs = () => {
 				<OfficerSidebar />
 			</div>
 
+
 			{/* Main content */}
 			<main className="min-h-screen bg-white p-6">
 				<div className="flex flex-col items-center bg-gray-100 rounded-lg min-h-screen py-6 px-4">

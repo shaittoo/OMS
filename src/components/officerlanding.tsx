@@ -167,12 +167,11 @@ const OfficerDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="flex">
-        <div className="sticky left-0 top-0 h-screen overflow-y-auto shadow-md">
-        {/* Sidebar */}
-        <OfficerSidebar /></div> 
-        {/* Main content */}
-        <main className="main-content flex-grow p-6 relative bg-white">
+    <div className="flex min-h-screen">
+      <div className="w-64 flex-shrink-0">
+        <OfficerSidebar />
+      </div>
+      <main className="main-content flex-grow p-6 relative bg-white min-h-screen">
           <header className="header mb-6 flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">
@@ -180,12 +179,12 @@ const OfficerDashboard: React.FC = () => {
               </h1>
               <p className="text-gray-600">What would you like to do?</p>
             </div>
-            <button
+            {/* <button
               className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
               onClick={() => setShowLogoutModal(true)}
             >
               Log Out
-            </button>
+            </button> */}
           </header>
 
           {/* Officer Action Buttons */}

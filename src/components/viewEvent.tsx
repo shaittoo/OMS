@@ -11,6 +11,7 @@ interface ViewEventProps {
   close: () => void;
   event: Event;
   orgName: string;
+  canComment?: boolean;
 }
 
 interface MemberData {
@@ -25,11 +26,12 @@ interface MemberData {
     yearLevel: string;
 }
 
-const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
+const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment = true }) => {
     const [loading, setLoading] = useState(true);
     const [comments, setComments] = useState<Comments[]>([]);
     const [newComment, setNewComment] = useState<string>("");
     const [currentUserName, setCurrentUserName] = useState<string>("");
+    const [loadingComments, setLoadingComments] = useState(true);
     const auth = getAuth();
 
     // Function to fetch the current user's full name
@@ -87,6 +89,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
 
     // Fetch comments from Firestore
     const fetchComments = async () => {
+        setLoadingComments(true);
         try {
             const q = query(collection(db, "comments"), where("eventId", "==", event.uid));
             const querySnapshot = await getDocs(q);
@@ -107,6 +110,8 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                 }
             }
             setComments(fetchedComments);
+            setLoadingComments(false);
+            
         } catch (error) {
             console.error("Error fetching comments: ", error);
         }
@@ -215,7 +220,11 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                             className="space-y-4 overflow-y-auto"
                             style={{ maxHeight: "200px" }}
                         >
-                            {comments.length > 0 ? (
+                            {loadingComments ? (
+                                <div className="flex justify-center items-center h-24">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                </div>
+                            ) : comments.length > 0 ? (
                                 comments.map((comment) => (
                                     <div
                                         key={comment.uid}
@@ -241,6 +250,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                             )}
                         </div>
                         <div className="mt-4">
+                             {canComment && (
                             <form
                                 onSubmit={(e) => {
                                     e.preventDefault();
@@ -262,7 +272,9 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                                     Add Comment
                                 </button>
                             </form>
+                            )}
                         </div>
+                            
                     </div>
                 </div>
             </div>
