@@ -35,6 +35,12 @@ interface Task {
 	organizationName?: string;
 }
 
+interface Member {
+	uid: string;
+	fullName: string;
+	email: string;
+}
+
 const OrgViewTasks: React.FC = () => {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -54,7 +60,10 @@ const OrgViewTasks: React.FC = () => {
 	const [isOrganizationMember, setIsOrganizationMember] = useState(false);
 	const [organizationId, setOrganizationId] = useState<string | null>(null);
 	const [organizationName, setOrganizationName] = useState<string>("");
-
+	const [assignedMembers, setAssignedMembers] = useState<string[]>([]);
+	const [approvedMembers, setApprovedMembers] = useState<Member[]>([]);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [showDropdown, setShowDropdown] = useState(false);
 	const router = useRouter();
 
 	// Auth and role check
@@ -94,6 +103,51 @@ const OrgViewTasks: React.FC = () => {
 
 		return () => unsubscribe();
 	}, [router]);
+
+	useEffect(() => {
+		const fetchApprovedMembers = async () => {
+			if (!organizationId) return;
+			try {
+				const membersQuery = query(
+					collection(db, "Members"),
+					where("organizationId", "==", organizationId),
+					where("status", "==", "approved")
+				);
+				const membersSnapshot = await getDocs(membersQuery);
+
+				const uniqueMemberUids = new Set<string>();
+				const memberPromises = membersSnapshot.docs.map(async (memberDoc) => {
+					const memberData = memberDoc.data();
+					if (uniqueMemberUids.has(memberData.uid)) return null;
+					uniqueMemberUids.add(memberData.uid);
+
+					const userDoc = await getDoc(doc(db, "Users", memberData.uid));
+					const userData = userDoc.exists() ? userDoc.data() : null;
+
+					return {
+						uid: memberData.uid,
+						fullName: userData?.fullName || "Unknown Member",
+						email: userData?.email || "No email",
+					};
+				});
+
+				const resolvedMembers = (await Promise.all(memberPromises)).filter(
+					Boolean
+				) as Member[];
+				setApprovedMembers(resolvedMembers);
+			} catch (error) {
+				console.error("Error fetching approved members: ", error);
+			}
+		};
+
+		fetchApprovedMembers();
+	}, [organizationId]);
+
+	const filteredMembers = approvedMembers.filter(
+		(member) =>
+			member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			member.email.toLowerCase().includes(searchTerm.toLowerCase())
+	);
 
 	// Fetch tasks for this organization
 	useEffect(() => {
@@ -220,7 +274,9 @@ const OrgViewTasks: React.FC = () => {
 	};
 
 	const handleFormChange = (
-		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+		e: React.ChangeEvent<
+			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+		>
 	) => {
 		setFormState({ ...formState, [e.target.name]: e.target.value });
 	};
@@ -383,75 +439,225 @@ const OrgViewTasks: React.FC = () => {
 					open={modalOpen}
 					onClose={handleCloseModal}
 				>
-					<form
-						onSubmit={handleFormSubmit}
-						className="absolute top-1/2 left-1/2 bg-white p-8 rounded shadow-lg"
-						style={{ transform: "translate(-50%, -50%)", minWidth: 320 }}
-					>
-						<h2 className="text-xl font-bold mb-4">
-							{editTask ? "Edit Task" : "Add Task"}
-						</h2>
-						<TextField
-							label="Task Name"
-							name="taskName"
-							value={formState.taskName}
-							onChange={handleFormChange}
-							fullWidth
-							required
-							className="mb-4"
-						/>
-						<TextField
-							label="Description"
-							name="description"
-							value={formState.description}
-							onChange={handleFormChange}
-							fullWidth
-							multiline
-							rows={2}
-							className="mb-4"
-						/>
-						<TextField
-							label="Due Date"
-							name="dueDate"
-							type="datetime-local"
-							value={formState.dueDate}
-							onChange={handleFormChange}
-							fullWidth
-							required
-							className="mb-4"
-							InputLabelProps={{ shrink: true }}
-						/>
-						<TextField
-							label="Priority"
-							name="priority"
-							value={formState.priority}
-							onChange={handleFormChange}
-							select
-							SelectProps={{ native: true }}
-							fullWidth
-							className="mb-4"
+					<div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center z-50">
+						<div
+							className="bg-white p-6 rounded w-96 border-2 border-purple-500 relative"
+							style={{
+								boxShadow:
+									"rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px",
+							}}
 						>
-							<option value="Low">Low</option>
-							<option value="Medium">Medium</option>
-							<option value="High">High</option>
-						</TextField>
-						{formError && <p className="text-red-500 mb-2">{formError}</p>}
-						<div className="flex justify-end gap-2">
-							<Button
+							{/* Close Button */}
+							<button
+								type="button"
 								onClick={handleCloseModal}
-								color="inherit"
+								className="absolute top-2 right-2 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
 							>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								variant="contained"
-								color="primary"
+								<svg
+									className="w-6 h-6 text-gray-500"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</button>
+
+							<h2 className="text-xl font-semibold mb-4">
+								{editTask ? "Edit Task" : "Add Task"}
+							</h2>
+							<form
+								onSubmit={handleFormSubmit}
+								className="space-y-4"
 							>
-								{editTask ? "Update" : "Add"}
-							</Button>
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Task Name
+									</label>
+									<input
+										type="text"
+										name="taskName"
+										value={formState.taskName}
+										onChange={handleFormChange}
+										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+										required
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Description
+									</label>
+									<textarea
+										name="description"
+										value={formState.description}
+										onChange={handleFormChange}
+										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+										required
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Due Date
+									</label>
+									<input
+										type="datetime-local"
+										name="dueDate"
+										value={formState.dueDate}
+										onChange={handleFormChange}
+										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+										required
+									/>
+								</div>
+
+								<div>
+									<label className="block text-sm font-medium text-gray-700">
+										Priority
+									</label>
+									<select
+										name="priority"
+										value={formState.priority}
+										onChange={handleFormChange}
+										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+									>
+										<option value="Low">Low</option>
+										<option value="Medium">Medium</option>
+										<option value="High">High</option>
+									</select>
+								</div>
+
+								<div className="relative">
+									<label className="block text-sm font-medium text-gray-700">
+										Assign Members
+									</label>
+									<div
+										className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 cursor-pointer flex flex-wrap items-center gap-2"
+										onClick={() => setShowDropdown(!showDropdown)}
+									>
+										{/* Search Bar */}
+										<input
+											type="text"
+											value={searchTerm}
+											onChange={(e) => setSearchTerm(e.target.value)}
+											placeholder="Search members..."
+											className="flex-grow px-2 py-1 border-none focus:outline-none focus:ring-0"
+											onClick={(e) => e.stopPropagation()}
+										/>
+										{/* Selected Members */}
+										{assignedMembers.length > 0 &&
+											assignedMembers.map((uid) => {
+												const member = approvedMembers.find(
+													(m) => m.uid === uid
+												);
+												return (
+													member && (
+														<div
+															key={uid}
+															className="flex items-center bg-purple-100 text-purple-700 px-2 py-1 rounded-md"
+														>
+															<span className="mr-2">{member.fullName}</span>
+															<button
+																type="button"
+																onClick={(e) => {
+																	e.stopPropagation();
+																	setAssignedMembers(
+																		assignedMembers.filter((id) => id !== uid)
+																	);
+																}}
+																className="text-red-500 hover:text-red-700"
+															>
+																&times;
+															</button>
+														</div>
+													)
+												);
+											})}
+										{/* Dropdown Icon */}
+										<svg
+											className={`w-5 h-5 text-gray-500 transform transition-transform ${
+												showDropdown ? "rotate-180" : ""
+											}`}
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M19 9l-7 7-7-7"
+											/>
+										</svg>
+									</div>
+									{showDropdown && (
+										<div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+											{/* Member List */}
+											{filteredMembers.map((member) => (
+												<div
+													key={member.uid}
+													className="px-4 py-2 hover:bg-purple-100 cursor-pointer"
+												>
+													<label className="flex items-center space-x-2">
+														<input
+															type="checkbox"
+															checked={assignedMembers.includes(member.uid)}
+															onChange={() => {
+																if (assignedMembers.includes(member.uid)) {
+																	setAssignedMembers(
+																		assignedMembers.filter(
+																			(uid) => uid !== member.uid
+																		)
+																	);
+																} else {
+																	setAssignedMembers([
+																		...assignedMembers,
+																		member.uid,
+																	]);
+																}
+															}}
+															className="form-checkbox text-purple-600"
+														/>
+														<span className="font-medium">
+															{member.fullName}
+														</span>
+														<span className="text-sm text-gray-500">
+															({member.email})
+														</span>
+													</label>
+												</div>
+											))}
+										</div>
+									)}
+								</div>
+
+								{formError && <p className="text-red-500 mb-2">{formError}</p>}
+
+								<div className="flex justify-end space-x-3">
+									<button
+										type="button"
+										onClick={handleCloseModal}
+										className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+									>
+										Cancel
+									</button>
+									<button
+										type="submit"
+										className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+									>
+										{editTask ? "Update" : "Add"}
+									</button>
+								</div>
+							</form>
 						</div>
-					</form>
+					</div>
 				</Modal>
 
 				<div className="bg-white rounded-lg shadow-lg p-6">
@@ -524,6 +730,7 @@ const OrgViewTasks: React.FC = () => {
 												size="small"
 												color="primary"
 												onClick={() => handleOpenModal(task)}
+												className="!bg-purple-600 !text-white !px-4 !py-1 !rounded hover:!bg-purple-700 transition-colors duration-200"
 											>
 												Edit
 											</Button>
@@ -531,6 +738,7 @@ const OrgViewTasks: React.FC = () => {
 												size="small"
 												color="error"
 												onClick={() => handleDeleteTask(task.id)}
+												className="!bg-red-500 !text-white !px-4 !py-1 !rounded hover:!bg-red-600 transition-colors duration-200"
 											>
 												Delete
 											</Button>
