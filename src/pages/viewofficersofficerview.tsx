@@ -370,7 +370,14 @@ const OfficerEditForm: React.FC = () => {
                   Additional Officer Name:
                 </label>
                 <Select
-                  options={members.map((m) => ({ label: m.name, value: m.id }))}
+                  options={members
+                    // Exclude members already assigned as main or additional officers
+                    .filter(
+                      (m) =>
+                        !Object.values(officerPositions).includes(m.id) &&
+                        !additionalOfficers.some((o) => o.name === m.id)
+                    )
+                    .map((m) => ({ label: m.name, value: m.id }))}
                   value={
                     members.find((m) => m.id === additionalOfficerName)
                       ? {
