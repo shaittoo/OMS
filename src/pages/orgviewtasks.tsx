@@ -1,51 +1,582 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { auth } from "../firebaseConfig";
-import { getDoc, doc } from "firebase/firestore";
-import { db } from "../firebaseConfig";;
-import OrgViewTask from "../components/orgviewtask";
+import { auth, db } from "../firebaseConfig";
+import {
+	doc,
+	getDoc,
+	collection,
+	query,
+	where,
+	getDocs,
+	addDoc,
+	updateDoc,
+	deleteDoc,
+} from "firebase/firestore";
+import OfficerSidebar from "../components/officersidebar";
+import Link from "next/link";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import GroupIcon from "@mui/icons-material/Group";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import Modal from "@mui/material/Modal";
+import TextField from "@mui/material/TextField";
+import Button from "@mui/material/Button";
 import { onAuthStateChanged } from "firebase/auth";
 
-const OrgViewTasks = () => {
-  const [loading, setLoading] = useState(true);
-  const [isOrganizationMember, setIsOrganizationMember] = useState(false);
-  const router = useRouter();
+interface Task {
+	id: string;
+	taskName: string;
+	description: string;
+	dueDate: string;
+	priority: string;
+	assignedMembers: string[];
+	completed: boolean;
+	organizationId?: string;
+	organizationName?: string;
+}
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "Users", user.uid));
-          const userData = userDoc.data();
+const OrgViewTasks: React.FC = () => {
+	const [tasks, setTasks] = useState<Task[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [activeTab, setActiveTab] = useState<string>("All");
+	const [currentPage, setCurrentPage] = useState(1);
+	const tasksPerPage = 8;
+	const [modalOpen, setModalOpen] = useState(false);
+	const [editTask, setEditTask] = useState<Task | null>(null);
+	const [formState, setFormState] = useState({
+		taskName: "",
+		description: "",
+		dueDate: "",
+		priority: "Medium",
+	});
+	const [formError, setFormError] = useState<string | null>(null);
+	const [isOrganizationMember, setIsOrganizationMember] = useState(false);
+	const [organizationId, setOrganizationId] = useState<string | null>(null);
+	const [organizationName, setOrganizationName] = useState<string>("");
 
-          if (userData?.role === "organization") {
-            setIsOrganizationMember(true); // User is authorized
-          } else {
-            router.push("/"); // Redirect non-organization users to home
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          router.push("/"); // Redirect in case of error
-        }
-      } else {
-        router.push("/login"); // Redirect unauthenticated users to login
-      }
-      setLoading(false);
-    });
+	const router = useRouter();
 
-    return () => unsubscribe(); // Cleanup listener on unmount
-  }, [router]);
+	// Auth and role check
+	useEffect(() => {
+		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+			if (user) {
+				try {
+					const userDoc = await getDoc(doc(db, "Users", user.uid));
+					const userData = userDoc.data();
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+					if (userData?.role === "organization") {
+						setIsOrganizationMember(true);
+						setOrganizationId(userData.organizationId || null);
 
-  // Render OrgViewTask if the user is an organization member
-  return isOrganizationMember ? <OrgViewTask showBackButton={true} /> : null;
+						// Fetch organization name
+						if (userData.organizationId) {
+							const orgDoc = await getDoc(
+								doc(db, "Organizations", userData.organizationId)
+							);
+							if (orgDoc.exists()) {
+								const orgData = orgDoc.data();
+								setOrganizationName(orgData?.name || "Organization");
+							}
+						}
+					} else {
+						router.push("/");
+					}
+				} catch (error) {
+					console.error("Error fetching user data:", error);
+					router.push("/");
+				}
+			} else {
+				router.push("/login");
+			}
+			setLoading(false);
+		});
+
+		return () => unsubscribe();
+	}, [router]);
+
+	// Fetch tasks for this organization
+	useEffect(() => {
+		const fetchTasks = async () => {
+			if (!organizationId) {
+				setTasks([]);
+				setLoading(false);
+				return;
+			}
+			setLoading(true);
+			setError(null);
+
+			try {
+				const tasksQuery = query(
+					collection(db, "tasks"),
+					where("organizationId", "==", organizationId)
+				);
+				const tasksSnapshot = await getDocs(tasksQuery);
+
+				const tasksList = await Promise.all(
+					tasksSnapshot.docs.map(async (taskDoc) => {
+						const data = taskDoc.data();
+
+						// Fetch assigned members' names
+						const memberNames = await Promise.all(
+							(data.assignedMembers || []).map(async (uid: string) => {
+								const userDocRef = doc(db, "Users", uid);
+								const userDoc = await getDoc(userDocRef);
+								if (userDoc.exists()) {
+									const userData = userDoc.data();
+									return userData.fullName || "Unknown Member";
+								}
+								return "Unknown Member";
+							})
+						);
+
+						return {
+							id: taskDoc.id,
+							taskName: data.taskName || "Untitled Task",
+							description: data.description || "",
+							dueDate: data.dueDate
+								? new Date(data.dueDate.seconds * 1000).toLocaleString()
+								: "No due date",
+							priority: data.priority || "Medium",
+							assignedMembers: memberNames,
+							completed: data.completed || false,
+							organizationId: data.organizationId || "",
+							organizationName: organizationName,
+						} as Task;
+					})
+				);
+
+				// Sort tasks by due date
+				tasksList.sort((a, b) => {
+					const dateA =
+						a.dueDate === "No due date" ? new Date(0) : new Date(a.dueDate);
+					const dateB =
+						b.dueDate === "No due date" ? new Date(0) : new Date(b.dueDate);
+					return dateA.getTime() - dateB.getTime();
+				});
+
+				setTasks(tasksList);
+			} catch (error) {
+				console.error("Error fetching tasks:", error);
+				setError("Error fetching tasks. Please try again later.");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		if (isOrganizationMember && organizationId) {
+			fetchTasks();
+		}
+	}, [isOrganizationMember, organizationId, organizationName]);
+
+	// Filter tasks based on active tab
+	const filteredTasks = tasks.filter((task) => {
+		if (activeTab === "All") return true;
+		if (activeTab === "Completed") return task.completed;
+		if (activeTab === "Not Completed") return !task.completed;
+		return true;
+	});
+
+	// Pagination
+	const indexOfLastTask = currentPage * tasksPerPage;
+	const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+	const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
+	const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+
+	const handlePageChange = (pageNumber: number) => {
+		setCurrentPage(pageNumber);
+	};
+
+	// CRUD Handlers
+	const handleOpenModal = (task?: Task) => {
+		if (task) {
+			setEditTask(task);
+			setFormState({
+				taskName: task.taskName,
+				description: task.description,
+				dueDate:
+					task.dueDate && task.dueDate !== "No due date"
+						? new Date(task.dueDate).toISOString().slice(0, 16)
+						: "",
+				priority: task.priority,
+			});
+		} else {
+			setEditTask(null);
+			setFormState({
+				taskName: "",
+				description: "",
+				dueDate: "",
+				priority: "Medium",
+			});
+		}
+		setFormError(null);
+		setModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		setModalOpen(false);
+		setEditTask(null);
+		setFormError(null);
+	};
+
+	const handleFormChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+	) => {
+		setFormState({ ...formState, [e.target.name]: e.target.value });
+	};
+
+	const handleFormSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setFormError(null);
+		if (!formState.taskName || !formState.dueDate) {
+			setFormError("Task name and due date are required.");
+			return;
+		}
+		try {
+			const assignedMembers: string[] = [];
+			// Optionally, you can add logic to assign members here
+
+			const dueDate = new Date(formState.dueDate);
+			const dueDateObj = {
+				seconds: Math.floor(dueDate.getTime() / 1000),
+				nanoseconds: 0,
+			};
+
+			if (editTask) {
+				// Update
+				const taskRef = doc(db, "tasks", editTask.id);
+				await updateDoc(taskRef, {
+					taskName: formState.taskName,
+					description: formState.description,
+					dueDate: dueDateObj,
+					priority: formState.priority,
+				});
+			} else {
+				// Create
+				await addDoc(collection(db, "tasks"), {
+					taskName: formState.taskName,
+					description: formState.description,
+					dueDate: dueDateObj,
+					priority: formState.priority,
+					assignedMembers,
+					completed: false,
+					organizationId: organizationId,
+				});
+			}
+			setModalOpen(false);
+			setEditTask(null);
+			setFormState({
+				taskName: "",
+				description: "",
+				dueDate: "",
+				priority: "Medium",
+			});
+			setCurrentPage(1);
+
+			// Refresh tasks
+			if (organizationId) {
+				setLoading(true);
+				setError(null);
+				// Re-fetch tasks
+				const tasksQuery = query(
+					collection(db, "tasks"),
+					where("organizationId", "==", organizationId)
+				);
+				const tasksSnapshot = await getDocs(tasksQuery);
+
+				const tasksList = await Promise.all(
+					tasksSnapshot.docs.map(async (taskDoc) => {
+						const data = taskDoc.data();
+
+						// Fetch assigned members' names
+						const memberNames = await Promise.all(
+							(data.assignedMembers || []).map(async (uid: string) => {
+								const userDocRef = doc(db, "Users", uid);
+								const userDoc = await getDoc(userDocRef);
+								if (userDoc.exists()) {
+									const userData = userDoc.data();
+									return userData.fullName || "Unknown Member";
+								}
+								return "Unknown Member";
+							})
+						);
+
+						return {
+							id: taskDoc.id,
+							taskName: data.taskName || "Untitled Task",
+							description: data.description || "",
+							dueDate: data.dueDate
+								? new Date(data.dueDate.seconds * 1000).toLocaleString()
+								: "No due date",
+							priority: data.priority || "Medium",
+							assignedMembers: memberNames,
+							completed: data.completed || false,
+							organizationId: data.organizationId || "",
+							organizationName: organizationName,
+						} as Task;
+					})
+				);
+
+				// Sort tasks by due date
+				tasksList.sort((a, b) => {
+					const dateA =
+						a.dueDate === "No due date" ? new Date(0) : new Date(a.dueDate);
+					const dateB =
+						b.dueDate === "No due date" ? new Date(0) : new Date(b.dueDate);
+					return dateA.getTime() - dateB.getTime();
+				});
+
+				setTasks(tasksList);
+				setLoading(false);
+			}
+		} catch (err) {
+			setFormError("Error saving task. Please try again.");
+		}
+	};
+
+	const handleDeleteTask = async (taskId: string) => {
+		if (!window.confirm("Are you sure you want to delete this task?")) return;
+		try {
+			await deleteDoc(doc(db, "tasks", taskId));
+			setTasks(tasks.filter((t) => t.id !== taskId));
+		} catch (err) {
+			alert("Error deleting task.");
+		}
+	};
+
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-screen">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+			</div>
+		);
+	}
+
+	if (!isOrganizationMember) {
+		return null;
+	}
+
+	return (
+		<div className="min-h-screen bg-white">
+			<OfficerSidebar />
+			<main className="ml-64 p-8">
+				{/* Back to Dashboard Link */}
+				<div className="mb-6 flex justify-between items-center">
+					<Link
+						href="/orgpage"
+						className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
+					>
+						<ArrowBackIcon />
+						<span>Back to Dashboard</span>
+					</Link>
+					<Button
+						variant="contained"
+						color="secondary"
+						onClick={() => handleOpenModal()}
+					>
+						Add Task
+					</Button>
+				</div>
+
+				{/* Modal for Add/Edit Task */}
+				<Modal
+					open={modalOpen}
+					onClose={handleCloseModal}
+				>
+					<form
+						onSubmit={handleFormSubmit}
+						className="absolute top-1/2 left-1/2 bg-white p-8 rounded shadow-lg"
+						style={{ transform: "translate(-50%, -50%)", minWidth: 320 }}
+					>
+						<h2 className="text-xl font-bold mb-4">
+							{editTask ? "Edit Task" : "Add Task"}
+						</h2>
+						<TextField
+							label="Task Name"
+							name="taskName"
+							value={formState.taskName}
+							onChange={handleFormChange}
+							fullWidth
+							required
+							className="mb-4"
+						/>
+						<TextField
+							label="Description"
+							name="description"
+							value={formState.description}
+							onChange={handleFormChange}
+							fullWidth
+							multiline
+							rows={2}
+							className="mb-4"
+						/>
+						<TextField
+							label="Due Date"
+							name="dueDate"
+							type="datetime-local"
+							value={formState.dueDate}
+							onChange={handleFormChange}
+							fullWidth
+							required
+							className="mb-4"
+							InputLabelProps={{ shrink: true }}
+						/>
+						<TextField
+							label="Priority"
+							name="priority"
+							value={formState.priority}
+							onChange={handleFormChange}
+							select
+							SelectProps={{ native: true }}
+							fullWidth
+							className="mb-4"
+						>
+							<option value="Low">Low</option>
+							<option value="Medium">Medium</option>
+							<option value="High">High</option>
+						</TextField>
+						{formError && <p className="text-red-500 mb-2">{formError}</p>}
+						<div className="flex justify-end gap-2">
+							<Button
+								onClick={handleCloseModal}
+								color="inherit"
+							>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								variant="contained"
+								color="primary"
+							>
+								{editTask ? "Update" : "Add"}
+							</Button>
+						</div>
+					</form>
+				</Modal>
+
+				<div className="bg-white rounded-lg shadow-lg p-6">
+					<div className="flex justify-between items-center mb-6">
+						<h1 className="text-2xl font-bold text-purple-700">All Tasks</h1>
+						<select
+							className="border border-purple-700 rounded p-2"
+							value={activeTab}
+							onChange={(e) => setActiveTab(e.target.value)}
+						>
+							<option value="All">All Tasks</option>
+							<option value="Completed">Completed</option>
+							<option value="Not Completed">Not Completed</option>
+						</select>
+					</div>
+
+					{error && <p className="text-red-500 mb-4">{error}</p>}
+
+					{filteredTasks.length === 0 ? (
+						<p className="text-gray-500 text-center py-4">No tasks found.</p>
+					) : (
+						<>
+							<div className="space-y-4">
+								{currentTasks.map((task) => (
+									<div
+										key={task.id}
+										className="bg-white p-4 rounded-lg shadow-md border border-gray-200"
+										style={{
+											textDecoration: task.completed ? "line-through" : "none",
+											opacity: task.completed ? 0.6 : 1,
+										}}
+									>
+										<div className="flex items-center justify-between mb-2">
+											<div className="flex items-center gap-2">
+												<input
+													type="checkbox"
+													checked={task.completed}
+													readOnly
+													className="cursor-pointer transform scale-125"
+												/>
+												<h3 className="font-semibold text-lg text-purple-700">
+													{task.taskName}
+												</h3>
+											</div>
+											<span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+												{task.organizationName}
+											</span>
+										</div>
+
+										<div className="flex gap-4 text-sm text-gray-500 mb-2">
+											<div className="flex items-center gap-2">
+												<CalendarTodayIcon className="text-purple-700" />
+												<span>Due: {task.dueDate}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<GroupIcon className="text-purple-700" />
+												<span>
+													Assigned to: {task.assignedMembers.join(", ")}
+												</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<PriorityHighIcon className="text-purple-700" />
+												<span>Priority: {task.priority}</span>
+											</div>
+										</div>
+
+										<p className="text-gray-600">{task.description}</p>
+										<div className="flex gap-2 justify-end mt-2">
+											<Button
+												size="small"
+												color="primary"
+												onClick={() => handleOpenModal(task)}
+											>
+												Edit
+											</Button>
+											<Button
+												size="small"
+												color="error"
+												onClick={() => handleDeleteTask(task.id)}
+											>
+												Delete
+											</Button>
+										</div>
+									</div>
+								))}
+							</div>
+
+							{/* Pagination */}
+							{totalPages > 1 && (
+								<div className="flex justify-center mt-6 space-x-2">
+									<button
+										onClick={() => handlePageChange(currentPage - 1)}
+										disabled={currentPage === 1}
+										className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
+									>
+										Previous
+									</button>
+									{[...Array(totalPages)].map((_, index) => (
+										<button
+											key={index + 1}
+											onClick={() => handlePageChange(index + 1)}
+											className={`px-3 py-1 rounded ${
+												currentPage === index + 1
+													? "bg-purple-700 text-white"
+													: "border border-purple-700 text-purple-700"
+											}`}
+										>
+											{index + 1}
+										</button>
+									))}
+									<button
+										onClick={() => handlePageChange(currentPage + 1)}
+										disabled={currentPage === totalPages}
+										className="px-3 py-1 rounded border border-purple-700 text-purple-700 disabled:opacity-50"
+									>
+										Next
+									</button>
+								</div>
+							)}
+						</>
+					)}
+				</div>
+			</main>
+		</div>
+	);
 };
 
 export default OrgViewTasks;
