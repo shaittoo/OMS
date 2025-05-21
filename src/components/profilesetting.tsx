@@ -15,7 +15,23 @@ const InfoModal: React.FC<{ open: boolean; onClose: () => void; message: string 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
-        <h2 className="text-xl font-bold mb-4 text-purple-700">Notice</h2>
+        {/* Bigger check icon with longer check mark */}
+        <svg
+          className="mx-auto mb-2"
+          width="80"
+          height="80"
+          viewBox="0 0 80 80"
+          fill="none"
+        >
+          <circle cx="40" cy="40" r="40" fill="#22c55e" />
+          <path
+            d="M56 28L36 52L20 38"
+            stroke="white"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <p className="mb-6">{message}</p>
         <button
           className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 font-semibold"
