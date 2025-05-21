@@ -1,8 +1,5 @@
 import React from "react";
 import OfficerSidebar from "../components/officersidebar";
-import { config } from '@fortawesome/fontawesome-svg-core';
-import '@fortawesome/fontawesome-svg-core/styles.css';
-config.autoAddCss = false;
 
 const SectionDivider = () => (
 	<div className="flex items-center w-full relative my-2">
