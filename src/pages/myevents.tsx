@@ -6,6 +6,7 @@ import EventIcon from "@mui/icons-material/Event";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import Link from "next/link";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { onAuthStateChanged } from "firebase/auth";
 
 interface Event {
   id: string;
@@ -23,60 +24,63 @@ const MyEvents: React.FC = () => {
   const [undoTimeouts, setUndoTimeouts] = useState<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
-    const fetchInterestedEvents = async () => {
-      setLoading(true);
-      const authUser = auth.currentUser;
-
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
       if (!authUser) {
         alert("User not authenticated");
         setLoading(false);
         return;
       }
 
-      try {
-        const userDocRef = doc(db, "Users", authUser.uid);
-        const userDoc = await getDoc(userDocRef);
+      const fetchInterestedEvents = async () => {
+        setLoading(true);
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const eventIds = userData.interestedEvents || [];
+        try {
+          const userDocRef = doc(db, "Users", authUser.uid);
+          const userDoc = await getDoc(userDocRef);
 
-          if (eventIds.length === 0) {
-            setInterestedEvents([]);
-            return;
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const eventIds = userData.interestedEvents || [];
+
+            if (eventIds.length === 0) {
+              setInterestedEvents([]);
+              return;
+            }
+
+            const events = await Promise.all(
+              eventIds.map(async (eventId: string) => {
+                const eventDocRef = doc(db, "events", eventId);
+                const eventDoc = await getDoc(eventDocRef);
+
+                if (eventDoc.exists()) {
+                  const eventData = eventDoc.data();
+                  return {
+                    id: eventDoc.id,
+                    ...eventData,
+                    isInterested: true,
+                  } as Event;
+                } else {
+                  console.warn(`Event with ID ${eventId} does not exist.`);
+                }
+                return null;
+              })
+            );
+
+            setInterestedEvents(events.filter(Boolean) as Event[]);
+          } else {
+            console.warn("User document not found.");
           }
-
-          const events = await Promise.all(
-            eventIds.map(async (eventId: string) => {
-              const eventDocRef = doc(db, "events", eventId);
-              const eventDoc = await getDoc(eventDocRef);
-
-              if (eventDoc.exists()) {
-                const eventData = eventDoc.data();
-                return {
-                  id: eventDoc.id,
-                  ...eventData,
-                  isInterested: true,
-                } as Event;
-              } else {
-                console.warn(`Event with ID ${eventId} does not exist.`);
-              }
-              return null;
-            })
-          );
-
-          setInterestedEvents(events.filter(Boolean) as Event[]);
-        } else {
-          console.warn("User document not found.");
+        } catch (error) {
+          console.error("Failed to fetch interested events:", error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to fetch interested events:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchInterestedEvents();
+      fetchInterestedEvents();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleInterestedClick = async (eventId: string, isInterested: boolean) => {
@@ -165,68 +169,75 @@ const MyEvents: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <main className="ml-64 p-2">
-        <div className="mt-6">
+      <main className="ml-64 p-8">
+        <div className="mt-1 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-gray-800">My Interested Events</h2>
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
-            </div>
-          ) : interestedEvents.length === 0 ? (
-            <div className="text-center text-gray-600 mt-8">
-              <p>You haven't marked any events as interested.</p>
-              <Link href="/memberviewevents" className="text-blue-600 hover:underline mt-4 inline-block">
-                Browse All Events
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {interestedEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition"
-                >
-                  {event.eventImages && event.eventImages.length > 0 ? (
-                    <img
-                      src={event.eventImages[0]}
-                      alt={event.eventName}
-                      className="w-full h-48 object-cover rounded-md"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
-                      <p className="text-gray-500">No Image Available</p>
-                    </div>
-                  )}
-                  <h3 className="text-lg font-semibold text-gray-800 mt-4">
-                    {event.eventName}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {event.eventDescription}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    <CorporateFareIcon /> {event.eventLocation}
-                  </p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    <EventIcon /> {formatDate(event.eventDate)}
-                  </p>
-                  <div className="flex items-center mt-4">
-                    <button
-                      onClick={() => handleInterestedClick(event.id, event.isInterested)}
-                      className={`px-4 py-2 rounded-md ${
-                        event.isInterested
-                          ? "bg-gray-500 text-white"
-                          : "bg-blue-500 text-white"
-                      }`}
-                    >
-                      {event.isInterested ? "Interested" : "Interested?"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {interestedEvents.length > 0 && (
+            <Link href="/memberviewevents" className="ml-4">
+              <button className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200">
+                All Events
+              </button>
+            </Link>
           )}
         </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+          </div>
+        ) : interestedEvents.length === 0 ? (
+          <div className="text-center text-gray-600 mt-8">
+            <p>You haven't marked any events as interested.</p>
+            <Link href="/memberviewevents" className="text-blue-600 hover:underline mt-4 inline-block">
+              Browse All Events
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            {interestedEvents.map((event) => (
+              <div
+                key={event.id}
+                className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition"
+              >
+                {event.eventImages && event.eventImages.length > 0 ? (
+                  <img
+                    src={event.eventImages[0]}
+                    alt={event.eventName}
+                    className="w-full h-48 object-cover rounded-md"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
+                    <p className="text-gray-500">No Image Available</p>
+                  </div>
+                )}
+                <h3 className="text-lg font-semibold text-gray-800 mt-4">
+                  {event.eventName}
+                </h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  {event.eventDescription}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  <CorporateFareIcon /> {event.eventLocation}
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  <EventIcon /> {formatDate(event.eventDate)}
+                </p>
+                <div className="flex items-center mt-4">
+                  <button
+                    onClick={() => handleInterestedClick(event.id, event.isInterested)}
+                    className={`px-4 py-2 rounded-md ${
+                      event.isInterested
+                        ? "bg-gray-500 text-white"
+                        : "bg-blue-500 text-white"
+                    }`}
+                  >
+                    {event.isInterested ? "Interested" : "Interested?"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

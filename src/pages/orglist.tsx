@@ -259,8 +259,9 @@ const OrgList: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <MemberSidebar />
+      <div className="min-h-screen bg-white">
+          <MemberSidebar />
+          <main className="ml-64 p-2">
       <div className="flex-grow p-6 bg-white">
         <Header />
 
@@ -304,7 +305,9 @@ const OrgList: React.FC = () => {
             </div>
           )}
         </div>
+        
       </div>
+      </main>
     </div>
   );
 };
