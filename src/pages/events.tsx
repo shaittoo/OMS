@@ -30,8 +30,8 @@ interface Event {
   status: string;
   organizationId: string;
   registrations: number;
-  likedBy: string[];
-  interestedBy: string[];
+  likes: string[];
+  interested: string[];
   isLiked: boolean;
   isInterested: boolean;
   tags: string[]; // Added missing property
@@ -151,7 +151,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
   const [liked, setLiked] = useState(event.isLiked);
   const [comments, setComments] = useState<number>(0);
-  const [likeCount, setLikeCount] = useState(event.likedBy?.length || 0);
+  const [likeCount, setLikeCount] = useState(event.likes?.length || 0);
   const [isViewEventOpen, setViewEventOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
@@ -218,7 +218,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     }
     const eventRef = doc(db, "events", event.uid);
     await updateDoc(eventRef, {
-      likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
+      likes: liked ? arrayRemove(userId) : arrayUnion(userId),
     });
   };
 
@@ -334,13 +334,17 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
       </div>
 
       {isViewEventOpen && selectedEvent && (
-        <ViewEvent 
-          close={handleCloseEventClick} 
-          event={selectedEvent}
-          orgName={orgName}
-          canComment={false} //org cannot comment
-        />
-      )}
+    <ViewEvent 
+      close={handleCloseEventClick} 
+      event={{
+        ...selectedEvent,
+        likedBy: selectedEvent.likes ?? [],
+        interestedBy: selectedEvent.interested ?? []
+      }}
+      orgName={orgName}
+      canComment={false}
+    />
+  )}
     </div>
   );
 };
