@@ -324,8 +324,10 @@ const MyEventsView: React.FC = () => {
   };  
 
   return (
-    <div className="flex">
-      <OfficerSidebar />
+    <div className="flex min-h-screen">
+      <div className="w-64 flex-shrink-0">
+        <OfficerSidebar />
+      </div>
       <div className="flex-grow p-6 bg-white">
         <Header onBack={handleBack} onAddEvent={handleAddEventClick} />
         <SearchAndFilter onFilterChange={setFilters} />
