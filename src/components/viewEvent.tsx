@@ -11,6 +11,7 @@ interface ViewEventProps {
   close: () => void;
   event: Event;
   orgName: string;
+  canComment?: boolean;
 }
 
 interface MemberData {
@@ -25,7 +26,7 @@ interface MemberData {
     yearLevel: string;
 }
 
-const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
+const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment = true }) => {
     const [loading, setLoading] = useState(true);
     const [comments, setComments] = useState<Comments[]>([]);
     const [newComment, setNewComment] = useState<string>("");
@@ -249,6 +250,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                             )}
                         </div>
                         <div className="mt-4">
+                             {canComment && (
                             <form
                                 onSubmit={(e) => {
                                     e.preventDefault();
@@ -270,7 +272,9 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName }) => {
                                     Add Comment
                                 </button>
                             </form>
+                            )}
                         </div>
+                            
                     </div>
                 </div>
             </div>

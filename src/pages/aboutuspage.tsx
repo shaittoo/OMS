@@ -3,12 +3,10 @@ import OfficerSidebar from "../components/officersidebar";
 
 const AboutUs = () => {
   return (
-    <div className="flex"> 
-      <div className="sticky left-0 top-0 h-screen overflow-y-auto bg-white shadow-md">
-
-      {/* Sidebar */}
-      <OfficerSidebar /> 
-      </div>
+      <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
+      <OfficerSidebar />
+    </div>
 
       {/* Main content */}
       <main className="main-content flex-grow p-6">
