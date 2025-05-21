@@ -10,6 +10,10 @@ import { db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import EventIcon from "@mui/icons-material/Event";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import ViewEvent from "../components/viewEvent";
 
 interface Event {
   uid: string;
@@ -24,9 +28,13 @@ interface Event {
   isOpenForAll: boolean;
   status: string;
   organizationId: string;
-  registrations: string;
-  likes: number;  
-  participation: number;  
+  registrations: number;
+  likes: number;
+  participation: number;
+  interested?: string[];
+  likedBy?: string[];
+  interestedBy?: string[];
+  tags: string[];
 }
 
 const Header: React.FC = () => {
@@ -148,8 +156,9 @@ const SearchAndFilter: React.FC<{ onFilterChange: Function }> = ({
   );
 };
 
-const EventCard: React.FC<{ event: Event }> = ({ event }) => {
+const EventCard: React.FC<{ event: Event; onViewEventClick: (event: Event) => void; }> = ({ event, onViewEventClick }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
+  const [comments, setComments] = useState<number>(0);
 
   useEffect(() => {
     const fetchOrganizationName = async () => {
@@ -163,7 +172,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             setOrgName("Organization Not Found");
           }
         } catch (err) {
-          console.error("Error fetching organization name:", err);
           setOrgName("Error fetching organization");
         }
       } else {
@@ -173,39 +181,108 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     fetchOrganizationName();
   }, [event.organizationId]);
 
-  const truncateText = (text: string) => {
-    if (text.length > 100) {
-      return text.substring(0, 100) + "...";
-    }
-    return text;
+  useEffect(() => {
+    const fetchCommentsCount = async () => {
+      const snapshot = await getDocs(collection(db, "comments"));
+      const count = snapshot.docs.filter(doc => doc.data().eventId === event.uid).length;
+      setComments(count);
+    };
+    fetchCommentsCount();
+  }, [event.uid]);
+
+  const formatDate = (dateString: string | Date) => {
+    if (!dateString) return "Date not specified";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4">
-      {event.eventImages && event.eventImages.length > 0 ? (
-        <img
-          src={event.eventImages[0]}
-          alt={event.eventImages[0]}
-          className="w-full h-48 object-cover rounded-md"
-        />
-      ) : (
-        <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
-          <p className="text-gray-500">No Image Available</p>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => onViewEventClick(event)}>
+      {/* Event Image */}
+      <div className="w-full h-48 bg-gray-200">
+        {event.eventImages && event.eventImages.length > 0 ? (
+          <img
+            src={event.eventImages[0]}
+            alt={event.eventName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              src="/assets/default.jpg"
+              alt="Default event"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {/* Title and Organization */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+              {orgName}
+            </span>
+          </div>
         </div>
-      )}
-      <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-      <p className="text-gray-600 mt-2">{truncateText(event.eventDescription)}</p>
-      <p className="text-gray-500 mt-2">
-        <CorporateFareIcon />
-        &nbsp; {orgName}
-      </p>
-      <p className="text-gray-400 mt-2">
-        <EventIcon />
-        &nbsp;
-        {event.eventDate instanceof Date
-          ? event.eventDate.toLocaleDateString() 
-          : event.eventDate}
-      </p>
+
+        {/* Description */}
+        <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+
+        {/* Details */}
+        <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+          <div className="space-y-1">
+            <p>
+              <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+            </p>
+            <p>
+              <span className="font-medium">Location:</span> {event.eventLocation}
+            </p>
+          </div>
+          <div className="text-right space-y-1">
+            <p>
+              <span className="font-medium">Price:</span> {event.eventPrice}
+            </p>
+            <p>
+              <span className="font-medium">Type:</span> {event.eventType}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end items-center space-x-3 pt-2 border-t">
+          <div className="flex items-center">
+            <button
+              onClick={e => { e.stopPropagation(); window.location.href = '/login'; }}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
+              aria-label="Like (login required)"
+            >
+              <ThumbUpOffAltIcon fontSize="small" />
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{Array.isArray(event.likes) ? event.likes.length : event.likes || 0}</span>
+          </div>
+          <div className="flex items-center">
+            <button
+              onClick={e => { e.stopPropagation(); onViewEventClick(event); }}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
+              aria-label="View comments"
+            >
+              <ChatBubbleOutlineIcon fontSize="small" />
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{comments}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -222,6 +299,18 @@ const EventsView: React.FC = () => {
     date: "none",
     searchTerm: "",
   });
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleViewEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
+  };
+
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -298,7 +387,7 @@ const EventsView: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {events.length > 0 ? (
-                events.map((event) => <EventCard key={event.uid} event={event} />)
+                events.map((event) => <EventCard key={event.uid} event={event} onViewEventClick={handleViewEventClick} />)
               ) : (
                 <div className="text-center text-gray-500 py-4">
                   No events found.
@@ -307,6 +396,22 @@ const EventsView: React.FC = () => {
             </div>
           )}
         </div>
+        {isViewEventOpen && selectedEvent && (
+          <ViewEvent 
+            close={handleCloseEventClick} 
+            event={{
+              ...selectedEvent,
+              likedBy: [],
+              interestedBy: [],
+              tags: selectedEvent.tags || [],
+              registrations: typeof selectedEvent.registrations === 'string' ? 
+                parseInt(selectedEvent.registrations) || 0 : 
+                selectedEvent.registrations || 0
+            }}
+            orgName={selectedEvent.organizationId ? selectedEvent.organizationId : ''}
+            canComment={false}
+          />
+        )}
       </div>
     </div>
   );

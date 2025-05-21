@@ -147,13 +147,11 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
   );
 };
 
-const EventCard: React.FC<{ event: Event }> = ({ event }) => {
+const EventCard: React.FC<{ event: Event; onViewEventClick: (event: Event) => void }> = ({ event, onViewEventClick }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
   const [liked, setLiked] = useState(event.isLiked);
   const [comments, setComments] = useState<number>(0);
   const [likeCount, setLikeCount] = useState(event.likes?.length || 0);
-  const [isViewEventOpen, setViewEventOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Fetch organization name
   useEffect(() => {
@@ -187,22 +185,8 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     fetchCommentsCount();
   }, [event.uid]);
 
-  // const handleInterestedClick = async () => {
-  //   setInterested(!interested);
-  //   const userId = auth.currentUser?.uid;
-  //   if (userId) {
-  //     const userRef = doc(db, "Users", userId);
-  //     await updateDoc(userRef, {
-  //       interestedEvents: interested ? arrayRemove(event.uid) : arrayUnion(event.uid),
-  //     });
-  //   }
-  //   const eventRef = doc(db, "events", event.uid);
-  //   await updateDoc(eventRef, {
-  //     interestedBy: interested ? arrayRemove(auth.currentUser?.uid) : arrayUnion(auth.currentUser?.uid),
-  //   });
-  // };
-
-  const handleLikeClick = async () => {
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const userId = auth.currentUser?.uid;
     setLiked((prev) => {
       const newLiked = !prev;
@@ -222,16 +206,6 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
     });
   };
 
-  const handleViewEventClick = () => {
-    setSelectedEvent(event);
-    setViewEventOpen(true);
-  };
-
-  const handleCloseEventClick = () => {
-    setViewEventOpen(false);
-    setSelectedEvent(null);
-  };
-
   const formatDate = (dateString: string | Date) => {
     if (!dateString) return "Date not specified";
     const date = new Date(dateString);
@@ -246,7 +220,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => onViewEventClick(event)}>
       {/* Event Image */}
       <div className="w-full h-48 bg-gray-200">
         {event.eventImages && event.eventImages.length > 0 ? (
@@ -313,16 +287,9 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             </button>
             <span className="ml-1 text-sm text-gray-600">{likeCount}</span>
           </div>
-          {/* <button
-            onClick={handleInterestedClick}
-            className={`p-1.5 rounded-full hover:bg-gray-100 ${interested ? 'text-blue-600' : 'text-gray-600'}`}
-            aria-label={interested ? "Remove bookmark" : "Bookmark"}
-          >
-            {interested ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
-          </button> */}
           <div className="flex items-center">
             <button
-              onClick={handleViewEventClick}
+              onClick={e => { e.stopPropagation(); onViewEventClick(event); }}
               className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
               aria-label="View comments"
             >
@@ -332,27 +299,14 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
           </div>
         </div>
       </div>
-
-      {isViewEventOpen && selectedEvent && (
-    <ViewEvent 
-      close={handleCloseEventClick} 
-      event={{
-        ...selectedEvent,
-        likedBy: selectedEvent.likes ?? [],
-        interestedBy: selectedEvent.interested ?? []
-      }}
-      orgName={orgName}
-      canComment={false}
-    />
-  )}
     </div>
   );
 };
+
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [filters, setFilters] = useState<any>({
     searchQuery: "",
     type: "All",
@@ -360,6 +314,36 @@ const EventsView: React.FC = () => {
     participation: "none",
     date: "none",
   });
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedOrgName, setSelectedOrgName] = useState<string>("");
+
+  const handleViewEventClick = async (event: Event) => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
+    // Fetch org name for modal
+    if (event.organizationId) {
+      try {
+        const orgDoc = await getDoc(doc(db, "Organizations", event.organizationId));
+        if (orgDoc.exists()) {
+          const data = orgDoc.data();
+          setSelectedOrgName(data.name || "Unknown Organization");
+        } else {
+          setSelectedOrgName("Organization Not Found");
+        }
+      } catch (err) {
+        setSelectedOrgName("Error fetching organization");
+      }
+    } else {
+      setSelectedOrgName("No Organization ID");
+    }
+  };
+
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
+    setSelectedOrgName("");
+  };
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -443,41 +427,54 @@ const EventsView: React.FC = () => {
     return () => unsubscribe();
   }, [filters]);
 
-return (
-  <div className="flex h-screen">
-    <div className="w-64 flex-shrink-0">
-      <OfficerSidebar />
-    </div>
-    <div className="flex-grow p-6 bg-white overflow-y-auto">
-      <Header />
-      <SearchAndFilter onFilterChange={setFilters} />
-      <div className="mt-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 py-4">{error}</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {events.length > 0 ? (
-              events.map((event) => (
-                <EventCard
-                  key={event.uid}
-                  event={event}
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-4">
-                No events found.
-              </div>
-            )}
-          </div>
+  return (
+    <div className="flex h-screen">
+      <div className="w-64 flex-shrink-0">
+        <OfficerSidebar />
+      </div>
+      <div className="flex-grow p-6 bg-white overflow-y-auto">
+        <Header />
+        <SearchAndFilter onFilterChange={setFilters} />
+        <div className="mt-6">
+          {loading ? (
+            <div className="flex justify-center items-center h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-4">{error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <EventCard
+                    key={event.uid}
+                    event={event}
+                    onViewEventClick={handleViewEventClick}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  No events found.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {isViewEventOpen && selectedEvent && (
+          <ViewEvent
+            close={handleCloseEventClick}
+            event={{
+              ...selectedEvent,
+              likedBy: selectedEvent.likes ?? [],
+              interestedBy: selectedEvent.interested ?? []
+            }}
+            orgName={selectedOrgName}
+            canComment={false}
+          />
         )}
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default EventsView;
