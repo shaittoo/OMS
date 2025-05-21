@@ -11,6 +11,10 @@ import OfficerSidebar from "../components/officersidebar";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { auth } from "../firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline"; 
+import ViewEvent from "../components/viewEvent";
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 
 interface Event {
   uid: string;
@@ -25,11 +29,12 @@ interface Event {
   isOpenForAll: boolean;
   status: string;
   organizationId: string;
-  registrations: string;
-  likedBy: string[];
-  interestedBy: string[];
+  registrations: number;
+  likes: string[];
+  interested: string[];
   isLiked: boolean;
   isInterested: boolean;
+  tags: string[]; // Added missing property
 }
 
 const Header: React.FC = () => {
@@ -144,9 +149,13 @@ const SearchAndFilter: React.FC<{ onFilterChange: (filters: any) => void }> = ({
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
-  const [interested, setInterested] = useState(event.isInterested);
   const [liked, setLiked] = useState(event.isLiked);
-  
+  const [comments, setComments] = useState<number>(0);
+  const [likeCount, setLikeCount] = useState(event.likes?.length || 0);
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  // Fetch organization name
   useEffect(() => {
     const fetchOrganizationName = async () => {
       if (event.organizationId) {
@@ -159,190 +168,268 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             setOrgName("Organization Not Found");
           }
         } catch (err) {
-          console.error("Error fetching organization name:", err);
           setOrgName("Error fetching organization");
         }
       } else {
         setOrgName("No Organization ID");
       }
     };
-
     fetchOrganizationName();
   }, [event.organizationId]);
 
-  
-  const handleInterestedClick = async () => {
-    setInterested(!interested);
-    const userId = auth.currentUser?.uid;
-    if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            interestedBy: interested ? arrayRemove(auth.currentUser?.uid) : arrayUnion(auth.currentUser?.uid),
-        });
-    }
+  // Fetch comments count
+  useEffect(() => {
+    const fetchCommentsCount = async () => {
+      const snapshot = await getDocs(collection(db, "comments"));
+      const count = snapshot.docs.filter(doc => doc.data().eventId === event.uid).length;
+      setComments(count);
+    };
+    fetchCommentsCount();
+  }, [event.uid]);
 
-    const eventRef = doc(db, "events", event.uid);
-    await updateDoc(eventRef, {
-        interestedBy: interested ? arrayRemove(userId) : arrayUnion(userId),
-    });
-  };
+  // const handleInterestedClick = async () => {
+  //   setInterested(!interested);
+  //   const userId = auth.currentUser?.uid;
+  //   if (userId) {
+  //     const userRef = doc(db, "Users", userId);
+  //     await updateDoc(userRef, {
+  //       interestedEvents: interested ? arrayRemove(event.uid) : arrayUnion(event.uid),
+  //     });
+  //   }
+  //   const eventRef = doc(db, "events", event.uid);
+  //   await updateDoc(eventRef, {
+  //     interestedBy: interested ? arrayRemove(auth.currentUser?.uid) : arrayUnion(auth.currentUser?.uid),
+  //   });
+  // };
 
   const handleLikeClick = async () => {
     const userId = auth.currentUser?.uid;
-
-    setLiked(!liked);
+    setLiked((prev) => {
+      const newLiked = !prev;
+      setLikeCount((count) => newLiked ? count + 1 : count - 1);
+      return newLiked;
+    });
 
     if (userId) {
-        const userRef = doc(db, "Users", userId);
-        await updateDoc(userRef, {
-            likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
-        });
+      const userRef = doc(db, "Users", userId);
+      await updateDoc(userRef, {
+        likedEvents: liked ? arrayRemove(event.uid) : arrayUnion(event.uid),
+      });
     }
-
     const eventRef = doc(db, "events", event.uid);
     await updateDoc(eventRef, {
-        likedBy: liked ? arrayRemove(userId) : arrayUnion(userId),
+      likes: liked ? arrayRemove(userId) : arrayUnion(userId),
     });
-};
+  };
 
-  const truncateText = (text: string | undefined) => {
-    return text && text.length > 100 ? text.substring(0, 100) + "..." : text || "";
+  const handleViewEventClick = () => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
+  };
+
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const formatDate = (dateString: string | Date) => {
+    if (!dateString) return "Date not specified";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
-    <div className="bg-white shadow-md hover:shadow-lg hover:shadow-gray-500 rounded-lg p-4 mb-4">
-      {event.eventImages && event.eventImages.length > 0 ? (
-        <img
-          src={event.eventImages[0]}
-          alt={event.eventImages[0]}
-          className="w-full h-48 object-cover rounded-md"
-        />
-      ) : (
-        <div className="w-full h-48 bg-gray-300 flex items-center justify-center rounded-md">
-          <p className="text-gray-500">No Image Available</p>
-        </div>
-      )}
-      <h2 className="text-xl font-semibold mt-4">{event.eventName}</h2>
-      <h2 className="text-xl font-semibold mt-4">{event.isLiked}</h2>
-      <p className="text-gray-600 mt-2">
-        {truncateText(event.eventDescription)}
-      </p>
-      <p className="text-gray-500 mt-2">
-        <CorporateFareIcon />
-        &nbsp; {orgName}
-      </p>
-      <p className="text-gray-400 mt-2">
-        <EventIcon />
-        &nbsp;
-        {event.eventDate instanceof Date
-          ? event.eventDate.toLocaleDateString()
-          : event.eventDate}
-      </p>
-
-      <div className="flex items-center mt-4">
-        <div
-          className={`mr-3 flex items-center cursor-pointer ${
-            liked ? "text-green-500" : "text-gray-500"
-          }`}
-          onClick={handleLikeClick}
-        >
-          {liked ? <ThumbUpIcon /> : <ThumbUpOffAltIcon />}
-          <span className="ml-1">Like</span>
-        </div>
-
-        <button
-          className={`ml-44 px-4 py-2 rounded-md ${
-            interested ? "bg-gray-500 text-white" : "bg-blue-500 text-white"
-          }`}
-          onClick={handleInterestedClick}
-        >
-          {interested ? "Interested" : "Interested?"}
-        </button>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+      {/* Event Image */}
+      <div className="w-full h-48 bg-gray-200">
+        {event.eventImages && event.eventImages.length > 0 ? (
+          <img
+            src={event.eventImages[0]}
+            alt={event.eventName}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              src="/assets/default.jpg"
+              alt="Default event"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
       </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {/* Title and Organization */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-base font-semibold text-gray-800 truncate">{event.eventName}</h3>
+            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded flex-shrink-0">
+              {orgName}
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-gray-600 text-sm line-clamp-2 mb-2">{event.eventDescription}</p>
+
+        {/* Details */}
+        <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+          <div className="space-y-1">
+            <p>
+              <span className="font-medium">Date:</span> {formatDate(event.eventDate)}
+            </p>
+            <p>
+              <span className="font-medium">Location:</span> {event.eventLocation}
+            </p>
+          </div>
+          <div className="text-right space-y-1">
+            <p>
+              <span className="font-medium">Price:</span> {event.eventPrice}
+            </p>
+            <p>
+              <span className="font-medium">Type:</span> {event.eventType}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end items-center space-x-3 pt-2 border-t">
+          <div className="flex items-center">
+            <button
+              onClick={handleLikeClick}
+              className={`p-1.5 rounded-full hover:bg-gray-100 ${liked ? 'text-blue-600' : 'text-gray-600'}`}
+              aria-label={liked ? "Unlike" : "Like"}
+            >
+              {liked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{likeCount}</span>
+          </div>
+          {/* <button
+            onClick={handleInterestedClick}
+            className={`p-1.5 rounded-full hover:bg-gray-100 ${interested ? 'text-blue-600' : 'text-gray-600'}`}
+            aria-label={interested ? "Remove bookmark" : "Bookmark"}
+          >
+            {interested ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+          </button> */}
+          <div className="flex items-center">
+            <button
+              onClick={handleViewEventClick}
+              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
+              aria-label="View comments"
+            >
+              <ChatBubbleOutlineIcon fontSize="small" />
+            </button>
+            <span className="ml-1 text-sm text-gray-600">{comments}</span>
+          </div>
+        </div>
+      </div>
+
+      {isViewEventOpen && selectedEvent && (
+    <ViewEvent 
+      close={handleCloseEventClick} 
+      event={{
+        ...selectedEvent,
+        likedBy: selectedEvent.likes ?? [],
+        interestedBy: selectedEvent.interested ?? []
+      }}
+      orgName={orgName}
+      canComment={false}
+    />
+  )}
     </div>
   );
 };
-
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<any>({
-      searchQuery: "",
-      type: "All",
-      likes: "none",
-      participation: "none",
-      date: "none",
-    });
+    searchQuery: "",
+    type: "All",
+    likes: "none",
+    participation: "none",
+    date: "none",
+  });
 
-    const fetchEvents = async () => {
-      setLoading(true);
-      setError(null);
-      const userId = auth.currentUser?.uid;
-    
-      let userEvents = {
-        likedEvents: [],
-        interestedEvents: [],
-      };
-    
-      try {
-        if (userId) {
-          const userDoc = await getDoc(doc(db, "Users", userId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            userEvents = {
-              likedEvents: userData.likedEvents || [],
-              interestedEvents: userData.interestedEvents || [],
-            };
-          }
-        }
-    
-        const eventsRef = collection(db, "events");
-        const querySnapshot = await getDocs(eventsRef);
-        const eventsList = querySnapshot.docs.map((doc) => {
-          const data = doc.data() as Event;
-          const eventDate =
-            data.eventDate instanceof Timestamp
-              ? data.eventDate.toDate()
-              : new Date(data.eventDate);
-          return {
-            ...data,
-            uid: doc.id,
-            eventDate,
-            isLiked: userEvents.likedEvents.includes(doc.id as never),
-            isInterested: userEvents.interestedEvents.includes(doc.id as never),
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
+    const userId = auth.currentUser?.uid;
+
+    let userEvents = {
+      likedEvents: [],
+      interestedEvents: [],
+    };
+
+    try {
+      if (userId) {
+        const userDoc = await getDoc(doc(db, "Users", userId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          userEvents = {
+            likedEvents: userData.likedEvents || [],
+            interestedEvents: userData.interestedEvents || [],
           };
-        });
-    
-        let filteredEvents = eventsList.filter(event => {
-          const matchesSearchQuery =
-            event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
-          const matchesType = filters.type === "All" || event.eventType === filters.type;
-          return matchesSearchQuery && matchesType;
-        });
-    
-        if (filters.date !== "none") {
-          filteredEvents = filteredEvents.sort((a, b) => {
-            const dateA = a.eventDate;
-            const dateB = b.eventDate;
-            if (filters.date === "most") {
-              return dateA.getTime() - dateB.getTime(); 
-            } else if (filters.date === "least") {
-              return dateB.getTime() - dateA.getTime(); 
-            }
-            return 0;
-          });
         }
-    
-        setEvents(filteredEvents);
-      } catch (err) {
-        console.error("Error fetching events:", err);
-        setError("Failed to load events.");
-      } finally {
-        setLoading(false);
       }
-    };    
+
+      const eventsRef = collection(db, "events");
+      const querySnapshot = await getDocs(eventsRef);
+      const eventsList = querySnapshot.docs.map((doc) => {
+        const data = doc.data() as Event;
+        const eventDate =
+          data.eventDate instanceof Timestamp
+            ? data.eventDate.toDate()
+            : new Date(data.eventDate);
+        return {
+          ...data,
+          uid: doc.id,
+          eventDate,
+          isLiked: userEvents.likedEvents.includes(doc.id as never),
+          isInterested: userEvents.interestedEvents.includes(doc.id as never),
+          tags: data.tags || [], // Ensure tags is always present
+          registrations: typeof data.registrations === "number" ? data.registrations : Number(data.registrations) || 0,
+        };
+      });
+
+      let filteredEvents = eventsList.filter(event => {
+        const matchesSearchQuery =
+          event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
+        const matchesType = filters.type === "All" || event.eventType === filters.type;
+        return matchesSearchQuery && matchesType;
+      });
+
+      if (filters.date !== "none") {
+        filteredEvents = filteredEvents.sort((a, b) => {
+          const dateA = a.eventDate;
+          const dateB = b.eventDate;
+          if (filters.date === "most") {
+            return dateA.getTime() - dateB.getTime();
+          } else if (filters.date === "least") {
+            return dateB.getTime() - dateA.getTime();
+          }
+          return 0;
+        });
+      }
+
+      setEvents(filteredEvents);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError("Failed to load events.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -356,39 +443,41 @@ const EventsView: React.FC = () => {
     return () => unsubscribe();
   }, [filters]);
 
-  return (
-    <div className="flex h-screen">
+return (
+  <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
       <OfficerSidebar />
-      <div className="flex-grow p-6 bg-white overflow-y-auto">
-        <Header />
-        <SearchAndFilter onFilterChange={setFilters} />
-        <div className="mt-6">
-          {loading ? (
-            <div className="flex justify-center items-center h-screen">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center text-red-500 py-4">{error}</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {events.length > 0 ? (
-                events.map((event) => (
-                  <EventCard
-                    key={event.uid}
-                    event={event}
-                  />
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  No events found.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+    </div>
+    <div className="flex-grow p-6 bg-white overflow-y-auto">
+      <Header />
+      <SearchAndFilter onFilterChange={setFilters} />
+      <div className="mt-6">
+        {loading ? (
+          <div className="flex justify-center items-center h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-4">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {events.length > 0 ? (
+              events.map((event) => (
+                <EventCard
+                  key={event.uid}
+                  event={event}
+                />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-4">
+                No events found.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default EventsView;

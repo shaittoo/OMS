@@ -45,8 +45,6 @@ interface Event {
   tags: string[];
   isPastEvent: boolean;
   uid?: string;
-  likedBy?: string[];
-  interestedBy?: string[];
   registrations?: number;
   eventType?: string;
   isFree?: string;
@@ -68,9 +66,22 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   const [comments, setComments] = useState<Comments[]>([]);
   const [eventLikes, setEventLikes] = useState<{ [key: string]: number }>({});
   const [eventInterests, setEventInterests] = useState<{ [key: string]: number }>({});
+  const [eventCommentsCount, setEventCommentsCount] = useState<{ [key: string]: number }>({});
+  const [userLikedEvents, setUserLikedEvents] = useState<{ [key: string]: boolean }>({});
+  
+
+  const refreshEventCommentCount = async (eventId: string) => {
+  const q = query(collection(db, "comments"), where("eventId", "==", eventId));
+  const querySnapshot = await getDocs(q);
+  setEventCommentsCount(prev => ({
+    ...prev,
+    [eventId]: querySnapshot.size
+  }));
+};
 
   // Fetch user's organizations
   useEffect(() => {
+  
     const fetchUserOrganizations = async () => {
       const user = auth.currentUser;
 
@@ -103,6 +114,15 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
   }, [auth]);
 
   useEffect(() => {
+  const liked: { [key: string]: boolean } = {};
+  events.forEach(event => {
+    liked[event.id] = event.likes.includes(auth.currentUser?.uid || "");
+  });
+  setUserLikedEvents(liked);
+}, [events, auth.currentUser]);
+
+  useEffect(() => {
+
     const fetchEvents = async () => {
       setLoading(true);
       setError(null);
@@ -170,30 +190,28 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           const isPastEvent = eventDate ? eventDate < new Date() : false;
 
           return {
-            id: eventDoc.id,
-            eventName: data.eventName || "Untitled Event",
-            eventDescription: data.eventDescription || "",
-            eventDate: eventDate ? eventDate.toISOString() : "",
-            eventLocation: data.eventLocation || "",
-            eventPrice: data.eventPrice || "Free",
-            eventImages: data.eventImages || [],
-            organizationId: data.organizationId || "",
-            organizationName: organizationName,
-            likes: data.likes || [],
-            interested: data.interested || [],
-            isOpenForAll: data.isOpenForAll || false,
-            status: data.status || "active",
-            tags: data.tags || [],
-            isPastEvent: isPastEvent,
-            uid: data.id,
-            likedBy: data.likes,
-            interestedBy: data.interested,
-            registrations: 0,
-            eventType: data.eventType || 'general',
-            isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
-            comments: data.comments || []
-          } as Event;
-        }));
+          id: eventDoc.id,
+          eventName: data.eventName || "Untitled Event",
+          eventDescription: data.eventDescription || "",
+          eventDate: eventDate ? eventDate.toISOString() : "",
+          eventLocation: data.eventLocation || "",
+          eventPrice: data.eventPrice || "Free",
+          eventImages: data.eventImages || [],
+          organizationId: data.organizationId || "",
+          organizationName: organizationName,
+          likes: data.likes || [],
+          interested: data.interested || [],
+          isOpenForAll: data.isOpenForAll || false,
+          status: data.status || "active",
+          tags: data.tags || [],
+          isPastEvent: isPastEvent,
+          uid: data.id,
+          registrations: 0,
+          eventType: data.eventType || 'general',
+          isFree: (data.eventPrice === '0' || data.eventPrice === 'Free' || !data.eventPrice).toString(),
+          comments: data.comments || []
+        } as Event;
+      }));
 
         // Filter and sort based on view type
         if (!organizationId) {
@@ -239,6 +257,14 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           });
         }
 
+        const counts: { [key: string]: number } = {};
+      for (const event of eventsList) {
+        const q = query(collection(db, "comments"), where("eventId", "==", event.id));
+        const querySnapshot = await getDocs(q);
+        counts[event.id] = querySnapshot.size;
+      }
+      setEventCommentsCount(counts);
+
         console.log("Final processed events list:", eventsList);
         setEvents(eventsList);
       } catch (error) {
@@ -252,6 +278,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     fetchEvents();
   }, [organizationId, userOrganizations, auth]);
+
+
 
   useEffect(() => {
     // Initialize counts for all events
@@ -292,12 +320,11 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
 
     // Optimistically update UI
     if (action === "like") {
-      setEventLikes(prev => ({
+      setUserLikedEvents(prev => ({
         ...prev,
-        [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
+        [eventId]: !isCurrentlyActive
       }));
-    } else {
-      setEventInterests(prev => ({
+      setEventLikes(prev => ({
         ...prev,
         [eventId]: isCurrentlyActive ? (prev[eventId] - 1) : (prev[eventId] + 1)
       }));
@@ -493,8 +520,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     setSelectedEvent({
       ...event,
       uid: event.id,
-      likedBy: event.likes,
-      interestedBy: event.interested,
+      likes: event.likes,
+      interested: event.interested,
       registrations: 0,
       eventType: event.eventType || 'general',
       isFree: (event.eventPrice === '0' || event.eventPrice === 'Free' || !event.eventPrice).toString(),
@@ -641,10 +668,10 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                           e.stopPropagation();
                           handleEventAction(event.id, "like");
                         }}
-                        className={`p-1.5 rounded-full hover:bg-gray-100 ${event.likes.includes(auth.currentUser?.uid || "") ? 'text-blue-600' : 'text-gray-600'}`}
-                        aria-label={event.likes.includes(auth.currentUser?.uid || "") ? "Unlike" : "Like"}
+                        className={`p-1.5 rounded-full hover:bg-gray-100 ${userLikedEvents[event.id] ? 'text-blue-600' : 'text-gray-600'}`}
+                        aria-label={userLikedEvents[event.id] ? "Unlike" : "Like"}
                       >
-                        {event.likes.includes(auth.currentUser?.uid || "") ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                        {userLikedEvents[event.id] ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
                       </button>
                       <span className="ml-1 text-sm text-gray-600">{eventLikes[event.id] || 0}</span>
                     </div>
@@ -684,28 +711,31 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                       >
                         <ChatBubbleOutlineIcon fontSize="small" />
                       </button>
-                      <span className="ml-1 text-sm text-gray-600">{comments.length}</span>
+                      <span className="ml-1 text-sm text-gray-600">{eventCommentsCount[event.id] || 0}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {isViewEventOpen && selectedEvent && selectedEvent.id === event.id && (
-                <ViewEvent 
-                  close={handleCloseEventClick} 
-                  event={{
-                    ...selectedEvent,
-                    uid: selectedEvent.id,
-                    likedBy: selectedEvent.likes,
-                    interestedBy: selectedEvent.interested,
-                    registrations: 0,
-                    eventType: selectedEvent.eventType || 'general',
-                    isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
-                    comments: comments
-                  }}
-                  orgName={selectedEvent.organizationName}
-                />
-              )}
+              <ViewEvent 
+                close={() => {
+                  handleCloseEventClick();
+                  refreshEventCommentCount(event.id); 
+                }}
+                event={{
+                  ...selectedEvent,
+                  uid: selectedEvent.id,
+                  registrations: 0,
+                  eventType: selectedEvent.eventType || 'general',
+                  isFree: (selectedEvent.eventPrice === '0' || selectedEvent.eventPrice === 'Free' || !selectedEvent.eventPrice).toString(),
+                  comments: comments,
+                  likedBy: selectedEvent.likes ?? [],
+                  interestedBy: selectedEvent.interested ?? []
+                }}
+                orgName={selectedEvent.organizationName}
+              />
+)}
             </div>
           ))}
         </div>

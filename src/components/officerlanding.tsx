@@ -141,156 +141,177 @@ const OfficerDashboard: React.FC = () => {
     ];
 
   return (
-    <>
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4">Log out of your account?</h3>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setShowLogoutModal(false);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+		<>
+			{showLogoutModal && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+					<div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+						<h3 className="text-lg font-semibold mb-4">
+							Log out of your account?
+						</h3>
+						<div className="flex justify-end space-x-4">
+							<button
+								onClick={() => setShowLogoutModal(false)}
+								className="px-4 py-2 text-gray-600 hover:text-gray-800"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={() => {
+									handleLogout();
+									setShowLogoutModal(false);
+								}}
+								className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+							>
+								Log Out
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 
-      <div className="flex">
-        <div className="sticky left-0 top-0 h-screen overflow-y-auto shadow-md">
-        {/* Sidebar */}
-        <OfficerSidebar /></div> 
-        {/* Main content */}
-        <main className="main-content flex-grow p-6 relative bg-white">
-          <header className="header mb-6 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">
-                Welcome back, {organizationData?.organizationName || "Your Organization"}!
-              </h1>
-              <p className="text-gray-600">What would you like to do?</p>
-            </div>
-            <button
+			<div className="flex h-[1200px]">
+				<div className="w-64 flex-shrink-0">
+					<OfficerSidebar />
+				</div>
+				<main className="main-content flex-grow p-6 relative bg-white min-h-screen">
+					<header className="header mb-6 flex justify-between items-center">
+						<div>
+							<h1 className="text-3xl font-bold">
+								Welcome back,{" "}
+								{organizationData?.organizationName || "Your Organization"}!
+							</h1>
+							<p className="text-gray-600">What would you like to do?</p>
+						</div>
+						{/* <button
               className="logout-button text-sm px-4 py-2 bg-red-500 text-white rounded shadow hover:bg-red-600 absolute right-[1.5rem] top-[2rem]"
               onClick={() => setShowLogoutModal(true)}
             >
               Log Out
-            </button>
-          </header>
+            </button> */}
+					</header>
 
-          {/* Officer Action Buttons */}
-          <div className="flex gap-4 mb-6 w-full">
-            <button className="officer-action-buttons flex-grow" onClick={handleAddTaskClick}>
-              Add Task
-            </button>
-            <button className="officer-action-buttons flex-grow" onClick={handleAddEventClick}>
-              Add Event
-            </button>
-            <Link href="/viewOfficers">
-            <button className="officer-action-buttons flex-grow">View Officers</button>
-            </Link>
-            <Link href="/userevents">
-               <button className="officer-action-buttons flex-grow">View My Events</button>
-            </Link>
-           
-          </div>
+					{/* Officer Action Buttons */}
+					<div className="flex gap-4 mb-6 w-full">
+						<button
+							className="officer-action-buttons flex-grow"
+							onClick={handleAddTaskClick}
+						>
+							Add Task
+						</button>
+						<button
+							className="officer-action-buttons flex-grow"
+							onClick={handleAddEventClick}
+						>
+							Add Event
+						</button>
+						<Link href="/viewOfficers">
+							<button className="officer-action-buttons flex-grow">
+								View Officers
+							</button>
+						</Link>
+						<Link href="/userevents">
+							<button className="officer-action-buttons flex-grow">
+								View My Events
+							</button>
+						</Link>
+					</div>
 
-          {/* Add Task Form */}
-          {isAddTaskOpen && <OfficerAddTask close={handleCloseTaskForm} />}
+					{/* Add Task Form */}
+					{isAddTaskOpen && <OfficerAddTask close={handleCloseTaskForm} />}
 
-          {/* Add Event Form */}
-          {isAddEventOpen && <OfficerAddEvent close={handleCloseEventForm} />}
+					{/* Add Event Form */}
+					{isAddEventOpen && <OfficerAddEvent close={handleCloseEventForm} />}
 
-          {/* Organization Overview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1" style={{ gridTemplateColumns: "70% 30%" }}>
-            <div className="org-overview flex flex-col gap-0">
-              <div className="org-logo-container flex items-center gap-3 bg-transparent">
-                {organizationData?.organizationLogo ? (
-                  <img
-                    src={organizationData.organizationLogo}
-                    alt="Organization Logo"
-                    className="org-logo-img w-36 h-36 rounded-full object-cover shadow"
-                  />
-                ) : (
-                  <div className="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center shadow">
-                    <span className="text-gray-400">No Logo</span>
-                  </div>
-                )}
-              </div>
+					{/* Organization Overview */}
+					<div
+						className="grid grid-cols-1 sm:grid-cols-2 gap-1"
+						style={{ gridTemplateColumns: "70% 30%" }}
+					>
+						<div className="org-overview flex flex-col gap-0">
+							<div className="org-logo-container flex items-center gap-3 bg-transparent">
+								{organizationData?.organizationLogo ? (
+									<img
+										src={organizationData.organizationLogo}
+										alt="Organization Logo"
+										className="org-logo-img w-36 h-36 rounded-full object-cover shadow"
+									/>
+								) : (
+									<div className="w-36 h-36 rounded-full bg-gray-200 flex items-center justify-center shadow">
+										<span className="text-gray-400">No Logo</span>
+									</div>
+								)}
+							</div>
 
-              <div className="absolute left ml-52 my-5">
-                <h2 className="text-xl font-semibold">
-                  {organizationData?.organizationName || "Organization Name"}
-                </h2>
-                <p className="text-gray-600 text-justify">
-                  {organizationData?.organizationDescription || "No description available."}
-                </p>
-              </div>
-              
-              <div className="text-black rounded-lg shadow-lg pending-tasks col-span-2 p-4 flex flex-col gap-2" style={{ height: "305px" }}>
-                <div className="pending-tasks-container p-4 rounded w-full h-64 overflow-auto">
-                  <TaskList />
-                </div>
-              </div>
-              <div className="text-right mt-2 mr-20">
-                    <p className="text-purple-700 underline text-sm hover:text-purple-800" style={{ fontSize: "16px", fontFamily: "Arial" }}>
-                      <Link href="/orgviewtasks">
-                        View More
-                      </Link>
-                    </p>          
-              </div>
-            </div>
-            <div className="text-black relative flex flex-col w-full justify-end">
-              <div className="-mt-6 text-black calendar h-96 bg-white self-end">
-                <div className="calendar-container -mr-4 p-6 rounded-lg shadow-md bg-white self-end transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
-                  <div className="calendar-header text-purple-700 font-bold">
-                    <h3 className="text-lg">{monthNames[currentMonth]} {currentYear}</h3>
-                  </div>
-                  <div className="calendar-grid grid grid-cols-7 gap-2">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <div key={day} className="text-center text-purple-600 font-medium">
-                        {day}
-                      </div>
-                    ))}
+							<div className="absolute left ml-52 my-5">
+								<h2 className="text-xl font-semibold">
+									{organizationData?.organizationName || "Organization Name"}
+								</h2>
+								<p className="text-gray-600 text-justify">
+									{organizationData?.organizationDescription ||
+										"No description available."}
+								</p>
+							</div>
 
-                    {daysArray.map((day, index) => (
-                      <div key={index} className={`text-center h-10 border border-purple-300 rounded-md flex flex-col justify-center items-center relative ${day === date.getDate() ? 'bg-purple-300' : ''}`}>
-                        <span className="text-lg">{day}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            {/* <div className="text-black relative flex flex-col gap-4 w-full justify-end">
+							<div
+								className="mt-8"
+								style={{ height: "305px" }}
+							>
+								<div className="text-black bg-gray-100 h-34 w-full rounded-lg shadow-lg">
+									<TaskList />
+								</div>
+							</div>
+						</div>
+						<div className="text-black relative flex flex-col w-full justify-end">
+							<div className="-mt-6 text-black calendar h-96 bg-white self-end">
+								<div className="calendar-container -mr-4 p-6 rounded-lg shadow-md bg-white self-end transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
+									<div className="calendar-header text-purple-700 font-bold">
+										<h3 className="text-lg">
+											{monthNames[currentMonth]} {currentYear}
+										</h3>
+									</div>
+									<div className="calendar-grid grid grid-cols-7 gap-2">
+										{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+											(day) => (
+												<div
+													key={day}
+													className="text-center text-purple-600 font-medium"
+												>
+													{day}
+												</div>
+											)
+										)}
+
+										{daysArray.map((day, index) => (
+											<div
+												key={index}
+												className={`text-center h-10 border border-purple-300 rounded-md flex flex-col justify-center items-center relative ${day === date.getDate() ? "bg-purple-300" : ""}`}
+											>
+												<span className="text-lg">{day}</span>
+											</div>
+										))}
+									</div>
+								</div>
+							</div>
+							{/* <div className="text-black relative flex flex-col gap-4 w-full justify-end">
               <div className="ml-72 h-auto w-auto max-w-xs">
                 <Calendar />
               </div> */}
-              <div className="memberstats -mt-2 text-purple-700 h-16 w-full max-w-xs bg-gray-100 p-4 self-end flex items-center rounded-lg shadow-md justify-center transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
-                <span className="text-lg font-semibold">
-                  {approvedMemberCount} total members
-                </span>
-              </div>
-              <div className="eventstats text-purple-700  h-16 w-full max-w-xs bg-gray-100 p-4 self-end rounded-lg shadow-md transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
-                <span className="text-lg font-semibold">
-                  {completedEventCount} events this year
-                </span>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </>
-  );
+							<div className="memberstats -mt-2 text-purple-700 h-16 w-full max-w-xs bg-gray-100 p-4 self-end flex items-center rounded-lg shadow-md justify-center transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
+								<span className="text-lg font-semibold">
+									{approvedMemberCount} total members
+								</span>
+							</div>
+							<div className="eventstats text-purple-700  h-16 w-full max-w-xs bg-gray-100 p-4 self-end rounded-lg shadow-md transition-shadow duration-200 hover:shadow-lg hover:shadow-purple-300">
+								<span className="text-lg font-semibold">
+									{completedEventCount} events this year
+								</span>
+							</div>
+						</div>
+					</div>
+				</main>
+			</div>
+		</>
+	);
 };
 
 export default OfficerDashboard;

@@ -9,12 +9,14 @@ const ViewOfficers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [organizationName, setOrganizationName] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [officers, setOfficers] = useState({
-    president: "",
-    vicePresident: "",
-    secretary: "",
-    treasurer: "",
-    auditor: ""
+  const [officers, setOfficers] = useState<{
+    [key: string]: { name: string; email: string }
+  }>({
+    president: { name: "", email: "" },
+    vicePresident: { name: "", email: "" },
+    secretary: { name: "", email: "" },
+    treasurer: { name: "", email: "" },
+    auditor: { name: "", email: "" }
   });
 
   const router = useRouter();
@@ -48,6 +50,7 @@ const ViewOfficers: React.FC = () => {
               auditor: officerData.auditor || ""
             };
 
+            // Fetch main officers
             const memberPromises = Object.entries(officerUids).map(async ([position, uid]) => {
               if (uid) {
                 const memberDoc = await getDoc(doc(db, "Users", uid));
@@ -55,26 +58,62 @@ const ViewOfficers: React.FC = () => {
                   const memberData = memberDoc.data();
                   return {
                     position,
-                    name: memberData?.fullName || "Full name not available"
+                    name: memberData?.fullName || "Full name not available",
+                    email: memberData?.email || "Email not available"
                   };
                 } else {
                   return {
                     position,
-                    name: "Member document not found"
+                    name: "Member document not found",
+                    email: ""
                   };
                 }
               } else {
-                return { position, name: "Not assigned" };
+                return { position, name: "Not assigned", email: "" };
               }
             });
-            
-            
+
+            // Fetch additional officers
+            let additionalOfficerCards: any[] = [];
+            if (Array.isArray(officerData.additionalOfficers)) {
+              additionalOfficerCards = await Promise.all(
+                officerData.additionalOfficers.map(async (addOfficer: any, idx: number) => {
+                  if (addOfficer.name) {
+                    const memberDoc = await getDoc(doc(db, "Users", addOfficer.name));
+                    if (memberDoc.exists()) {
+                      const memberData = memberDoc.data();
+                      return {
+                        position: addOfficer.position || `Additional Officer ${idx + 1}`,
+                        name: memberData?.fullName || "Full name not available",
+                        email: memberData?.email || "Email not available"
+                      };
+                    } else {
+                      return {
+                        position: addOfficer.position || `Additional Officer ${idx + 1}`,
+                        name: "Member document not found",
+                        email: ""
+                      };
+                    }
+                  } else {
+                    return {
+                      position: addOfficer.position || `Additional Officer ${idx + 1}`,
+                      name: "Not assigned",
+                      email: ""
+                    };
+                  }
+                })
+              );
+            }
 
             const officerList = await Promise.all(memberPromises);
 
+            // Combine main and additional officers
             const officerMap: any = {};
-            officerList.forEach(({ position, name }) => {
-              officerMap[position] = name;
+            officerList.forEach(({ position, name, email }) => {
+              officerMap[position] = { name, email };
+            });
+            additionalOfficerCards.forEach(({ position, name, email }) => {
+              officerMap[position] = { name, email };
             });
 
             setOfficers(officerMap);
@@ -94,17 +133,6 @@ const ViewOfficers: React.FC = () => {
     fetchOfficers();
   }, []);
 
-  const generateRandomGradient = () => {
-    const gradients = [
-      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      'linear-gradient(135deg, #6B73FF 0%, #000DFF 100%)',
-      'linear-gradient(135deg, #FF61D2 0%, #FE9090 100%)',
-      'linear-gradient(135deg, #40E0D0 0%, #FF8C00 100%)',
-      'linear-gradient(135deg, #5E5AEC 0%, #3F9EFC 100%)'
-    ];
-    return gradients[Math.floor(Math.random() * gradients.length)];
-  };
-
   const capitalizePosition = (position: string) => {
     return position.replace(/([A-Z])/g, ' $1').toUpperCase(); 
   };
@@ -118,8 +146,10 @@ const ViewOfficers: React.FC = () => {
   }
 
   return (
-    <div className="flex bg-white">
+      <div className="flex h-screen">
+    <div className="w-64 flex-shrink-0">
       <OfficerSidebar />
+    </div>
       <main className="main-content flex-grow p-6">
         <div className="mb-6">
           <div className="flex items-center mb-2">
@@ -160,24 +190,33 @@ const ViewOfficers: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Object.entries(officers).map(([position, name]) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {Object.entries(officers).map(([position, officer]) => (
             <div
               key={position}
-              className="p-4 rounded shadow transition-all duration-300 ease-linear hover:scale-105 group"
-              style={{ background: generateRandomGradient() }}
+              className="flex flex-col items-center bg-[#f8fafc] rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-2xl transition-transform duration-300 hover:-translate-y-2 relative"
             >
-              <div className="officer-card relative overflow-hidden">
-                <div className="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-3">
-                  <span className="text-2xl text-white">
-                    {name.charAt(0).toUpperCase()}
+              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg mb-4 border-4 border-blue-400 ring-4 ring-blue-200">
+                {officer.name && officer.name !== "Not assigned" && officer.name !== "Member document not found" ? (
+                  <span className="text-4xl font-extrabold text-blue-600">
+                    {officer.name.charAt(0).toUpperCase()}
                   </span>
-                </div>
-                <div className="text-center">
-                  <h2 className="text-lg font-semibold text-white">{name}</h2>
-                  <p className="text-gray-200">{capitalizePosition(position)}</p>
-                </div>
+                ) : (
+                  <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                )}
               </div>
+              <span className="absolute top-4 right-4 bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                {capitalizePosition(position)}
+              </span>
+              <h2 className="text-xl font-bold text-gray-800 mb-1 text-center mt-2">{officer.name}</h2>
+              <p className="text-sm text-gray-500 font-medium text-center tracking-wide">
+                {officer.name === "Not assigned" || officer.name === "Member document not found"
+                  ? "Vacant"
+                  : officer.email}
+              </p>
             </div>
           ))}
         </div>
