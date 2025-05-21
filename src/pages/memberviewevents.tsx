@@ -161,11 +161,10 @@ const EventCard: React.FC<{
   event: Event;
   onLikeToggle: () => void;
   onInterestedToggle: () => void;
-}> = ({ event, onLikeToggle, onInterestedToggle }) => {
+  onCardClick: () => void;
+}> = ({ event, onLikeToggle, onInterestedToggle, onCardClick }) => {
   const [orgName, setOrgName] = useState<string>("Loading...");
   const [comments, setComments] = useState<number>(0);
-  const [isViewEventOpen, setViewEventOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Fetch organization name
   useEffect(() => {
@@ -199,22 +198,10 @@ const EventCard: React.FC<{
     fetchCommentsCount();
   }, [event.uid]);
 
-
-  const handleViewEventClick = () => {
-    setSelectedEvent(event);
-    setViewEventOpen(true);
-  };
-
-  const handleCloseEventClick = () => {
-    setViewEventOpen(false);
-    setSelectedEvent(null);
-  };
-
   const formatDate = (dateString: string | Date) => {
     if (!dateString) return "Date not specified";
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
-      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -224,7 +211,10 @@ const EventCard: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+    <div
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+      onClick={onCardClick}
+    >
       {/* Event Image */}
       <div className="w-full h-48 bg-gray-200">
         {event.eventImages && event.eventImages.length > 0 ? (
@@ -283,16 +273,16 @@ const EventCard: React.FC<{
         <div className="flex justify-end items-center space-x-3 pt-2 border-t">
           <div className="flex items-center">
             <button
-                onClick={onLikeToggle}
-                className={`p-1.5 rounded-full hover:bg-gray-100 ${event.isLiked ? 'text-blue-600' : 'text-gray-600'}`}
-                aria-label={event.isLiked ? "Unlike" : "Like"}
-              >
+              onClick={e => { e.stopPropagation(); onLikeToggle(); }}
+              className={`p-1.5 rounded-full hover:bg-gray-100 ${event.isLiked ? 'text-blue-600' : 'text-gray-600'}`}
+              aria-label={event.isLiked ? "Unlike" : "Like"}
+            >
               {event.isLiked ? <ThumbUpIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
             </button>
             <span className="ml-1 text-sm text-gray-600">{event.likes?.length || 0}</span>
           </div>
           <button
-            onClick={onInterestedToggle}
+            onClick={e => { e.stopPropagation(); onInterestedToggle(); }}
             className={`p-1.5 rounded-full hover:bg-gray-100 ${event.isInterested ? 'text-blue-600' : 'text-gray-600'}`}
             aria-label={event.isInterested ? "Remove bookmark" : "Bookmark"}
           >
@@ -301,7 +291,7 @@ const EventCard: React.FC<{
           <span className="ml-1 text-sm text-gray-600">{event.interested?.length || 0}</span>
           <div className="flex items-center">
             <button
-              onClick={handleViewEventClick}
+              onClick={e => { e.stopPropagation(); }}
               className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600"
               aria-label="View comments"
             >
@@ -311,28 +301,14 @@ const EventCard: React.FC<{
           </div>
         </div>
       </div>
-
-      {isViewEventOpen && selectedEvent && (
-        <ViewEvent 
-          close={handleCloseEventClick} 
-          event={{
-            ...selectedEvent,
-            likedBy: selectedEvent.likes,
-            interestedBy: selectedEvent.interested,
-          }}
-          orgName={orgName}
-          canComment={true} 
-        />
-      )}
     </div>
   );
 };
+
 const EventsView: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-
   const [filters, setFilters] = useState<any>({
     searchQuery: "",
     type: "All",
@@ -340,7 +316,9 @@ const EventsView: React.FC = () => {
     participation: "none",
     date: "none",
   });
-
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isViewEventOpen, setViewEventOpen] = useState(false);
+  
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
@@ -485,44 +463,65 @@ const EventsView: React.FC = () => {
     });
   };
 
+  const handleCardClick = (event: Event) => {
+    setSelectedEvent(event);
+    setViewEventOpen(true);
+  };
+  const handleCloseEventClick = () => {
+    setViewEventOpen(false);
+    setSelectedEvent(null);
+  };
 
-return (
-  <div className="flex h-screen">
-    <div className="w-64 flex-shrink-0">
-      <MemberSidebar />
-    </div>
-    <div className="flex-grow p-6 bg-white overflow-y-auto">
-      <Header />
-      <SearchAndFilter onFilterChange={setFilters} />
-      <div className="mt-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 py-4">{error}</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {events.length > 0 ? (
-              events.map((event) => (
-                <EventCard
-                key={event.uid}
-                event={event}
-                onLikeToggle={() => handleLikeToggle(event.uid, event.isLiked)}
-                onInterestedToggle={() => handleInterestedToggle(event.uid, event.isInterested)}
-              />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-4">
-                No events found.
-              </div>
-            )}
-          </div>
+  return (
+    <div className="flex h-screen">
+      <div className="w-64 flex-shrink-0">
+        <MemberSidebar />
+      </div>
+      <div className="flex-grow p-6 bg-white overflow-y-auto">
+        <Header />
+        <SearchAndFilter onFilterChange={setFilters} />
+        <div className="mt-6">
+          {loading ? (
+            <div className="flex justify-center items-center h-screen">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-4">{error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <EventCard
+                    key={event.uid}
+                    event={event}
+                    onLikeToggle={() => handleLikeToggle(event.uid, event.isLiked)}
+                    onInterestedToggle={() => handleInterestedToggle(event.uid, event.isInterested)}
+                    onCardClick={() => handleCardClick(event)}
+                  />
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  No events found.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {isViewEventOpen && selectedEvent && (
+          <ViewEvent
+            close={handleCloseEventClick}
+            event={{
+              ...selectedEvent,
+              likedBy: selectedEvent.likes,
+              interestedBy: selectedEvent.interested,
+            }}
+            orgName={selectedEvent.organizationId || ""}
+            canComment={true}
+          />
         )}
       </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default EventsView;

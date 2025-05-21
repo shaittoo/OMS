@@ -100,8 +100,8 @@ function Login() {
 							<i className="fab fa-google mr-2  "></i> Sign in with Google
 						</button>
 						<button
-							onClick={handleFacebookSignUp}
-							className="w-[105%] bg-blue-800 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center"
+							disabled
+							className="w-[105%] bg-gray-400 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center cursor-not-allowed opacity-70"
 						>
 							<i className="fab fa-facebook-f mr-2"></i> Sign in with Facebook
 						</button>
