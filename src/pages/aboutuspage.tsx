@@ -1,6 +1,8 @@
 import React from "react";
-import OfficerSidebar from "../components/officersidebar"; 
-import "@fortawesome/fontawesome-free/css/all.min.css"; // Import FontAwesome CSS
+import OfficerSidebar from "../components/officersidebar";
+import { config } from '@fortawesome/fontawesome-svg-core';
+import '@fortawesome/fontawesome-svg-core/styles.css';
+config.autoAddCss = false;
 
 const SectionDivider = () => (
 	<div className="flex items-center w-full relative my-2">
@@ -21,18 +23,14 @@ const SectionDivider = () => (
 
 const AboutUs = () => {
   return (
-		<div className="flex">
-			<div className="sticky left-0 top-0 h-screen bg-white shadow-md">
-				{/* Sidebar */}
-				<OfficerSidebar />
-			</div>
-
+		<div className="flex min-h-screen bg-white-100">
+			<OfficerSidebar />
 
 			{/* Main content */}
-			<main className="min-h-screen bg-white p-6">
-				<div className="flex flex-col items-center bg-gray-100 rounded-lg min-h-screen py-6 px-4">
+			<main className="flex-1 ml-64 p-6">
+				<div className="flex flex-col items-center bg-white rounded-lg min-h-screen py-6 px-4">
 					{/* Logo Section */}
-					<div className="flex-row lg:flex-row mx-10 items-center m-4justify-center gap-8 bg-white p-8 rounded-lg shadow-md w-full max-w-6xl mb-8">
+					<div className="flex-row lg:flex-row mx-10 items-center m-4 justify-center gap-8 bg-gray-50 p-8 rounded-lg shadow-md w-full max-w-6xl mb-8">
 						<div className="flex flex-col lg:flex-row items-center justify-center py-8">
 							<img
 								src="assets/OMSLOGO.png"
@@ -65,7 +63,7 @@ const AboutUs = () => {
 						<div className="flex-row relative">
 							<SectionDivider />
 							{/* Who We Are */}
-							<div className=" p-8">
+							<div className="p-8">
 								<h2 className="text-4xl font-bold text-[#8736EA] mb-4">
 									Who We Are
 								</h2>
