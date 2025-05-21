@@ -166,8 +166,9 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
 
   return (
     <div
-      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center left-[17%] z-50"
+      className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center z-50"
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
+      onClick={e => { if (e.target === e.currentTarget) close(); }}
     >
       <div
         className="bg-white p-10 rounded-lg w-full max-w-4xl shadow-xl relative"
