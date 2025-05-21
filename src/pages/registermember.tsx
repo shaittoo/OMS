@@ -7,7 +7,6 @@ import { setDoc, doc, where, collection, query, getDocs } from "firebase/firesto
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import Select from 'react-select';
-import "@fortawesome/fontawesome-free/css/all.min.css";
 
 const courseOptions = [
   { label: "BS in Accountancy (5 yrs)", value: "BS in Accountancy (5 yrs)" },

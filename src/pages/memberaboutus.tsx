@@ -1,6 +1,5 @@
 import React from "react";
 import MemberSidebar from "../components/membersidebar";
-import "@fortawesome/fontawesome-free/css/all.min.css"; // Import FontAwesome CSS
 
 const SectionDivider = () => (
 	<div className="flex items-center w-full relative my-2">
