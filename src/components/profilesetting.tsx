@@ -9,6 +9,41 @@ interface ProfileSettingsProps {
   close: () => void; // Prop to handle form closure
 }
 
+// Add this modal component at the top of your file
+const InfoModal: React.FC<{ open: boolean; onClose: () => void; message: string }> = ({ open, onClose, message }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+        {/* Bigger check icon with longer check mark */}
+        <svg
+          className="mx-auto mb-2"
+          width="80"
+          height="80"
+          viewBox="0 0 80 80"
+          fill="none"
+        >
+          <circle cx="40" cy="40" r="40" fill="#22c55e" />
+          <path
+            d="M56 28L36 52L20 38"
+            stroke="white"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <p className="mb-6">{message}</p>
+        <button
+          className="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 font-semibold"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
   const [userType, setUserType] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>({});
@@ -16,6 +51,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [infoModal, setInfoModal] = useState<{ open: boolean; message: string }>({ open: false, message: "" });
 
   // Configure AWS
   AWS.config.update({
@@ -126,13 +162,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
         }
 
         setUserData(updatedData);
-        alert("Profile updated successfully!");
+        setInfoModal({ open: true, message: "Profile updated successfully!" });
         setUploadProgress(0);
         setSelectedFile(null);
-        window.location.reload(); // Reload the page to show updated logo
+        //window.location.reload(); // Reload the page to show updated logo
       } catch (error) {
         console.error("Error updating profile: ", error);
-        alert("Failed to update profile. Please try again.");
+        setInfoModal({ open: true, message: "Failed to update profile. Please try again." });
       }
     }
   };
@@ -141,7 +177,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
   const handleLogout = () => {
     signOut(auth)
       .then(() => {
-        alert("Logged out successfully!");
+        setInfoModal({ open: true, message: "Logged out successfully!" });
         close();
       })
       .catch((error) => {
@@ -194,6 +230,18 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
         </div>
       )}
 
+      {/* Info Modal */}
+      <InfoModal
+        open={infoModal.open}
+        onClose={() => {
+          setInfoModal({ open: false, message: "" });
+          if (infoModal.message === "Profile updated successfully!") {
+            window.location.reload();
+          }
+        }}
+        message={infoModal.message}
+      />
+
       <div
         className="bg-gray-100 p-12 rounded-lg w-full max-w-md shadow-xl relative max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: "#f9f9f9" }}
@@ -222,6 +270,17 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
               >
                 Change Logo
               </label>
+              {/* Show current logo if it exists */}
+              {userData.photo && (
+                <div className="mb-3 flex flex-col items-center">
+                  <img
+                    src={userData.photo}
+                    alt="Current Logo"
+                    className="h-24 w-24 object-contain rounded-full border mb-2"
+                  />
+                  <span className="text-xs text-gray-500">Current Logo</span>
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -425,7 +484,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
           <div className="space-y-5">
             <button
               type="button"
-              onClick={() => alert("Sign In")}
+              onClick={() => setInfoModal({ open: true, message: "Sign In" })}
               className="w-full p-3 bg-blue-600 text-white font-semibold rounded-md transition-colors duration-200 hover:bg-white focus:ring-2 focus:ring-white mb-4"
               style={{ backgroundColor: "#8736EA" }}
             >
@@ -433,7 +492,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ close }) => {
             </button>
             <button
               type="button"
-              onClick={() => alert("Login")}
+              onClick={() => setInfoModal({ open: true, message: "Login" })}
               className="w-full p-3 bg-green-600 text-white font-semibold rounded-md transition-colors duration-200 hover:bg-white focus:ring-2 focus:ring-white"
               style={{ backgroundColor: "#8736EA" }}
             >

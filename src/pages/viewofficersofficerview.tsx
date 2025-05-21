@@ -266,19 +266,6 @@ const OfficerEditForm: React.FC = () => {
                     placeholder="Select member"
                   />
                 </div>
-                <button
-                  type="button"
-                  className="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400 font-semibold"
-                  onClick={() =>
-                    setOfficerPositions((prev) => ({
-                      ...prev,
-                      [key]: "",
-                    }))
-                  }
-                  disabled={!officerPositions[key as keyof typeof officerPositions]}
-                >
-                  Clear
-                </button>
               </div>
             );
           })}

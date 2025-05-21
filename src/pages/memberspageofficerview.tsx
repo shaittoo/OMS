@@ -283,11 +283,11 @@ const MembersPageOfficerView: React.FC = () => {
   };
 
   return (
-      <div className="flex h-screen">
+      <div className="flex">
     <div className="w-64 flex-shrink-0">
       <OfficerSidebar />
     </div>
-      <div className="flex-grow p-6 bg-white">
+      <div className="flex-grow p-8 bg-white">
         <Header />
         <SearchAndFilter
           onSearch={handleSearch}
