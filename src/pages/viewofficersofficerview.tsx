@@ -101,7 +101,11 @@ const OfficerEditForm: React.FC = () => {
               }
             }
 
-            const membersQuery = query(collection(db, "Members"), where("organizationId", "==", orgId));
+            const membersQuery = query(
+              collection(db, "Members"),
+              where("organizationId", "==", orgId),
+              where("status", "==", "approved")
+            );
             const membersSnapshot = await getDocs(membersQuery);
 
             const memberList: { id: string; name: string }[] = [];
