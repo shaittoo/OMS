@@ -22,7 +22,7 @@ const SectionDivider = () => (
 const AboutUs = () => {
   return (
 		<div className="flex">
-			<div className="sticky left-0 top-0 h-screen overflow-y-auto bg-white shadow-md">
+			<div className="sticky left-0 top-0 h-screen bg-white shadow-md">
 				{/* Sidebar */}
 				<OfficerSidebar />
 			</div>
