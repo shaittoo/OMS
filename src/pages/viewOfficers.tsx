@@ -154,7 +154,7 @@ const ViewOfficers: React.FC = () => {
         <div className="mb-6">
           <div className="flex items-center mb-2">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/orgpage")}
               className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
             >
               &#8592;

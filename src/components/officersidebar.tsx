@@ -13,10 +13,15 @@ import PendingApplicantsLink from "./PendingApplicationsLink";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { useRouter } from "next/router";
+import OfficerAddTask from "./officeraddtask";
+import OfficerAddEvent from "./officeraddevent";
 
 const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [dashboardHover, setDashboardHover] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showAddEvent, setShowAddEvent] = useState(false);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -28,10 +33,9 @@ const OfficerSidebar: React.FC = () => {
     }
   };
 
-
   return (
     <>
-          <aside className="w-64 h-screen fixed top-0 left-0 z-30 bg-gray-100 bg-opacity-80 flex flex-col overflow-y-hidden hover:overflow-y-auto">
+      <aside className="w-64 h-screen fixed top-0 left-0 z-30 bg-gray-100 bg-opacity-80 flex flex-col">
         {/* Sidebar Title with Logo */}
         <div className="p-6 bg-gray-100 flex justify-center items-center">
           <Link href="/orgpage" legacyBehavior>
@@ -42,13 +46,70 @@ const OfficerSidebar: React.FC = () => {
         </div>
 
         {/* Navigation */}
-       <nav className="flex-grow mt-4">
-          <Link href="/orgpage" legacyBehavior>
-            <a className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
+        <nav className="flex-grow mt-4 relative">
+          {/* Dashboard with hover menu */}
+          <div
+            className="relative"
+            onMouseEnter={() => setDashboardHover(true)}
+            onMouseLeave={() => setDashboardHover(false)}
+          >
+            <button
+              className="dashboard-btn flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors w-full"
+              type="button"
+              onClick={() => router.push("/orgpage")}
+            >
               <DashboardIcon />
               <span className="ml-3 text-md font-medium">Dashboard</span>
-            </a>
-          </Link>
+            </button>
+            {/* Hover menu appears to the right of the sidebar */}
+            {dashboardHover && (
+              <div
+                className="absolute left-full top-0 z-50"
+                style={{ minWidth: 200 }}
+                onMouseEnter={() => setDashboardHover(true)}
+                onMouseLeave={() => setDashboardHover(false)}
+              >
+                <div className="bg-white rounded shadow-lg border border-gray-200 py-2">
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-purple-100"
+                    onClick={() => {
+                      setShowAddTask(true);
+                      setDashboardHover(false);
+                    }}
+                  >
+                    Add Task
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-purple-100"
+                    onClick={() => {
+                      setShowAddEvent(true);
+                      setDashboardHover(false);
+                    }}
+                  >
+                    Add Event
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-purple-100"
+                    onClick={() => {
+                      router.push("/viewOfficers");
+                      setDashboardHover(false);
+                    }}
+                  >
+                    View Officers
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-purple-100"
+                    onClick={() => {
+                      router.push("/userevents");
+                      setDashboardHover(false);
+                    }}
+                  >
+                    View My Events
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <Link href="/memberspageofficerview" legacyBehavior>
             <a className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors">
@@ -70,8 +131,8 @@ const OfficerSidebar: React.FC = () => {
               <span className="ml-3 text-md font-medium">Calendar</span>
             </a>
           </Link>
-          
-          <PendingApplicantsLink/>
+
+          <PendingApplicantsLink />
 
           <hr className="my-4 border-gray-300" />
 
@@ -103,6 +164,18 @@ const OfficerSidebar: React.FC = () => {
           © 2024 OMS Platform
         </div>
       </aside>
+
+      {/* Add Task Modal */}
+      {showAddTask && typeof window !== "undefined" && createPortal(
+        <OfficerAddTask close={() => setShowAddTask(false)} />,
+        document.body
+      )}
+
+      {/* Add Event Modal */}
+      {showAddEvent && typeof window !== "undefined" && createPortal(
+        <OfficerAddEvent close={() => setShowAddEvent(false)} />,
+        document.body
+      )}
 
       {showLogoutModal && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
