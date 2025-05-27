@@ -129,7 +129,6 @@ const MemberViewTasks: React.FC = () => {
 				);
 			}
 
-			// Fetch personal tasks (organizationId is member's name)
 			const personalTasksQuery = query(
 				collection(db, "tasks"),
 				where("organizationId", "==", ""),
@@ -139,6 +138,17 @@ const MemberViewTasks: React.FC = () => {
 			const personalTasks = await Promise.all(
 				personalTasksSnapshot.docs.map(async (taskDoc) => {
 					const data = taskDoc.data();
+					const memberNames = await Promise.all(
+						(data.assignedMembers || []).map(async (uid: string) => {
+							const userDocRef = doc(db, "Users", uid);
+							const userDoc = await getDoc(userDocRef);
+							if (userDoc.exists()) {
+								const userData = userDoc.data();
+								return userData.fullName || "Unknown Member";
+							}
+							return "Unknown Member";
+						})
+					);
 					return {
 						id: taskDoc.id,
 						taskName: data.taskName || "Untitled Task",
@@ -147,7 +157,7 @@ const MemberViewTasks: React.FC = () => {
 							? new Date(data.dueDate.seconds * 1000).toLocaleString()
 							: "No due date",
 						priority: data.priority || "Medium",
-						assignedMembers: data.assignedMembers || [],
+						assignedMembers: memberNames || [],
 						completed: data.completed || false,
 						organizationId: data.organizationId || "",
 						organizationName: "Self Task",
