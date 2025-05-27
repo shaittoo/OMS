@@ -64,10 +64,9 @@ const AdminDashboard = () => {
   const fetchRequests = async () => {
     try {
       if (activeTab === 'events') {
-        // Fetch only events
+        // Fetch all events
         const eventsQuery = query(
-          collection(db, 'events'),
-          orderBy('eventDate', 'desc')
+          collection(db, 'events')
         );
         const eventsSnapshot = await getDocs(eventsQuery);
         const eventRequests = eventsSnapshot.docs
@@ -78,13 +77,10 @@ const AdminDashboard = () => {
             let formattedDate = 'N/A';
             if (data.eventDate) {
               if (data.eventDate.toDate) {
-                // If it's a Firestore Timestamp
                 formattedDate = data.eventDate.toDate().toLocaleDateString();
               } else if (data.eventDate instanceof Date) {
-                // If it's a JavaScript Date
                 formattedDate = data.eventDate.toLocaleDateString();
               } else {
-                // If it's a string or other format
                 formattedDate = data.eventDate;
               }
             }
@@ -94,7 +90,7 @@ const AdminDashboard = () => {
               name: data.eventName || '',
               submittedBy: data.organizationId || '',
               submissionDate: formattedDate,
-              status: data.status || 'pending',
+              status: data.approvalStatus || 'pending',
               type: 'event' as const,
               eventDate: formattedDate,
               eventLocation: data.eventLocation || '',
@@ -103,12 +99,18 @@ const AdminDashboard = () => {
               eventImages: data.eventImages || [],
               isOpenForAll: data.isOpenForAll || false,
               interested: data.interested || [],
-              likedBy: data.likedBy || [],
-              likes: data.likes || 0,
+              likedBy: data.likes || [],
+              likes: data.likes?.length || 0,
               organizationId: data.organizationId || '',
               tags: data.tags || [],
-              rejectionReason: data.rejectionReason
+              rejectionReason: data.rejectionReason,
             };
+          })
+          .sort((a, b) => {
+            // Sort by date in descending order (newest first)
+            const dateA = new Date(a.eventDate);
+            const dateB = new Date(b.eventDate);
+            return dateB.getTime() - dateA.getTime();
           });
 
         // Get organization names for the events
@@ -152,7 +154,7 @@ const AdminDashboard = () => {
             photo: data.photo || '',
             members: data.members || [],
             rejectionReason: data.rejectionReason || '',
-            organizationVerified: true // Organizations are always verified
+            organizationVerified: true
           };
         });
 
@@ -225,13 +227,24 @@ const AdminDashboard = () => {
         return;
       }
 
-      await updateDoc(requestRef, {
+      const updateData = {
         status: newStatus,
         ...(rejectionReason && { rejectionReason }),
-      });
+        ...(newStatus === 'accepted' && { 
+          organizationVerified: true,
+          hasSeenAcceptance: false
+        })
+      };
+
+      await updateDoc(requestRef, updateData);
 
       // Log the action in audit trail
-      await logAuditTrail(requestId, activeTab === 'organizations' ? 'organization' : 'event', newStatus as 'accepted' | 'rejected', rejectionReason);
+      await logAuditTrail(
+        requestId, 
+        activeTab === 'organizations' ? 'organization' : 'event', 
+        newStatus as 'accepted' | 'rejected', 
+        rejectionReason
+      );
 
       toast.success(`${activeTab.slice(0, -1)} ${newStatus} successfully`);
       await fetchRequests();
@@ -257,7 +270,8 @@ const AdminDashboard = () => {
         const docRef = doc(db, request.type === 'organization' ? 'Organizations' : 'events', requestId);
         const updateData = {
           status: action === 'accept' ? 'accepted' : 'rejected',
-          ...(action === 'reject' && { rejectionReason })
+          ...(action === 'reject' && { rejectionReason }),
+          ...(action === 'accept' && { organizationVerified: true })
         };
 
         await updateDoc(docRef, updateData);
@@ -284,6 +298,7 @@ const AdminDashboard = () => {
       setShowRejectionModal(false);
     } catch (error) {
       console.error('Error performing bulk action:', error);
+      toast.error('Failed to perform bulk action');
     }
   };
 
@@ -301,7 +316,12 @@ const AdminDashboard = () => {
 
   const filteredRequests = requests
     .filter(request => {
-      const matchesSearch = request.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (request.type === 'event' && (
+          request.eventLocation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.eventDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          request.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        ));
       const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
@@ -324,14 +344,14 @@ const AdminDashboard = () => {
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('events')}
-              className={`flex items-center space-x-2 w-full px-4 py-2 rounded-lg transition-colors ${
+              className={`flex items-center space-x-2 w-full px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
                 activeTab === 'events' 
                   ? 'bg-purple-100 text-purple-700' 
                   : 'hover:bg-gray-100'
               }`}
             >
-              <EventIcon />
-              <span>Event Approvals</span>
+              <EventIcon className="w-5 h-5" />
+              <span className="flex-1">Event Approvals</span>
             </button>
             <button
               onClick={() => setActiveTab('organizations')}
@@ -341,8 +361,8 @@ const AdminDashboard = () => {
                   : 'hover:bg-gray-100'
               }`}
             >
-              <BusinessIcon />
-              <span>Org Approvals</span>
+              <BusinessIcon className="w-5 h-5" />
+              <span className="flex-1">Org Approvals</span>
             </button>
           </nav>
         </div>
@@ -363,7 +383,7 @@ const AdminDashboard = () => {
           </h1>
           <p className="text-gray-600">
             {activeTab === 'events' 
-              ? 'Manage event postings from verified organizations' 
+              ? 'Review and manage event submissions' 
               : 'Manage organization registrations'}
           </p>
         </div>
@@ -374,7 +394,7 @@ const AdminDashboard = () => {
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name..."
+              placeholder={`Search ${activeTab === 'events' ? 'events' : 'organizations'}...`}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -417,13 +437,13 @@ const AdminDashboard = () => {
           <div className="mb-4 flex gap-2">
             <button
               onClick={() => handleBulkAction('accept')}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
             >
               Accept Selected ({selectedRequests.length})
             </button>
             <button
               onClick={() => handleBulkAction('reject')}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Reject Selected ({selectedRequests.length})
             </button>
@@ -450,9 +470,6 @@ const AdminDashboard = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {activeTab === 'events' ? 'Event Details' : 'Organization Details'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Submitted By
@@ -485,7 +502,7 @@ const AdminDashboard = () => {
                       className="rounded text-purple-500 focus:ring-purple-500"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{request.name}</div>
@@ -526,15 +543,6 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      request.type === 'organization' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {request.type}
-                    </span>
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {request.submittedBy}
                   </td>
@@ -557,13 +565,16 @@ const AdminDashboard = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusChange(request.id, 'accepted')}
-                          className="text-green-600 hover:text-green-900"
+                          className="text-green-600 hover:text-green-900 transition-colors"
                         >
                           Accept
                         </button>
                         <button
-                          onClick={() => handleStatusChange(request.id, 'rejected')}
-                          className="text-red-600 hover:text-red-900"
+                          onClick={() => {
+                            setSelectedRequestId(request.id);
+                            setShowRejectionModal(true);
+                          }}
+                          className="text-red-600 hover:text-red-900 transition-colors"
                         >
                           Reject
                         </button>

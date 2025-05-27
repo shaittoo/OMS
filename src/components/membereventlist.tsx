@@ -147,7 +147,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           console.log("Filtering by specific organization:", organizationId);
           eventsQuery = query(
             collection(db, "events"),
-            where("organizationId", "==", organizationId)
+            where("organizationId", "==", organizationId),
+            where("approvalStatus", "==", "accepted")
           );
         } 
         // Otherwise, fetch events from all organizations the user is a member of
@@ -155,7 +156,8 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
           console.log("Filtering by user organizations:", userOrganizations);
           eventsQuery = query(
             collection(db, "events"),
-            where("organizationId", "in", userOrganizations)
+            where("organizationId", "in", userOrganizations),
+            where("approvalStatus", "==", "accepted")
           );
         } else {
           console.log("No organization ID or user organizations provided");

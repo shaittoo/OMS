@@ -15,15 +15,17 @@ import OfficerSidebar from "../components/officersidebar";
 import EventIcon from "@mui/icons-material/Event";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StarIcon from "@mui/icons-material/Star";
-import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import ThumbDownIcon from "@mui/icons-material/ThumbDown";
 import PeopleIcon from "@mui/icons-material/People";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
-import DeleteIcon from "@mui/icons-material/Delete";
 import OfficerEditEvent from "../components/officerEditEvent";
-import OfficerAddEvent from "../components/officeraddevent"; // Import the OfficerAddEvent component
+import OfficerAddEvent from "../components/officeraddevent";
 
 interface Event {
   uid: string;
@@ -43,6 +45,7 @@ interface Event {
   organizationName?: string;
   likedBy: string[];
   interestedBy: string[];
+  approvalStatus: string;
 }
 
 const Header: React.FC<{ onBack: () => void; onAddEvent: () => void }> = ({ onBack, onAddEvent }) => (
@@ -224,14 +227,13 @@ const MyEventsView: React.FC = () => {
             data.eventDate instanceof Timestamp
               ? data.eventDate.toDate()
               : new Date(data.eventDate);
-          const status = data.status === "Cancelled" ? "Cancelled" : (eventDate < new Date() ? "Completed" : data.status);
 
           return {
             ...data,
             uid: doc.id,
             eventDate,
             organizationName,
-            status,
+            approvalStatus: data.approvalStatus || "pending"
           };
         });
 
@@ -343,10 +345,10 @@ const MyEventsView: React.FC = () => {
                   <th className="px-4 py-2"><EventIcon /> Event Name</th>
                   <th className="px-4 py-2"><CalendarTodayIcon /> Date</th>
                   <th className="px-4 py-2"><StarIcon /> Interests</th>
-                  <th className="px-4 py-2"><PeopleIcon /> Status</th>
-                  <th className="px-4 py-2"><PeopleIcon /> Engagements</th>
-                  <th className="px-4 py-2"><PeopleIcon /> Action</th>
-                  <th className="px-4 py-2"><PeopleIcon /> Delete</th>
+                  <th className="px-4 py-2"><CheckCircleIcon /> Approval Status</th>
+                  <th className="px-4 py-2"><ThumbUpIcon /> Engagements</th>
+                  <th className="px-4 py-2"><EditIcon /> Action</th>
+                  <th className="px-4 py-2"><DeleteIcon /> Delete</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,9 +362,19 @@ const MyEventsView: React.FC = () => {
                           : new Date(event.eventDate).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2">{event.interestedBy?.length || 0}</td>
-                      <td className="px-4 py-2">{event.status}</td>
                       <td className="px-4 py-2">
-                        <ThumbUpOffAltIcon className="ml-2" /> {event.likedBy?.length || 0}
+                        <span className={`px-2 py-1 rounded-full text-sm ${
+                          event.approvalStatus === 'accepted' 
+                            ? 'bg-green-100 text-green-800'
+                            : event.approvalStatus === 'rejected'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {event.approvalStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <ThumbUpIcon className="ml-2" /> {event.likedBy?.length || 0}
                       </td>
                       <td className="px-4 py-2">
                         <button className="hover:underline" onClick={() => handleEdit(event)}>
