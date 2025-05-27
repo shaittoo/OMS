@@ -31,12 +31,23 @@ function Login() {
         const orgDoc = await getDoc(doc(db, "Organizations", userData.organizationId));
         const orgData = orgDoc.data();
         
-        if (orgData?.status === "pending") {
-          router.push("/registration-submitted");
+        if (!orgData) {
+          toast.error("Organization data not found", { position: "bottom-center" });
           return;
         }
-        
-        router.push("/orgpage");
+
+        // Redirect based on organization status
+        if (orgData.status === "pending") {
+          router.push("/orgstatus");
+          return;
+        } else if (orgData.status === "rejected") {
+          router.push("/orgstatus");
+          return;
+        } else if (orgData.status === "accepted") {
+          router.push("/orgpage");
+        } else {
+          router.push("/orgstatus");
+        }
       } else if (userData?.role === "admin") {
         router.push("/admin/dashboard");
       } else {

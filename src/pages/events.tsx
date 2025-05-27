@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, Timestamp, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
@@ -34,7 +34,8 @@ interface Event {
   interested: string[];
   isLiked: boolean;
   isInterested: boolean;
-  tags: string[]; // Added missing property
+  tags: string[];
+  approvalStatus: string;
 }
 
 const Header: React.FC = () => {
@@ -351,8 +352,8 @@ const EventsView: React.FC = () => {
     const userId = auth.currentUser?.uid;
 
     let userEvents = {
-      likedEvents: [],
-      interestedEvents: [],
+      likedEvents: [] as string[],
+      interestedEvents: [] as string[],
     };
 
     try {
@@ -368,23 +369,45 @@ const EventsView: React.FC = () => {
       }
 
       const eventsRef = collection(db, "events");
-      const querySnapshot = await getDocs(eventsRef);
+      const eventsQuery = query(
+        eventsRef,
+        where("approvalStatus", "==", "accepted")
+      );
+      const querySnapshot = await getDocs(eventsQuery);
+      console.log("Number of events found:", querySnapshot.size);
+
       const eventsList = querySnapshot.docs.map((doc) => {
-        const data = doc.data() as Event;
-        const eventDate =
-          data.eventDate instanceof Timestamp
-            ? data.eventDate.toDate()
-            : new Date(data.eventDate);
+        const data = doc.data();
+        console.log("Event data:", data);
+        
+        const eventDate = data.eventDate instanceof Timestamp
+          ? data.eventDate.toDate()
+          : new Date(data.eventDate);
+
         return {
-          ...data,
           uid: doc.id,
+          eventName: data.eventName || "",
+          eventDescription: data.eventDescription || "",
           eventDate,
-          isLiked: userEvents.likedEvents.includes(doc.id as never),
-          isInterested: userEvents.interestedEvents.includes(doc.id as never),
-          tags: data.tags || [], // Ensure tags is always present
-          registrations: typeof data.registrations === "number" ? data.registrations : Number(data.registrations) || 0,
+          eventLocation: data.eventLocation || "",
+          eventPrice: data.eventPrice || "0",
+          eventImages: data.eventImages || [],
+          eventType: data.eventType || "general",
+          isFree: data.isFree || "false",
+          isOpenForAll: data.isOpenForAll || false,
+          status: data.status || "upcoming",
+          organizationId: data.organizationId || "",
+          registrations: data.registrations || 0,
+          likes: data.likes || [],
+          interested: data.interested || [],
+          isLiked: userEvents.likedEvents.includes(doc.id),
+          isInterested: userEvents.interestedEvents.includes(doc.id),
+          tags: data.tags || [],
+          approvalStatus: data.approvalStatus || "pending"
         };
       });
+
+      console.log("Processed events list:", eventsList);
 
       let filteredEvents = eventsList.filter(event => {
         const matchesSearchQuery =

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import { arrayUnion, arrayRemove, collection, doc, getDoc, getDocs, Timestamp, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
@@ -37,7 +37,8 @@ interface Event {
   interested: string[];
   isLiked: boolean;
   isInterested: boolean;
-  tags: string[]; // Added missing property
+  tags: string[];
+  approvalStatus: string;
 }
 
 const Header: React.FC = () => {
@@ -318,6 +319,7 @@ const EventsView: React.FC = () => {
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isViewEventOpen, setViewEventOpen] = useState(false);
+  const [userOrganizations, setUserOrganizations] = useState<string[]>([]);
   
   const fetchEvents = async () => {
     setLoading(true);
@@ -325,12 +327,30 @@ const EventsView: React.FC = () => {
     const userId = auth.currentUser?.uid;
 
     let userEvents = {
-      likedEvents: [],
-      interestedEvents: [],
+      likedEvents: [] as string[],
+      interestedEvents: [] as string[],
     };
 
     try {
+      // First, fetch user's organizations
       if (userId) {
+        const membersRef = collection(db, "Members");
+        const q = query(
+          membersRef,
+          where("uid", "==", userId),
+          where("status", "==", "approved")
+        );
+        const querySnapshot = await getDocs(q);
+        const orgIds: string[] = [];
+        querySnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.organizationId) {
+            orgIds.push(data.organizationId);
+          }
+        });
+        setUserOrganizations(orgIds);
+
+        // Then fetch user's liked and interested events
         const userDoc = await getDoc(doc(db, "Users", userId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -339,52 +359,76 @@ const EventsView: React.FC = () => {
             interestedEvents: userData.interestedEvents || [],
           };
         }
-      }
 
-      const eventsRef = collection(db, "events");
-      const querySnapshot = await getDocs(eventsRef);
-      const eventsList = querySnapshot.docs.map((doc) => {
-        const data = doc.data() as Event;
-        const eventDate =
-          data.eventDate instanceof Timestamp
-            ? data.eventDate.toDate()
-            : new Date(data.eventDate);
-        return {
-          ...data,
-          uid: doc.id,
-          eventDate,
-          isLiked: userEvents.likedEvents.includes(doc.id as never),
-          isInterested: userEvents.interestedEvents.includes(doc.id as never),
-          tags: data.tags || [], 
-          registrations: typeof data.registrations === "number" ? data.registrations : Number(data.registrations) || 0,
-          likes: data.likes || [], 
-          interested: data.interested || [], 
+        // Now fetch events from user's organizations
+        if (orgIds.length > 0) {
+          const eventsRef = collection(db, "events");
+          const eventsQuery = query(
+            eventsRef,
+            where("organizationId", "in", orgIds),
+            where("approvalStatus", "==", "accepted")
+          );
+          const querySnapshot = await getDocs(eventsQuery);
+          console.log("Number of events found:", querySnapshot.size);
 
-        };
-      });
+          const eventsList = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            console.log("Event data:", data);
+            
+            const eventDate = data.eventDate instanceof Timestamp
+              ? data.eventDate.toDate()
+              : new Date(data.eventDate);
 
-      let filteredEvents = eventsList.filter(event => {
-        const matchesSearchQuery =
-          event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
-        const matchesType = filters.type === "All" || event.eventType === filters.type;
-        return matchesSearchQuery && matchesType;
-      });
+            return {
+              uid: doc.id,
+              eventName: data.eventName || "",
+              eventDescription: data.eventDescription || "",
+              eventDate,
+              eventLocation: data.eventLocation || "",
+              eventPrice: data.eventPrice || "0",
+              eventImages: data.eventImages || [],
+              eventType: data.eventType || "general",
+              isFree: data.isFree || "false",
+              isOpenForAll: data.isOpenForAll || false,
+              status: data.status || "upcoming",
+              organizationId: data.organizationId || "",
+              registrations: data.registrations || 0,
+              likes: data.likes || [],
+              interested: data.interested || [],
+              isLiked: userEvents.likedEvents.includes(doc.id),
+              isInterested: userEvents.interestedEvents.includes(doc.id),
+              tags: data.tags || [],
+              approvalStatus: data.approvalStatus || "pending"
+            };
+          });
 
-      if (filters.date !== "none") {
-        filteredEvents = filteredEvents.sort((a, b) => {
-          const dateA = a.eventDate;
-          const dateB = b.eventDate;
-          if (filters.date === "most") {
-            return dateA.getTime() - dateB.getTime();
-          } else if (filters.date === "least") {
-            return dateB.getTime() - dateA.getTime();
+          console.log("Processed events list:", eventsList);
+
+          let filteredEvents = eventsList.filter(event => {
+            const matchesSearchQuery =
+              event.eventName?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ?? false;
+            const matchesType = filters.type === "All" || event.eventType === filters.type;
+            return matchesSearchQuery && matchesType;
+          });
+
+          if (filters.date !== "none") {
+            filteredEvents = filteredEvents.sort((a, b) => {
+              const dateA = a.eventDate;
+              const dateB = b.eventDate;
+              if (filters.date === "most") {
+                return dateA.getTime() - dateB.getTime();
+              } else if (filters.date === "least") {
+                return dateB.getTime() - dateA.getTime();
+              }
+              return 0;
+            });
           }
-          return 0;
-        });
-      }
 
- 
-      setEvents(filteredEvents);
+          setEvents(filteredEvents);
+        } else {
+          setEvents([]);
+        }
+      }
     } catch (err) {
       console.error("Error fetching events:", err);
       setError("Failed to load events.");

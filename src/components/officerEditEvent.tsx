@@ -32,6 +32,7 @@ interface Event {
   organizationName?: string;
   likedBy: string[];
   interestedBy: string[];
+  approvalStatus: string;
 }
 
 const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpdate }) => {
@@ -143,6 +144,7 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
         isOpenForAll,
         tags: tags.split(",").map((tag) => tag.trim()),
         status,
+        approvalStatus: event.approvalStatus,
         eventLocation,
         eventImages: Array.from(new Set([...event.eventImages, ...imageUrls])),
       });
@@ -156,6 +158,7 @@ const OfficerEditEvent: React.FC<OfficerEditEventProps> = ({ close, event, onUpd
         isOpenForAll,
         tags: tags.split(",").map((tag) => tag.trim()),
         status,
+        approvalStatus: event.approvalStatus,
         eventLocation,
         eventImages: Array.from(new Set([...event.eventImages, ...imageUrls])),
       });
