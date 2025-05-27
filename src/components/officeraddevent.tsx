@@ -6,7 +6,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import { s3Client } from "./awsConfig";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
-import { toast } from "react-hot-toast";
+
+import { ToastContainer, toast } from "react-toastify";
 
 interface OfficerAddEventProps {
   close: () => void;
@@ -136,14 +137,46 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
         likes: 0,
         interested: 0,
       });
-  
-      toast.success("Event submitted for approval! You'll be notified once it's reviewed.", {
-        duration: 5000,
-      });
+      
+   
+      toast.success("Event added successfully", {
+                        style: {
+                          backgroundColor: "rgba(243, 232, 255, 0.95)",
+                          color: "#374151",
+                          borderRadius: "12px",
+                          boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                          fontSize: "14px",
+                          padding: "12px 16px",
+                          minHeight: "48px",
+                          display: "flex",
+                          alignItems: "center",
+                          border: "1px solid rgba(0, 0, 0, 0.05)",
+                          margin: "0 0 16px 0",
+                        },
+                        icon: false,
+                        });
+
+       setTimeout(() => {
       close();
+    }, 3000);
+   
     } catch (error) {
-      console.error("Error adding event:", error);
-      toast.error("An error occurred while adding the event. Please try again.");
+      toast.error("Failed to add event", {
+          style: {
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            color: "#DC2626", // Red text for error
+            borderRadius: "12px",
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+            fontSize: "14px",
+            padding: "12px 16px",
+            minHeight: "48px",
+            display: "flex",
+            alignItems: "center",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+            margin: "0 0 16px 0",
+          },
+          icon: false,
+          });
     }
   };  
 
@@ -386,6 +419,28 @@ const OfficerAddEvent: React.FC<OfficerAddEventProps> = ({ close }) => {
           </form>
         </div>
       </div>
+      <ToastContainer
+                  position="bottom-right"
+                  autoClose={2000}
+                  hideProgressBar
+                  closeButton={false}
+                  closeOnClick
+                  pauseOnHover={false}
+                  draggable={false}
+                  toastStyle={{
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  color: "#374151",
+                  borderRadius: "12px",
+                  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                  fontSize: "14px",
+                  padding: "12px 16px",
+                  minHeight: "48px",
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  margin: "0 0 16px 0",
+                  }}
+                  />
     </div>
   );
 };

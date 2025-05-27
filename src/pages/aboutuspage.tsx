@@ -50,7 +50,14 @@ const AboutUs = () => {
 								</p>
 								<a
 									href="/learnmore"
-									className="inline-block text-white bg-gradient-to-r from-[#8736EA] to-[#a18cd1] px-7 py-2 rounded-lg font-semibold shadow hover:from-purple-700 hover:to-[#a18cd1] transition"
+									className=" h-[55px] relative
+							font-sans font-semibold text-base text-white
+							cursor-pointer border-none rounded-[3px]
+							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+							bg-[length:300%_100%] bg-left hover:bg-right
+							transition-[background-position] duration-500 ease-in-out px-3 py-3 pt-2
+							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50
+							"
 								>
 									Learn More
 								</a>

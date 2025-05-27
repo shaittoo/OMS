@@ -14,24 +14,7 @@ import {
 import { auth } from "../firebaseConfig";
 import OfficerSidebar from "../components/officersidebar";
 import Select from "react-select";
-
-const SuccessModal: React.FC<{ open: boolean; onClose: () => void; message: string }> = ({ open, onClose, message }) => {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
-        <h2 className="text-xl font-bold mb-4 text-green-600">Success</h2>
-        <p className="mb-6">{message}</p>
-        <button
-          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 font-semibold"
-          onClick={onClose}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  );
-};
+import { ToastContainer, toast } from 'react-toastify';
 
 const OfficerEditForm: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -58,7 +41,6 @@ const OfficerEditForm: React.FC = () => {
   const [additionalOfficerName, setAdditionalOfficerName] = useState("");
   const [showAdditionalOfficer, setShowAdditionalOfficer] = useState(false);
   const [additionalOfficers, setAdditionalOfficers] = useState<{ position: string; name: string }[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const router = useRouter();
@@ -190,10 +172,41 @@ const OfficerEditForm: React.FC = () => {
         }
       }
 
-      console.log("Officers data saved successfully:", officerData);
-      setShowSuccessModal(true); // Show modal instead of alert
+      toast.success("Edited officers successfully", {
+          style: {
+            backgroundColor: "rgba(243, 232, 255, 0.95)",
+            color: "#374151",
+            borderRadius: "12px",
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+            fontSize: "14px",
+            padding: "12px 16px",
+            minHeight: "48px",
+            display: "flex",
+            alignItems: "center",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+            margin: "0 0 16px 0",
+          },
+          icon: false,
+          });
+         
+     
     } catch (err) {
-      console.error("Error saving officers:", err);
+      toast.error("Error saving officers.", {
+          style: {
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            color: "#DC2626", // Red text for error
+            borderRadius: "12px",
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+            fontSize: "14px",
+            padding: "12px 16px",
+            minHeight: "48px",
+            display: "flex",
+            alignItems: "center",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+            margin: "0 0 16px 0",
+          },
+          icon: false,
+          });
       setError(err instanceof Error ? err.message : "Failed to update officers");
     } finally {
       setSaving(false);
@@ -392,7 +405,7 @@ const OfficerEditForm: React.FC = () => {
               </div>
               <button
                 type="button"
-                className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-semibold ${
+                className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-500 font-semibold ${
                   additionalOfficerPosition && additionalOfficerName ? "" : "opacity-50 cursor-not-allowed"
                 }`}
                 disabled={!(additionalOfficerPosition && additionalOfficerName)}
@@ -406,7 +419,7 @@ const OfficerEditForm: React.FC = () => {
                   setShowAdditionalOfficer(false);
                 }}
               >
-                Add This Officer
+                Add
               </button>
               <button
                 type="button"
@@ -424,19 +437,36 @@ const OfficerEditForm: React.FC = () => {
 
           <button
             type="submit"
-            className={`w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-blue-600 ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
             disabled={saving}
           >
             {saving ? "Saving..." : "Save All Changes"}
           </button>
         </form>
-        {/* Success Modal */}
-        <SuccessModal
-          open={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          message="Officers updated successfully!"
-        />
+        
       </main>
+      <ToastContainer
+                  position="bottom-right"
+                  autoClose={2000}
+                  hideProgressBar
+                  closeButton={false}
+                  closeOnClick
+                  pauseOnHover={false}
+                  draggable={false}
+                  toastStyle={{
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  color: "#374151",
+                  borderRadius: "12px",
+                  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                  fontSize: "14px",
+                  padding: "12px 16px",
+                  minHeight: "48px",
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid rgba(0, 0, 0, 0.05)",
+                  margin: "0 0 16px 0",
+                  }}
+                  />
     </div>
   );
 };
