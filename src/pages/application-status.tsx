@@ -49,6 +49,7 @@ const getRejectionReasonLabel = (reason: keyof typeof rejectionReasons) => {
 const ApplicationStatus: React.FC = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -131,14 +132,59 @@ const ApplicationStatus: React.FC = () => {
     return status.charAt(0).toUpperCase() + status.slice(1); 
   };
 
+  const filteredApplications = applications.filter((app) => {
+    if (statusFilter === "all") return true;
+    return app.status === statusFilter;
+  });
+
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
       <main className="ml-64 p-6">
-        {/* <Header /> */}
         <div className="p-6">
           <div className="mt-1">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Your Application Status</h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                  ${statusFilter === "all" 
+                    ? "bg-purple-600 text-white" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusFilter("pending")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                  ${statusFilter === "pending" 
+                    ? "bg-yellow-400 text-yellow-800" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => setStatusFilter("approved")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                  ${statusFilter === "approved" 
+                    ? "bg-green-400 text-green-800" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                Approved
+              </button>
+              <button
+                onClick={() => setStatusFilter("rejected")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                  ${statusFilter === "rejected" 
+                    ? "bg-red-400 text-red-800" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                Rejected
+              </button>
+            </div>
+          </div>
+
             {loading && (
               <div className="flex justify-center items-center h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -154,7 +200,22 @@ const ApplicationStatus: React.FC = () => {
             )}
 
             <div className="space-y-4 mt-6">
-              {applications.map((app) => (
+              {!loading && filteredApplications.length === 0 && (
+                <div className="text-center text-gray-600 mt-6">
+                  <p>{statusFilter === "all" 
+                    ? "You haven't applied to any organizations." 
+                    : `No ${statusFilter} applications found.`}</p>
+                  {statusFilter === "all" && (
+                    <Link href="/orglist">
+                      <span className="text-blue-600 hover:underline mt-2 inline-block">
+                        View Organizations
+                      </span>
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {filteredApplications.map((app) => (
                 <div
                   key={app.organizationId}
                   className="flex items-center p-4 border rounded-md"
