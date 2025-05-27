@@ -15,6 +15,7 @@ import { auth } from "../firebaseConfig";
 import { useRouter } from "next/router";
 import OfficerAddTask from "./officeraddtask";
 import OfficerAddEvent from "./officeraddevent";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 
 const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
@@ -60,6 +61,7 @@ const OfficerSidebar: React.FC = () => {
             >
               <DashboardIcon />
               <span className="ml-3 text-md font-medium">Dashboard</span>
+              <KeyboardArrowRightIcon className="ml-auto text-gray-400" fontSize="small" />
             </button>
             {/* Hover menu appears to the right of the sidebar */}
             {dashboardHover && (
