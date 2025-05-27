@@ -153,32 +153,23 @@ const ViewOfficers: React.FC = () => {
       <main className="main-content flex-grow p-6">
         <div className="mb-6">
           <div className="flex items-center mb-2">
-            <button
+            {/* <button
               onClick={() => router.push("/orgpage")}
               className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
             >
               &#8592;
-            </button>
+            </button> */}
             <h1 className="text-3xl font-bold text-black">
               Officers of {organizationName}
             </h1>
             <Link href="/viewofficersofficerview" className="ml-auto">
-              <button className="text-blue-600 hover:text-blue-800 font-medium flex items-center">
-                <span>Edit Officers</span>
-                <svg
-                  className="w-5 h-5 ml-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                  />
-                </svg>
-              </button>
+              <button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200"
+                    style={{ backgroundColor: "#8736EA" }}
+                  >
+                    Edit Officers
+                  </button>
             </Link>
           </div>
           <hr className="border-t-2 border-gray-200" />

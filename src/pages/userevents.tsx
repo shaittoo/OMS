@@ -26,6 +26,7 @@ import { auth, db } from "../firebaseConfig";
 import SearchIcon from "@mui/icons-material/Search";
 import OfficerEditEvent from "../components/officerEditEvent";
 import OfficerAddEvent from "../components/officeraddevent";
+import { toast, ToastContainer } from "react-toastify";
 
 interface Event {
   uid: string;
@@ -51,12 +52,12 @@ interface Event {
 const Header: React.FC<{ onBack: () => void; onAddEvent: () => void }> = ({ onBack, onAddEvent }) => (
   <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-200">
     <div className="flex items-center">
-      <button
+      {/* <button
         onClick={onBack}
         className="mr-4 text-purple-700 hover:text-purple-900 font-bold"
       >
         &#8592;
-      </button>
+      </button> */}
       <div>
         <h1 className="text-3xl font-semibold text-gray-800">Your events</h1>
         <p className="text-lg text-gray-500">Manage and view event details</p>
@@ -163,6 +164,8 @@ const MyEventsView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user] = useAuthState(auth);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
   const [isEditEventOpen, setEditEventOpen] = useState(false);
   const [isAddEventOpen, setAddEventOpen] = useState(false); // State for Add Event form
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -382,7 +385,13 @@ const MyEventsView: React.FC = () => {
                         </button>
                       </td>
                       <td className="px-4 py-2">
-                        <DeleteIcon className="cursor-pointer" onClick={() => handleDelete(event.uid)} />
+                        <DeleteIcon
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setEventToDelete(event);
+                            setShowDeleteModal(true);
+                          }}
+                        />
                       </td>
                     </tr>
                   ))
@@ -409,7 +418,105 @@ const MyEventsView: React.FC = () => {
           onUpdate={handleUpdateEvent}
         />
       )}
+
+      {showDeleteModal && eventToDelete && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+      <p className="text-gray-600 mb-4">
+        Are you sure you want to delete <strong>{eventToDelete.eventName}</strong>?
+      </p>
+      <div className="flex justify-end space-x-3">
+        <button
+          className="px-4 py-2 rounded-md text-gray-600 hover:bg-gray-100"
+          onClick={() => {
+            setShowDeleteModal(false);
+            setEventToDelete(null);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          onClick={async () => {
+            try {
+              await deleteDoc(doc(db, "events", eventToDelete.uid));
+              setEvents((prev) => prev.filter((e) => e.uid !== eventToDelete.uid));
+              setAllEvents((prev) => prev.filter((e) => e.uid !== eventToDelete.uid));
+
+              toast.success("Event deleted successfully", {
+                  style: {
+                    backgroundColor: "rgba(243, 232, 255, 0.95)",
+                    color: "#374151",
+                    borderRadius: "12px",
+                    boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                    fontSize: "14px",
+                    padding: "12px 16px",
+                    minHeight: "48px",
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid rgba(0, 0, 0, 0.05)",
+                    margin: "0 0 16px 0",
+                  },
+                  icon: false,
+                  });
+             } catch (err) {
+              console.error("Error deleting event:", err);
+              setError("Failed to delete event.");
+              toast.error("Failed to delete event", {
+                  style: {
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    color: "#DC2626", // Red text for error
+                    borderRadius: "12px",
+                    boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                    fontSize: "14px",
+                    padding: "12px 16px",
+                    minHeight: "48px",
+                    display: "flex",
+                    alignItems: "center",
+                    border: "1px solid rgba(0, 0, 0, 0.05)",
+                    margin: "0 0 16px 0",
+                  },
+                  icon: false,
+                  });
+            } finally {
+              setShowDeleteModal(false);
+              setEventToDelete(null);
+            }
+          }}
+        >
+          Delete
+        </button>
+      </div>
     </div>
+  </div>
+)}
+
+<ToastContainer
+            position="bottom-right"
+            autoClose={2000}
+            hideProgressBar
+            closeButton={false}
+            closeOnClick
+            pauseOnHover={false}
+            draggable={false}
+            toastStyle={{
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            color: "#374151",
+            borderRadius: "12px",
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+            fontSize: "14px",
+            padding: "12px 16px",
+            minHeight: "48px",
+            display: "flex",
+            alignItems: "center",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+            margin: "0 0 16px 0",
+            }}
+            />
+
+    </div>
+
+    
   );
 };
 
