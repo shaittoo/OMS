@@ -291,6 +291,21 @@ const MemberViewTasks: React.FC = () => {
 		}
 	};
 
+	const handleCheckbox = async (taskId: string, completed: boolean) => {
+				try {
+					const taskRef = doc(db, "tasks", taskId);
+					await updateDoc(taskRef, { completed: !completed });
+		
+					setTasks((prevTasks) =>
+						prevTasks.map((task) =>
+							task.id === taskId ? { ...task, completed: !completed } : task
+						)
+					);
+				} catch (err) {
+					setError("Error updating status for task");
+				}
+			};
+
 	const handleDeleteTask = async (taskId: string) => {
 		if (!window.confirm("Are you sure you want to delete this task?")) return;
 		try {
@@ -315,19 +330,19 @@ const MemberViewTasks: React.FC = () => {
 			<MemberSidebar />
 			<main className="ml-64 p-8">
 				{/* Back to Dashboard Link */}
-				<div className="mb-6 flex justify-between items-center">
-					<Link
-						href="/memberpage"
-						className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-					>
-						<ArrowBackIcon />
-						<span>Back to Dashboard</span>
-					</Link>
+				<div className="mb-6 flex justify-end items-center">
+		
 					<Button
-						variant="contained"
-						color="secondary"
-						onClick={() => handleOpenModal()}
-					>
+					variant="contained"
+                sx={{
+                    backgroundColor: '#9333ea',
+                    '&:hover': {
+                        backgroundColor: '#7e22ce'
+                    },
+					textTransform: 'none'
+                }}
+                onClick={() => handleOpenModal()}
+            >
 						Add Task
 					</Button>
 				</div>
@@ -488,9 +503,9 @@ const MemberViewTasks: React.FC = () => {
 												<input
 													type="checkbox"
 													checked={task.completed}
-													onChange={() => {
-														/* Add completion handler */
-													}}
+													onChange={() =>
+														handleCheckbox(task.id, task.completed)
+													}
 													className="cursor-pointer transform scale-125"
 												/>
 												<h3 className="font-semibold text-lg text-purple-700">

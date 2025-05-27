@@ -226,7 +226,7 @@ function RegisterOrg() {
 						<div>
 							<label
 								htmlFor="tags"
-								className="block text-gray-600 font-medium mb-1"
+								className="block text-gray-600 font-medium mb-1 mt-[-8px]"
 							>
 								Select Organization Tags
 							</label>
@@ -288,65 +288,64 @@ function RegisterOrg() {
 							/>
 						</div>
 
-						<div className="flex items-center pb-5">
-							<div className="w-full md:w-2/3">
-								<label
-									htmlFor="logo"
-									className="block text-gray-600 font-medium mb-1"
-								>
-									Upload Logo
-								</label>
-								<div className="relative">
-									<input
-										type="file"
-										id="logo"
-										accept="image/*"
-										onChange={handleLogoChange}
-										className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 opacity-0"
-									/>
-									<label
-										htmlFor="logo"
-										className="text-purple-500 text-m font-bold underline cursor-pointer absolute top-0 left-0 h-full flex w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none"
-									>
-										Choose Org Logo
-									</label>
-								</div>
-							</div>
-							<div className="w-[120px] h-[120px] rounded-full overflow-hidden ml-7 mt-7 border-2 border-purple-500">
-								{logoPreview ? (
-									<img
-										src={logoPreview}
-										alt="Logo Preview"
-										className="w-full h-full object-cover"
-									/>
-								) : (
-									<div className="w-full h-full bg-gray-300 flex items-center justify-center mb-12">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											className="h-12 w-12 text-gray-500"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-											/>
-										</svg>
-									</div>
-								)}
-							</div>
-						</div>
-
-						<button
-							type="submit"
-							className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-md mt-4 focus:outline-none"
-							disabled={loading}
-						>
-							{loading ? "Registering..." : "Register"}
-						</button>
+						 <div className="space-y-4">
+            <label className="block text-gray-600 font-medium mb-0">
+              Organization Logo
+            </label>
+            <div className="flex items-center space-x-6">
+              <div className="flex-1">
+                <label className="group mt-[-8px] mb-3 relative flex items-center justify-center w-full h-[120px] border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 transition-colors cursor-pointer bg-gray-50">
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleLogoChange}
+                    accept="image/*"
+                  />
+                  <div className="text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400 group-hover:text-purple-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <p className="mt-1 text-sm text-gray-500 group-hover:text-purple-500">
+                      Click to upload logo
+                    </p>
+                  </div>
+                </label>
+              </div>
+              {logoPreview && (
+                <div className="relative w-[120px] h-[120px] rounded-full overflow-hidden border-2 border-purple-500">
+                  <img
+                    src={logoPreview}
+                    alt="Logo Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+			
+			<button
+            type="submit"
+            disabled={loading}
+            className="w-full h-[55px] relative
+							font-sans font-semibold text-base text-white
+							cursor-pointer border-none rounded-[3px]
+							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+							bg-[length:300%_100%] bg-left hover:bg-right
+							transition-[background-position] duration-500 ease-in-out
+							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+              </span>
+            ) : (
+              "Register Organization"
+            )}
+          </button>
 					</form>
 					<p className="text-center mt-4 text-gray-600">
 						Already have an account?{" "}
@@ -360,25 +359,26 @@ function RegisterOrg() {
 				</div>
 
 				{/* Right Side - OMS Welcome Section */}
-				<div className="w-full md:w-1/2 bg-gradient-to-tr from-purple-200 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
-					<img
-						src="./assets/OMSLOGO.png"
-						alt="OMS Logo"
-						className="h-32 mb-6"
-					/>
-					<h1 className="text-3xl font-extrabold mb-4 text-center text-purple-800 drop-shadow-lg">
-						Welcome to OMS
-					</h1>
-					<p className="text-lg text-center mb-6 text-purple-800 drop-shadow-lg">
-						Register your organization and start managing it efficiently with
-						us.
-					</p>
-					<p className="text-center mt-8 text-sm text-purple-800 drop-shadow-lg">
-						www.organizationmanagementsystem.com
-					</p>
-				</div>
-			</div>
-		</div>
+	<div className="hidden md:flex md:w-1/2 bg-gradient-to-r from-purple-600/30 to-indigo-600/30 
+  backdrop-filter backdrop-blur-lg
+  p-10 flex-col justify-center items-center">
+	<div className="bg-white/20 backdrop-blur-sm rounded-2xl p-8 w-full max-w-md 
+		shadow-xl border border-white/20">
+          <img
+            src="/assets/OMSLOGO.png"
+            alt="OMS Logo"
+            className="h-32 mx-auto mb-8 drop-shadow-xl transform hover:scale-105 transition-all duration-300"
+          />
+          <h1 className="text-4xl font-bold mb-2 text-purple-900 text-center">
+            Welcome to OMS
+          </h1>
+          <p className="text-lg text-purple-900 text-center mb-6">
+            Register your organization and start managing it efficiently with us.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
 	);
 }
 

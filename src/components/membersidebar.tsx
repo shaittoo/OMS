@@ -206,7 +206,7 @@ const MemberSidebar: React.FC = () => {
         </div>
 
         <div
-          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-red-100 hover:text-red-600  transition-colors cursor-pointer"
           onClick={() => setShowLogoutModal(true)}
         >
           <LogoutIcon />
