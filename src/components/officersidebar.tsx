@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupIcon from "@mui/icons-material/Group";
 import EventIcon from "@mui/icons-material/Event";
@@ -15,42 +15,14 @@ import { auth } from "../firebaseConfig";
 import { useRouter } from "next/router";
 import OfficerAddTask from "./officeraddtask";
 import OfficerAddEvent from "./officeraddevent";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
-import { useAuthState } from "react-firebase-hooks/auth";
 
-const OfficerSidebar: React.FC<{ orgId: string }> = ({ orgId }) => {
+const OfficerSidebar: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [dashboardHover, setDashboardHover] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [user] = useAuthState(auth); // Get current user
-  const [pendingCount, setPendingCount] = useState(0);
   const router = useRouter();
-
-  // useEffect(() => {
-    // Fetch the number of pending applicants for this org
-  //   const fetchPendingCount = async () => {
-  //     if (!orgId) {
-  //       setPendingCount(0);
-  //       return;
-  //     }
-  //     try {
-  //       const q = query(
-  //         collection(db, "Members"),
-  //         where("status", "==", "pending"),
-  //         where("organizationId", "==", orgId)
-  //       );
-  //       const snapshot = await getDocs(q);
-  //       setPendingCount(snapshot.size);
-  //     } catch (error) {
-  //       setPendingCount(0);
-  //     }
-  //   };
-  //   fetchPendingCount();
-  // }, [orgId]);
 
   const handleLogout = async () => {
     try {
@@ -88,7 +60,6 @@ const OfficerSidebar: React.FC<{ orgId: string }> = ({ orgId }) => {
             >
               <DashboardIcon />
               <span className="ml-3 text-md font-medium">Dashboard</span>
-              <KeyboardArrowRightIcon className="ml-auto text-gray-400" fontSize="small" />
             </button>
             {/* Hover menu appears to the right of the sidebar */}
             {dashboardHover && (
@@ -161,15 +132,7 @@ const OfficerSidebar: React.FC<{ orgId: string }> = ({ orgId }) => {
             </a>
           </Link>
 
-          {/* Pending Applicants Link with badge */}
-          <div className="relative">
-            <PendingApplicantsLink />
-            {pendingCount > 0 && (
-              <span className="absolute right-6 top-3 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                {pendingCount}
-              </span>
-            )}
-          </div>
+          <PendingApplicantsLink />
 
           <hr className="my-4 border-gray-300" />
 
