@@ -50,6 +50,23 @@ const MemberNotifications: React.FC = () => {
     );
   };
 
+  const markSelectedAsRead = async () => {
+    if (selected.length === 0) return;
+    const batch = writeBatch(db);
+    selected.forEach((id) => {
+      const notif = notifications.find((n) => n.id === id);
+      if (notif && !notif.read) {
+        batch.update(doc(db, "notifications", id), { read: true });
+      }
+    });
+    await batch.commit();
+    setNotifications((prev) =>
+      prev.map((notif) => 
+        selected.includes(notif.id) ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
   const deleteNotification = async (id: string) => {
     await deleteDoc(doc(db, "notifications", id));
     setNotifications((prev) => prev.filter((notif) => notif.id !== id));
@@ -64,6 +81,17 @@ const MemberNotifications: React.FC = () => {
     });
     await batch.commit();
     setNotifications((prev) => prev.filter((notif) => !selected.includes(notif.id)));
+    setSelected([]);
+  };
+
+  const deleteAllNotifications = async () => {
+    if (notifications.length === 0) return;
+    const batch = writeBatch(db);
+    notifications.forEach((notif) => {
+      batch.delete(doc(db, "notifications", notif.id));
+    });
+    await batch.commit();
+    setNotifications([]);
     setSelected([]);
   };
 
@@ -90,23 +118,51 @@ const MemberNotifications: React.FC = () => {
         <div className="py-2">
         </div>
 
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">Notifications</h2>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={markAllAsRead}
-              disabled={notifications.every((notif) => notif.read)}
-              className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold hover:bg-purple-200 transition disabled:opacity-50"
-            >
-              Mark all as read
-            </button>
-            <button
-              onClick={deleteSelectedNotifications}
-              disabled={selected.length === 0}
-              className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200 transition disabled:opacity-50"
-            >
-              Delete Selected
-            </button>
+          
+          <div className="flex items-center space-x-3">
+            {/* Mark as Read Group */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={markAllAsRead}
+                disabled={notifications.every((notif) => notif.read)}
+                className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-800 
+                  disabled:text-purple-300 transition-colors duration-200"
+              >
+                Mark all as read
+              </button>
+              {selected.length > 0 && (
+                <button
+                  onClick={markSelectedAsRead}
+                  disabled={selected.every(id => notifications.find(n => n.id === id)?.read)}
+                  className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-800 
+                    disabled:text-purple-300 transition-colors duration-200"
+                >
+                  Mark selected as read
+                </button>
+              )}
+            </div>
+
+            {/* Delete Group - with separator */}
+            <div className="flex items-center space-x-2 pl-3 border-l border-gray-200">
+              <button
+                onClick={deleteSelectedNotifications}
+                disabled={selected.length === 0}
+                className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 
+                  disabled:text-red-300 transition-colors duration-200"
+              >
+                Delete selected
+              </button>
+              <button
+                onClick={deleteAllNotifications}
+                disabled={notifications.length === 0}
+                className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 
+                  disabled:text-red-300 transition-colors duration-200"
+              >
+                Delete all
+              </button>
+            </div>
           </div>
         </div>
 
@@ -128,16 +184,7 @@ const MemberNotifications: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={selected.includes(notif.id)}
-                  onChange={async () => {
-                    if (selected.includes(notif.id)) {
-                      setSelected(selected.filter((sid) => sid !== notif.id));
-                    } else {
-                      setSelected([...selected, notif.id]);
-                      if (!notif.read) {
-                        await markAsRead(notif.id);
-                      }
-                    }
-                  }}
+                  onChange={() => toggleSelect(notif.id)}
                   className="mt-1 mr-3"
                 />
                 <div className="flex-1">

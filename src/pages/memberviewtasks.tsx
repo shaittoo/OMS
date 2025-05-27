@@ -129,7 +129,6 @@ const MemberViewTasks: React.FC = () => {
 				);
 			}
 
-			// Fetch personal tasks (organizationId is member's name)
 			const personalTasksQuery = query(
 				collection(db, "tasks"),
 				where("organizationId", "==", ""),
@@ -139,6 +138,17 @@ const MemberViewTasks: React.FC = () => {
 			const personalTasks = await Promise.all(
 				personalTasksSnapshot.docs.map(async (taskDoc) => {
 					const data = taskDoc.data();
+					const memberNames = await Promise.all(
+						(data.assignedMembers || []).map(async (uid: string) => {
+							const userDocRef = doc(db, "Users", uid);
+							const userDoc = await getDoc(userDocRef);
+							if (userDoc.exists()) {
+								const userData = userDoc.data();
+								return userData.fullName || "Unknown Member";
+							}
+							return "Unknown Member";
+						})
+					);
 					return {
 						id: taskDoc.id,
 						taskName: data.taskName || "Untitled Task",
@@ -147,7 +157,7 @@ const MemberViewTasks: React.FC = () => {
 							? new Date(data.dueDate.seconds * 1000).toLocaleString()
 							: "No due date",
 						priority: data.priority || "Medium",
-						assignedMembers: data.assignedMembers || [],
+						assignedMembers: memberNames || [],
 						completed: data.completed || false,
 						organizationId: data.organizationId || "",
 						organizationName: "Self Task",
@@ -330,19 +340,19 @@ const MemberViewTasks: React.FC = () => {
 			<MemberSidebar />
 			<main className="ml-64 p-8">
 				{/* Back to Dashboard Link */}
-				<div className="mb-6 flex justify-between items-center">
-					<Link
-						href="/memberpage"
-						className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-					>
-						<ArrowBackIcon />
-						<span>Back to Dashboard</span>
-					</Link>
+				<div className="mb-6 flex justify-end items-center">
+		
 					<Button
-						variant="contained"
-						color="secondary"
-						onClick={() => handleOpenModal()}
-					>
+					variant="contained"
+                sx={{
+                    backgroundColor: '#9333ea',
+                    '&:hover': {
+                        backgroundColor: '#7e22ce'
+                    },
+					textTransform: 'none'
+                }}
+                onClick={() => handleOpenModal()}
+            >
 						Add Task
 					</Button>
 				</div>

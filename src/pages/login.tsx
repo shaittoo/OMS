@@ -84,12 +84,12 @@ function Login() {
 					<img
 						src="/assets/OMSLOGO.png"
 						alt="OMS Logo"
-						className="h-32 mb-4"
+						className="h-32 mb-4 mt-2"
 					/>
-					<h1 className="text-3xl font-bold mb-4 text-center text-purple-800 drop-shadow-lg">
+					<h1 className="text-4xl font-bold mb-8 text-center text-purple-800 drop-shadow-lg">
 						Welcome to OMS
 					</h1>
-					<p className="text-lg text-center mb-8 text-purple-800 drop-shadow-lg">
+					<p className="text-lg text-center mb-2 text-purple-800 drop-shadow-lg">
 						Sign in to continue access.
 					</p>
 					<div className="flex flex-col items-center">
@@ -111,7 +111,7 @@ function Login() {
           </p>
 				</div>
 				{/* Right Side (Form) */}
-				<div className="w-1/2 p-8">
+				<div className="w-1/2 p-8 pb-1 pt-10">
 					<h3 className="text-2xl font-bold text-center mb-6">SIGN IN</h3>
 					<form onSubmit={handleSubmit}>
 						<div className="mb-3">
@@ -147,12 +147,18 @@ function Login() {
 							/>
 						</div>
 						<div className="d-grid">
-							<button
-								type="submit"
-								className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-							>
-								Submit
-							</button>
+						<button
+						type="submit"
+						className="w-full h-[55px] relative
+							font-sans font-semibold text-base text-white
+							cursor-pointer border-none rounded-[3px]
+							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+							bg-[length:300%_100%] bg-left hover:bg-right
+							transition-[background-position] duration-500 ease-in-out
+							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+						>
+						<span className="relative z-10">Submit</span>
+						</button>
 						</div>
 					</form>
 					<p className="text-center mt-4">

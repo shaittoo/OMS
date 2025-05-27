@@ -303,6 +303,7 @@ const OrgViewTasks: React.FC = () => {
 					description: formState.description,
 					dueDate: dueDateObj,
 					priority: formState.priority,
+					assignedMembers: assignedMembers,
 				});
 			} else {
 				// Create

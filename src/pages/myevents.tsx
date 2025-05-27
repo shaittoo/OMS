@@ -175,7 +175,7 @@ const MyEvents: React.FC = () => {
           {interestedEvents.length > 0 && (
             <Link href="/memberviewevents" className="ml-4">
               <button className="text-sm bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition duration-200">
-                All Events
+                View All Events
               </button>
             </Link>
           )}
@@ -223,16 +223,27 @@ const MyEvents: React.FC = () => {
                   <EventIcon /> {formatDate(event.eventDate)}
                 </p>
                 <div className="flex items-center mt-4">
-                  <button
-                    onClick={() => handleInterestedClick(event.id, event.isInterested)}
-                    className={`px-4 py-2 rounded-md ${
-                      event.isInterested
-                        ? "bg-gray-500 text-white"
-                        : "bg-blue-500 text-white"
-                    }`}
-                  >
-                    {event.isInterested ? "Interested" : "Interested?"}
-                  </button>
+                  <div className="group relative">
+                    <button
+                      onClick={() => handleInterestedClick(event.id, event.isInterested)}
+                      className={`px-4 py-2 rounded-md ${
+                        event.isInterested
+                          ? "bg-gray-500 text-white"
+                          : "bg-blue-500 text-white"
+                      }`}
+                    >
+                      {event.isInterested ? "Interested" : "Interested?"}
+                    </button>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1
+                      bg-gray-800 text-white text-sm rounded-md whitespace-nowrap opacity-0 
+                      group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      {event.isInterested ? "Unsave this event" : "Save this event"}
+                      {/* Triangle pointer */}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 
+                        border-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
