@@ -94,7 +94,7 @@ const MemberOrg: React.FC = () => {
       <main className="ml-64 p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
           {/* Main Content - Events */}
-          <div className="w-full">
+          <div className="w-full flex flex-col h-full">
             {/* Back to Dashboard Link */}
             <div className="py-2">
             </div>
@@ -110,7 +110,9 @@ const MemberOrg: React.FC = () => {
             {/* Events Section */}
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">Events</h2>
-              <MemberEventList organizationId={orgId as string} />
+              <div className="max-h-[900px] overflow-y-auto hover:scrollbar-thin hover:scrollbar-thumb-gray-400 hover:scrollbar-track-gray-100 rounded transition-all duration-200">
+                <MemberEventList organizationId={orgId as string} />
+              </div>
             </div>
           </div>
 
@@ -124,6 +126,13 @@ const MemberOrg: React.FC = () => {
             {/* Tasks Section */}
             <div className="mb-8">
               <MemTaskList organizationId={orgId as string} />
+              <div className="mt-4 text-right">
+                <Link href={`/memberviewtasks?orgId=${orgId}`}>
+                  <p className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer">
+                    View More
+                  </p>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

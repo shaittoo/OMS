@@ -307,6 +307,44 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
     });
   };
 
+  // Like toggle handler (optimistic UI update, like memberviewevents)
+  const handleLikeToggle = async (eventId: string, isLiked: boolean) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Optimistically update UI
+    setUserLikedEvents(prev => ({
+      ...prev,
+      [eventId]: !isLiked
+    }));
+    setEventLikes(prev => ({
+      ...prev,
+      [eventId]: !isLiked ? (prev[eventId] + 1) : (prev[eventId] - 1)
+    }));
+
+    try {
+      const userRef = doc(db, "Users", user.uid);
+      const eventRef = doc(db, "events", eventId);
+      await updateDoc(userRef, {
+        likedEvents: !isLiked ? arrayUnion(eventId) : arrayRemove(eventId)
+      });
+      await updateDoc(eventRef, {
+        likes: !isLiked ? arrayUnion(user.uid) : arrayRemove(user.uid)
+      });
+    } catch (error) {
+      // Revert UI on error
+      setUserLikedEvents(prev => ({
+        ...prev,
+        [eventId]: isLiked
+      }));
+      setEventLikes(prev => ({
+        ...prev,
+        [eventId]: isLiked ? (prev[eventId] + 1) : (prev[eventId] - 1)
+      }));
+      showToast('error', 'Failed to update like status');
+    }
+  };
+
   const handleEventAction = async (eventId: string, action: "like" | "interest") => {
     const user = auth.currentUser;
     if (!user) return;
@@ -666,7 +704,7 @@ export default function MemberEventList({ organizationId }: MemberEventListProps
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEventAction(event.id, "like");
+                          handleLikeToggle(event.id, userLikedEvents[event.id]);
                         }}
                         className={`p-1.5 rounded-full hover:bg-gray-100 ${userLikedEvents[event.id] ? 'text-blue-600' : 'text-gray-600'}`}
                         aria-label={userLikedEvents[event.id] ? "Unlike" : "Like"}
