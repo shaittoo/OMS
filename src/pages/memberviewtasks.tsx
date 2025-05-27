@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebaseConfig";
-import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+	doc,
+	getDoc,
+	collection,
+	query,
+	where,
+	getDocs,
+	addDoc,
+	updateDoc,
+	deleteDoc,
+} from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import MemberSidebar from "../components/membersidebar";
 import Link from "next/link";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
@@ -13,257 +23,294 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 
 interface Task {
-  id: string;
-  taskName: string;
-  description: string;
-  dueDate: string;
-  priority: string;
-  assignedMembers: string[];
-  completed: boolean;
-  organizationId: string;
-  organizationName: string;
+	id: string;
+	taskName: string;
+	description: string;
+	dueDate: string;
+	priority: string;
+	assignedMembers: string[];
+	completed: boolean;
+	organizationId: string;
+	organizationName: string;
 }
 
 const MemberViewTasks: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("All");
-  const [currentPage, setCurrentPage] = useState(1);
-  const tasksPerPage = 8;
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [formState, setFormState] = useState({
-    taskName: "",
-    description: "",
-    dueDate: "",
-    priority: "Medium",
-  });
-  const [formError, setFormError] = useState<string | null>(null);
+	const [tasks, setTasks] = useState<Task[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [activeTab, setActiveTab] = useState<string>("All");
+	const [currentPage, setCurrentPage] = useState(1);
+	const tasksPerPage = 8;
+	const [modalOpen, setModalOpen] = useState(false);
+	const [editTask, setEditTask] = useState<Task | null>(null);
+	const [formState, setFormState] = useState({
+		taskName: "",
+		description: "",
+		dueDate: "",
+		priority: "Medium",
+	});
+	const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      setError(null);
+	const fetchTasks = async () => {
+		setLoading(true);
+		setError(null);
 
-      const user = auth.currentUser;
-      if (!user) {
-        setError("You must be logged in to view tasks.");
-        setLoading(false);
-        return;
-      }
+		const user = auth.currentUser;
+		if (!user) {
+			setError("You must be logged in to view tasks.");
+			setLoading(false);
+			return;
+		}
 
-      try {
-        // Fetch user's organizations
-        const membersRef = collection(db, "Members");
-        const membersQuery = query(
-          membersRef,
-          where("uid", "==", user.uid),
-          where("status", "==", "approved")
-        );
-        const membersSnapshot = await getDocs(membersQuery);
-        const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
+		try {
+			// Fetch user's organizations
+			const membersRef = collection(db, "Members");
+			const membersQuery = query(
+				membersRef,
+				where("uid", "==", user.uid),
+				where("status", "==", "approved")
+			);
+			const membersSnapshot = await getDocs(membersQuery);
+			const userOrganizations = membersSnapshot.docs.map(
+				(doc) => doc.data().organizationId
+			);
 
-        if (userOrganizations.length === 0) {
-          setTasks([]);
-          setLoading(false);
-          return;
-        }
+			// Fetch user's name for personal tasks
+			const userDoc = await getDoc(doc(db, "Users", user.uid));
+			const userData = userDoc.exists() ? userDoc.data() : null;
+			const memberName = userData?.fullName || user.uid;
 
-        // Fetch tasks from all organizations
-        const tasksQuery = query(
-          collection(db, "tasks"),
-          where("organizationId", "in", userOrganizations),
-          where("assignedMembers", "array-contains", user.uid)
-        );
-        const tasksSnapshot = await getDocs(tasksQuery);
+			// Fetch org tasks
+			let orgTasks: Task[] = [];
+			if (userOrganizations.length > 0) {
+				const orgTasksQuery = query(
+					collection(db, "tasks"),
+					where("organizationId", "in", userOrganizations),
+					where("assignedMembers", "array-contains", user.uid)
+				);
+				const orgTasksSnapshot = await getDocs(orgTasksQuery);
+				orgTasks = await Promise.all(
+					orgTasksSnapshot.docs.map(async (taskDoc) => {
+						const data = taskDoc.data();
+						let organizationName = "Unknown Organization";
+						if (data.organizationId) {
+							const orgDocRef = doc(db, "Organizations", data.organizationId);
+							const orgDoc = await getDoc(orgDocRef);
+							if (orgDoc.exists()) {
+								const orgData = orgDoc.data();
+								organizationName = orgData.name || "Unknown Organization";
+							}
+						}
+						const memberNames = await Promise.all(
+							(data.assignedMembers || []).map(async (uid: string) => {
+								const userDocRef = doc(db, "Users", uid);
+								const userDoc = await getDoc(userDocRef);
+								if (userDoc.exists()) {
+									const userData = userDoc.data();
+									return userData.fullName || "Unknown Member";
+								}
+								return "Unknown Member";
+							})
+						);
+						return {
+							id: taskDoc.id,
+							taskName: data.taskName || "Untitled Task",
+							description: data.description || "",
+							dueDate: data.dueDate
+								? new Date(data.dueDate.seconds * 1000).toLocaleString()
+								: "No due date",
+							priority: data.priority || "Medium",
+							assignedMembers: memberNames,
+							completed: data.completed || false,
+							organizationId: data.organizationId || "",
+							organizationName: organizationName,
+						} as Task;
+					})
+				);
+			}
 
-        const tasksList = await Promise.all(tasksSnapshot.docs.map(async (taskDoc) => {
-          const data = taskDoc.data();
+			// Fetch personal tasks (organizationId is member's name)
+			const personalTasksQuery = query(
+				collection(db, "tasks"),
+				where("organizationId", "==", ""),
+				where("assignedMembers", "array-contains", user.uid)
+			);
+			const personalTasksSnapshot = await getDocs(personalTasksQuery);
+			const personalTasks = await Promise.all(
+				personalTasksSnapshot.docs.map(async (taskDoc) => {
+					const data = taskDoc.data();
+					return {
+						id: taskDoc.id,
+						taskName: data.taskName || "Untitled Task",
+						description: data.description || "",
+						dueDate: data.dueDate
+							? new Date(data.dueDate.seconds * 1000).toLocaleString()
+							: "No due date",
+						priority: data.priority || "Medium",
+						assignedMembers: data.assignedMembers || [],
+						completed: data.completed || false,
+						organizationId: data.organizationId || "",
+						organizationName: "Self Task",
+					} as Task;
+				})
+			);
 
-          // Fetch organization name
-          let organizationName = "Unknown Organization";
-          if (data.organizationId) {
-            const orgDocRef = doc(db, "Organizations", data.organizationId);
-            const orgDoc = await getDoc(orgDocRef);
-            if (orgDoc.exists()) {
-              const orgData = orgDoc.data();
-              organizationName = orgData.name || "Unknown Organization";
-            }
-          }
+			// Combine and sort
+			const allTasks = [...orgTasks, ...personalTasks];
+			allTasks.sort((a, b) => {
+				const dateA =
+					a.dueDate === "No due date" ? new Date(0) : new Date(a.dueDate);
+				const dateB =
+					b.dueDate === "No due date" ? new Date(0) : new Date(b.dueDate);
+				return dateA.getTime() - dateB.getTime();
+			});
 
-          // Fetch assigned members' names
-          const memberNames = await Promise.all(
-            (data.assignedMembers || []).map(async (uid: string) => {
-              const userDocRef = doc(db, "Users", uid);
-              const userDoc = await getDoc(userDocRef);
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                return userData.fullName || "Unknown Member";
-              }
-              return "Unknown Member";
-            })
-          );
+			setTasks(allTasks);
+		} catch (error) {
+			console.error("Error fetching tasks:", error);
+			setError("Error fetching tasks. Please try again later.");
+		} finally {
+			setLoading(false);
+		}
+	};
 
-          return {
-            id: taskDoc.id,
-            taskName: data.taskName || "Untitled Task",
-            description: data.description || "",
-            dueDate: data.dueDate ? new Date(data.dueDate.seconds * 1000).toLocaleString() : "No due date",
-            priority: data.priority || "Medium",
-            assignedMembers: memberNames,
-            completed: data.completed || false,
-            organizationId: data.organizationId || "",
-            organizationName: organizationName,
-          } as Task;
-        }));
+	useEffect(() => {
+		fetchTasks();
+	}, []);
 
-        // Sort tasks by due date
-        tasksList.sort((a, b) => {
-          const dateA = a.dueDate === "No due date" ? new Date(0) : new Date(a.dueDate);
-          const dateB = b.dueDate === "No due date" ? new Date(0) : new Date(b.dueDate);
-          return dateA.getTime() - dateB.getTime();
-        });
+	// Filter tasks based on active tab
+	const filteredTasks = tasks.filter((task) => {
+		if (activeTab === "All") return true;
+		if (activeTab === "Completed") return task.completed;
+		if (activeTab === "Not Completed") return !task.completed;
+		return true;
+	});
 
-        setTasks(tasksList);
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
-        setError("Error fetching tasks. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+	// Calculate pagination
+	const indexOfLastTask = currentPage * tasksPerPage;
+	const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+	const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
+	const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
 
-    fetchTasks();
-  }, []);
+	const handlePageChange = (pageNumber: number) => {
+		setCurrentPage(pageNumber);
+	};
 
-  // Filter tasks based on active tab
-  const filteredTasks = tasks.filter((task) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Completed") return task.completed;
-    if (activeTab === "Not Completed") return !task.completed;
-    return true;
-  });
+	// CRUD Handlers
+	const handleOpenModal = (task?: Task) => {
+		if (task) {
+			setEditTask(task);
+			setFormState({
+				taskName: task.taskName,
+				description: task.description,
+				dueDate: task.dueDate
+					? new Date(task.dueDate).toISOString().slice(0, 16)
+					: "",
+				priority: task.priority,
+			});
+		} else {
+			setEditTask(null);
+			setFormState({
+				taskName: "",
+				description: "",
+				dueDate: "",
+				priority: "Medium",
+			});
+		}
+		setFormError(null);
+		setModalOpen(true);
+	};
 
-  // Calculate pagination
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
-  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+	const handleCloseModal = () => {
+		setModalOpen(false);
+		setEditTask(null);
+		setFormError(null);
+	};
 
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-  };
+	const handleFormChange = (
+		e: React.ChangeEvent<
+			HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+		>
+	) => {
+		setFormState({ ...formState, [e.target.name]: e.target.value });
+	};
 
-  // CRUD Handlers
-  const handleOpenModal = (task?: Task) => {
-    if (task) {
-      setEditTask(task);
-      setFormState({
-        taskName: task.taskName,
-        description: task.description,
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
-        priority: task.priority,
-      });
-    } else {
-      setEditTask(null);
-      setFormState({ taskName: "", description: "", dueDate: "", priority: "Medium" });
-    }
-    setFormError(null);
-    setModalOpen(true);
-  };
+	const handleFormSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setFormError(null);
+		const user = auth.currentUser;
+		if (!user) return;
+		if (!formState.taskName || !formState.dueDate) {
+			setFormError("Task name and due date are required.");
+			return;
+		}
+		try {
+			// Fetch user's name for personal tasks
+			const userDoc = await getDoc(doc(db, "Users", user.uid));
+			const userData = userDoc.exists() ? userDoc.data() : null;
+			const memberName = userData?.fullName || user.uid;
+			const assignedMembers = [user.uid];
+			const dueDate = new Date(formState.dueDate);
+			const dueDateObj = {
+				seconds: Math.floor(dueDate.getTime() / 1000),
+				nanoseconds: 0,
+			};
+			if (editTask) {
+				// Update
+				const taskRef = doc(db, "tasks", editTask.id);
+				await updateDoc(taskRef, {
+					taskName: formState.taskName,
+					description: formState.description,
+					dueDate: dueDateObj,
+					priority: formState.priority,
+				});
+			} else {
+				// Create personal task with organizationId as member's name
+				await addDoc(collection(db, "tasks"), {
+					taskName: formState.taskName,
+					description: formState.description,
+					dueDate: dueDateObj,
+					priority: formState.priority,
+					assignedMembers,
+					completed: false,
+					organizationId: "",
+				});
+			}
+			setModalOpen(false);
+			setEditTask(null);
+			setFormState({
+				taskName: "",
+				description: "",
+				dueDate: "",
+				priority: "Medium",
+			});
+			setCurrentPage(1);
+			await fetchTasks(); // Use the real fetchTasks function!
+		} catch (err) {
+			setFormError("Error saving task. Please try again.");
+		}
+	};
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setEditTask(null);
-    setFormError(null);
-  };
+	const handleDeleteTask = async (taskId: string) => {
+		if (!window.confirm("Are you sure you want to delete this task?")) return;
+		try {
+			await deleteDoc(doc(db, "tasks", taskId));
+			// Refresh tasks
+			setTasks(tasks.filter((t) => t.id !== taskId));
+		} catch (err) {
+			alert("Error deleting task.");
+		}
+	};
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormState({ ...formState, [e.target.name]: e.target.value });
-  };
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-screen">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+			</div>
+		);
+	}
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    const user = auth.currentUser;
-    if (!user) return;
-    if (!formState.taskName || !formState.dueDate) {
-      setFormError("Task name and due date are required.");
-      return;
-    }
-    try {
-      // Fetch user's organizations
-      const membersRef = collection(db, "Members");
-      const membersQuery = query(
-        membersRef,
-        where("uid", "==", user.uid),
-        where("status", "==", "approved")
-      );
-      const membersSnapshot = await getDocs(membersQuery);
-      const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
-      const defaultOrg = userOrganizations[0] || "";
-      const assignedMembers = [user.uid];
-      const dueDate = new Date(formState.dueDate);
-      const dueDateObj = { seconds: Math.floor(dueDate.getTime() / 1000), nanoseconds: 0 };
-      if (editTask) {
-        // Update
-        const taskRef = doc(db, "tasks", editTask.id);
-        await updateDoc(taskRef, {
-          taskName: formState.taskName,
-          description: formState.description,
-          dueDate: dueDateObj,
-          priority: formState.priority,
-        });
-      } else {
-        // Create
-        await addDoc(collection(db, "tasks"), {
-          taskName: formState.taskName,
-          description: formState.description,
-          dueDate: dueDateObj,
-          priority: formState.priority,
-          assignedMembers,
-          completed: false,
-          organizationId: defaultOrg,
-        });
-      }
-      setModalOpen(false);
-      setEditTask(null);
-      setFormState({ taskName: "", description: "", dueDate: "", priority: "Medium" });
-      // Refresh tasks
-      setCurrentPage(1);
-      // Re-fetch tasks
-      const fetchTasks = async () => {
-        setLoading(true);
-        setError(null);
-        // ... (copy fetchTasks logic from above) ...
-      };
-      fetchTasks();
-    } catch (err) {
-      setFormError("Error saving task. Please try again.");
-    }
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
-    try {
-      await deleteDoc(doc(db, "tasks", taskId));
-      // Refresh tasks
-      setTasks(tasks.filter(t => t.id !== taskId));
-    } catch (err) {
-      alert("Error deleting task.");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  return (
+	return (
 		<div className="min-h-screen bg-white">
 			<MemberSidebar />
 			<main className="ml-64 p-8">
@@ -451,7 +498,9 @@ const MemberViewTasks: React.FC = () => {
 												</h3>
 											</div>
 											<span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-												{task.organizationName}
+												{task.organizationName == "Unknown Organization"
+													? "Self Task"
+													: task.organizationName}
 											</span>
 										</div>
 
@@ -473,24 +522,26 @@ const MemberViewTasks: React.FC = () => {
 										</div>
 
 										<p className="text-gray-600">{task.description}</p>
-										<div className="flex gap-2 justify-end mt-2">
-                      <Button
-                        size="small"
-                        color="primary"
-                        onClick={() => handleOpenModal(task)}
-                        className="!bg-purple-600 !text-white !px-4 !py-1 !rounded hover:!bg-purple-700 transition-colors duration-200"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="!bg-red-500 !text-white !px-4 !py-1 !rounded hover:!bg-red-600 transition-colors duration-200"
-                      >
-                        Delete
-                      </Button>
-										</div>
+										{task.organizationId == "" && (
+											<div className="flex gap-2 justify-end mt-2">
+												<Button
+													size="small"
+													color="primary"
+													onClick={() => handleOpenModal(task)}
+													className="!bg-purple-600 !text-white !px-4 !py-1 !rounded hover:!bg-purple-700 transition-colors duration-200"
+												>
+													Edit
+												</Button>
+												<Button
+													size="small"
+													color="error"
+													onClick={() => handleDeleteTask(task.id)}
+													className="!bg-red-500 !text-white !px-4 !py-1 !rounded hover:!bg-red-600 transition-colors duration-200"
+												>
+													Delete
+												</Button>
+											</div>
+										)}
 									</div>
 								))}
 							</div>
@@ -535,4 +586,4 @@ const MemberViewTasks: React.FC = () => {
 	);
 };
 
-export default MemberViewTasks; 
+export default MemberViewTasks;
