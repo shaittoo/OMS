@@ -21,6 +21,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import MemberProfileSettings from "./memberprofilesettings";
 import ApplicationStatusLink from "./AppStatusLink";
+import AssignmentIcon from "@mui/icons-material/Assignment"; // Optional: for a tasks icon
 
 const MemberSidebar: React.FC = () => {
   const [userOrganizations, setUserOrganizations] = useState<any[]>([]);
@@ -155,6 +156,15 @@ const MemberSidebar: React.FC = () => {
           <span className="ml-3 text-md font-medium">My Events</span>
         </Link>
 
+        {/* My Tasks */}
+        <Link
+          href="./memberowntasks"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors"
+        >
+          <AssignmentIcon className="mr-3" />
+          <span>My Tasks</span>
+        </Link>
+
         {/* Divider before organizations */}
         <hr className="my-2 border-gray-300" />
 
@@ -206,7 +216,7 @@ const MemberSidebar: React.FC = () => {
         </div>
 
         <div
-          className="flex items-center px-6 py-3 text-gray-600 hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer"
+          className="flex items-center px-6 py-3 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors w-full cursor-pointer"
           onClick={() => setShowLogoutModal(true)}
         >
           <LogoutIcon />

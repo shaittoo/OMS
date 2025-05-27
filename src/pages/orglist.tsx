@@ -19,12 +19,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 const Header: React.FC = () => (
   <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
-    <div className="py-2">
-      <Link href="/memberpage" className="flex items-center space-x-2 text-gray-600 hover:text-gray-800">
-        <ArrowBackIcon />
-        <span>Back to Dashboard</span>
-      </Link>
-    </div>
     <div>
       <p className="text-lg text-gray-500">What organization would you like to join?</p>
     </div>
@@ -119,6 +113,29 @@ const DropdownMenu: React.FC<{
   </Menu>
 );
 
+const Modal: React.FC<{ open: boolean; onClose: () => void; children: React.ReactNode }> = ({
+  open,
+  onClose,
+  children,
+}) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[300px]">
+        {children}
+        <div className="mt-4 flex justify-end">
+          <button
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            onClick={onClose}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const OrgList: React.FC = () => {
   const [organizations, setOrganizations] = useState<Array<{
     id: string;
@@ -133,6 +150,8 @@ const OrgList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>("All");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMsg, setModalMsg] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -199,7 +218,8 @@ const OrgList: React.FC = () => {
     const userId = auth.currentUser?.uid;
 
     if (!userId) {
-      alert("You must be logged in to join an organization.");
+      setModalMsg("You must be logged in to join an organization.");
+      setModalOpen(true);
       return;
     }
 
@@ -211,7 +231,8 @@ const OrgList: React.FC = () => {
       );
       const snapshot = await getDocs(memberQuery);
       if (!snapshot.empty) {
-        alert("You've already requested to join this organization.");
+        setModalMsg("You've already requested to join this organization.");
+        setModalOpen(true);
         return;
       }
 
@@ -224,10 +245,12 @@ const OrgList: React.FC = () => {
       });
 
       setJoinedOrgs((prev) => [...prev, organizationId]);
-      alert("Request sent for approval.");
+      setModalMsg("Request sent for approval.");
+      setModalOpen(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to send join request.");
+      setModalMsg("Failed to send join request.");
+      setModalOpen(true);
     }
   };
 
@@ -308,6 +331,10 @@ const OrgList: React.FC = () => {
             )}
           </div>
         </div>
+        {/* Modal for join request feedback */}
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+          <div className="text-center text-gray-800">{modalMsg}</div>
+        </Modal>
       </main>
     </div>
   );
