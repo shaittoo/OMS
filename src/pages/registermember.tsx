@@ -156,7 +156,7 @@ function RegisterMember() {
 					<h1 className="text-3xl font-bold mb-4 text-center text-purple-800 drop-shadow-lg">
 						Welcome to OMS
 					</h1>
-					<p className="text-lg text-center mb-8 text-purple-800 drop-shadow-lg">
+					<p className="text-lg text-center mb-1 text-purple-800 drop-shadow-lg">
 						Sign up to continue access.
 					</p>
 
@@ -165,8 +165,11 @@ function RegisterMember() {
 						<button className="w-[105%] bg-red-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4 flex items-center justify-center">
 							<i className="fab fa-google mr-2"></i> Sign up with Google
 						</button>
-						<button className="w-[105%] bg-blue-800 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center">
-							<i className="fab fa-facebook-f mr-2"></i> Sign up with Facebook
+						<button
+							disabled
+							className="w-[105%] bg-gray-400 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center justify-center cursor-not-allowed opacity-70"
+						>
+							<i className="fab fa-facebook-f mr-2"></i> Sign in with Facebook
 						</button>
 					</div>
 					<p className="text-center mt-8 text-sm text-purple-800 drop-shadow-lg">
@@ -280,12 +283,28 @@ function RegisterMember() {
 						</div>
 
 						<button
-							type="submit"
-							className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-							disabled={loading}
-						>
-							{loading ? "Signing Up..." : "SIGN UP"}
-						</button>
+            type="submit"
+            disabled={loading}
+            className="w-full h-[55px] relative
+							font-sans font-semibold text-base text-white
+							cursor-pointer border-none rounded-[3px]
+							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+							bg-[length:300%_100%] bg-left hover:bg-right
+							transition-[background-position] duration-500 ease-in-out
+							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Signing up...
+              </span>
+            ) : (
+              "Sign Up"
+            )}
+          </button>
 					</form>
 
 					<p className="text-center mt-4">

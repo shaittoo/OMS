@@ -177,7 +177,7 @@ const MyEventsView: React.FC = () => {
   const router = useRouter(); // Initialize useRouter
 
   const handleBack = () => {
-    router.back(); // Navigate to the previous page
+    router.push("/orgpage"); // Navigate to the previous page
   };
 
   const handleAddEventClick = () => {
