@@ -326,31 +326,49 @@ const MemberViewTasks: React.FC = () => {
 	};
 
 	const confirmDelete = async () => {
-		if (!taskToDelete) return;
-		
-		try {
-			await deleteDoc(doc(db, "tasks", taskToDelete));
-			setTasks(tasks.filter((t) => t.id !== taskToDelete));
-			toast.success("Task deleted successfully", {
-				style: {
-					backgroundColor: "#F3E8FF", // light purple background
-					color: "#7E22CE", // purple-700
-					borderLeft: "4px solid #9333EA", // purple-600
-				},
-			});
-		} catch (err) {
-			toast.error("Error deleting task", {
-				style: {
-					backgroundColor: "#FEE2E2", // light red background
-					color: "#DC2626", // red-600
-					borderLeft: "4px solid #EF4444", // red-500
-				},
-			});
-		} finally {
-			setDeleteModalOpen(false);
-			setTaskToDelete(null);
-		}
-	};
+  if (!taskToDelete) return;
+  
+  try {
+    await deleteDoc(doc(db, "tasks", taskToDelete));
+    setTasks(tasks.filter((t) => t.id !== taskToDelete));
+    toast.success("Task deleted successfully", {
+      style: {
+        backgroundColor: "rgba(243, 232, 255, 0.95)",
+        color: "#374151",
+        borderRadius: "12px",
+        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+        fontSize: "14px",
+        padding: "12px 16px",
+        minHeight: "48px",
+        display: "flex",
+        alignItems: "center",
+        border: "1px solid rgba(0, 0, 0, 0.05)",
+        margin: "0 0 16px 0",
+      },
+      icon: false,
+    });
+  } catch (err) {
+    toast.error("Failed to delete task", {
+      style: {
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        color: "#DC2626", // Red text for error
+        borderRadius: "12px",
+        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+        fontSize: "14px",
+        padding: "12px 16px",
+        minHeight: "48px",
+        display: "flex",
+        alignItems: "center",
+        border: "1px solid rgba(0, 0, 0, 0.05)",
+        margin: "0 0 16px 0",
+      },
+      icon: false,
+    });
+  } finally {
+    setDeleteModalOpen(false);
+    setTaskToDelete(null);
+  }
+};
 
 	if (loading) {
 		return (
@@ -363,18 +381,25 @@ const MemberViewTasks: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-white">
 			<ToastContainer
-			position="bottom-center"
-			autoClose={3000}
-			hideProgressBar={false}
-			newestOnTop
+			position="bottom-right"
+			autoClose={2000}
+			hideProgressBar
+			closeButton={false}
 			closeOnClick
-			pauseOnHover
-			theme="light"
+			pauseOnHover={false}
+			draggable={false}
 			toastStyle={{
-				backgroundColor: "white",
-				color: "#374151", // text-gray-700
-				borderRadius: "0.5rem",
-				boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+			backgroundColor: "rgba(255, 255, 255, 0.95)",
+			color: "#374151",
+			borderRadius: "12px",
+			boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+			fontSize: "14px",
+			padding: "12px 16px",
+			minHeight: "48px",
+			display: "flex",
+			alignItems: "center",
+			border: "1px solid rgba(0, 0, 0, 0.05)",
+			margin: "0 0 16px 0",
 			}}
 			/>
 			<MemberSidebar />
