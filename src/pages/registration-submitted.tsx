@@ -31,7 +31,13 @@ const RegistrationSubmitted = () => {
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            className="w-full h-[55px] relative
+							font-sans font-semibold text-base text-white
+							cursor-pointer border-none rounded-[3px]
+							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+							bg-[length:300%_100%] bg-left hover:bg-right
+							transition-[background-position] duration-500 ease-in-out
+							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
           >
             Back to Login
           </button>

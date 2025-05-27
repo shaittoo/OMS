@@ -340,19 +340,19 @@ const MemberViewTasks: React.FC = () => {
 			<MemberSidebar />
 			<main className="ml-64 p-8">
 				{/* Back to Dashboard Link */}
-				<div className="mb-6 flex justify-between items-center">
-					<Link
-						href="/memberpage"
-						className="flex items-center space-x-1 text-gray-600 hover:text-gray-800"
-					>
-						<ArrowBackIcon />
-						<span>Back to Dashboard</span>
-					</Link>
+				<div className="mb-6 flex justify-end items-center">
+		
 					<Button
-						variant="contained"
-						color="secondary"
-						onClick={() => handleOpenModal()}
-					>
+					variant="contained"
+                sx={{
+                    backgroundColor: '#9333ea',
+                    '&:hover': {
+                        backgroundColor: '#7e22ce'
+                    },
+					textTransform: 'none'
+                }}
+                onClick={() => handleOpenModal()}
+            >
 						Add Task
 					</Button>
 				</div>
