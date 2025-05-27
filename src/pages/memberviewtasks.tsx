@@ -291,6 +291,21 @@ const MemberViewTasks: React.FC = () => {
 		}
 	};
 
+	const handleCheckbox = async (taskId: string, completed: boolean) => {
+				try {
+					const taskRef = doc(db, "tasks", taskId);
+					await updateDoc(taskRef, { completed: !completed });
+		
+					setTasks((prevTasks) =>
+						prevTasks.map((task) =>
+							task.id === taskId ? { ...task, completed: !completed } : task
+						)
+					);
+				} catch (err) {
+					setError("Error updating status for task");
+				}
+			};
+
 	const handleDeleteTask = async (taskId: string) => {
 		if (!window.confirm("Are you sure you want to delete this task?")) return;
 		try {
@@ -488,9 +503,9 @@ const MemberViewTasks: React.FC = () => {
 												<input
 													type="checkbox"
 													checked={task.completed}
-													onChange={() => {
-														/* Add completion handler */
-													}}
+													onChange={() =>
+														handleCheckbox(task.id, task.completed)
+													}
 													className="cursor-pointer transform scale-125"
 												/>
 												<h3 className="font-semibold text-lg text-purple-700">

@@ -289,9 +289,6 @@ const OrgViewTasks: React.FC = () => {
 			return;
 		}
 		try {
-			const assignedMembers: string[] = [];
-			// Optionally, you can add logic to assign members here
-
 			const dueDate = new Date(formState.dueDate);
 			const dueDateObj = {
 				seconds: Math.floor(dueDate.getTime() / 1000),
@@ -327,6 +324,7 @@ const OrgViewTasks: React.FC = () => {
 				dueDate: "",
 				priority: "Medium",
 			});
+			setAssignedMembers([]);
 			setCurrentPage(1);
 
 			// Refresh tasks
@@ -389,6 +387,21 @@ const OrgViewTasks: React.FC = () => {
 			setFormError("Error saving task. Please try again.");
 		}
 	};
+
+	const handleCheckbox = async (taskId: string, completed: boolean) => {
+			try {
+				const taskRef = doc(db, "tasks", taskId);
+				await updateDoc(taskRef, { completed: !completed });
+	
+				setTasks((prevTasks) =>
+					prevTasks.map((task) =>
+						task.id === taskId ? { ...task, completed: !completed } : task
+					)
+				);
+			} catch (err) {
+				setError("Error updating status for task");
+			}
+		};
 
 	const handleDeleteTask = async (taskId: string) => {
 		if (!window.confirm("Are you sure you want to delete this task?")) return;
@@ -695,7 +708,9 @@ const OrgViewTasks: React.FC = () => {
 												<input
 													type="checkbox"
 													checked={task.completed}
-													readOnly
+													onChange={() =>
+														handleCheckbox(task.id, task.completed)
+													}
 													className="cursor-pointer transform scale-125"
 												/>
 												<h3 className="font-semibold text-lg text-purple-700">
