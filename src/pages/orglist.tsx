@@ -16,6 +16,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Header: React.FC = () => (
   <div className="flex flex-col md:flex-col justify-between pb-4 border-b border-gray-200">
@@ -199,7 +201,14 @@ const OrgList: React.FC = () => {
     const userId = auth.currentUser?.uid;
 
     if (!userId) {
-      alert("You must be logged in to join an organization.");
+      toast.error("You must be logged in to join an organization.", {
+        style: {
+          color: "#DC2626",
+          backgroundColor: "rgba(254, 226, 226, 0.95)",
+          fontWeight: 500,
+        },
+        icon: false
+      });
       return;
     }
 
@@ -211,7 +220,14 @@ const OrgList: React.FC = () => {
       );
       const snapshot = await getDocs(memberQuery);
       if (!snapshot.empty) {
-        alert("You've already requested to join this organization.");
+        toast.error("You've already requested to join this organization.", {
+          style: {
+            color: "#DC2626",
+            backgroundColor: "rgba(254, 226, 226, 0.95)",
+            fontWeight: 500,
+          },
+          icon: false
+        });
         return;
       }
 
@@ -224,10 +240,24 @@ const OrgList: React.FC = () => {
       });
 
       setJoinedOrgs((prev) => [...prev, organizationId]);
-      alert("Request sent for approval.");
+      toast.success("Application submitted", {
+        style: {
+          color: "#7E22CE",
+          backgroundColor: "rgba(243, 232, 255, 0.95)",
+          fontWeight: 500,
+        },
+        icon: false
+      });
     } catch (err) {
       console.error(err);
-      alert("Failed to send join request.");
+      toast.error("Failed to send join request.", {
+        style: {
+          color: "#DC2626",
+          backgroundColor: "rgba(254, 226, 226, 0.95)",
+          fontWeight: 500,
+        },
+        icon: false
+      });
     }
   };
 
@@ -260,6 +290,28 @@ const OrgList: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-white">
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2000}
+        hideProgressBar
+        closeButton={false}
+        closeOnClick
+        pauseOnHover={false}
+        draggable={false}
+        toastStyle={{
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          color: "#374151",
+          borderRadius: "12px",
+          boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+          fontSize: "14px",
+          padding: "12px 16px",
+          minHeight: "48px",
+          display: "flex",
+          alignItems: "center",
+          border: "1px solid rgba(0, 0, 0, 0.05)",
+          margin: "0 0 16px 0",
+        }}
+      />
       <div className="w-64 flex-shrink-0">
         <MemberSidebar />
       </div>

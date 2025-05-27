@@ -6,6 +6,8 @@ import { doc, getDoc, collection, addDoc, query, where, getDocs, serverTimestamp
 import { db } from "../firebaseConfig"; // Adjust the import path based on your project structure
 import { getAuth } from "firebase/auth";
 import { Event, Comments } from "../types/event";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface ViewEventProps {
   close: () => void;
@@ -32,6 +34,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
     const [newComment, setNewComment] = useState<string>("");
     const [currentUserName, setCurrentUserName] = useState<string>("");
     const [loadingComments, setLoadingComments] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const auth = getAuth();
 
     // Function to fetch the current user's full name
@@ -121,6 +124,7 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
     const addComment = async () => {
         if (!newComment.trim() || !auth.currentUser) return;
         
+        setIsSubmitting(true);
         try {
             const userId = auth.currentUser.uid;
             const userDoc = await getDoc(doc(db, "Users", userId));
@@ -146,8 +150,26 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
                 }
             ]);
             setNewComment("");
+            toast.success("Comment added successfully", {
+                style: {
+                    color: "#7E22CE",
+                    backgroundColor: "rgba(243, 232, 255, 0.95)",
+                    fontWeight: 500,
+                },
+                icon: false
+            });
         } catch (error) {
             console.error("Error adding comment:", error);
+            toast.error("Failed to add comment", {
+                style: {
+                    color: "#DC2626",
+                    backgroundColor: "rgba(254, 226, 226, 0.95)",
+                    fontWeight: 500,
+                },
+                icon: false
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -170,6 +192,28 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
       style={{ backgroundColor: "rgba(128, 128, 128, 0.5)" }}
       onClick={e => { if (e.target === e.currentTarget) close(); }}
     >
+      <ToastContainer
+        position="bottom-right"
+        autoClose={2000}
+        hideProgressBar
+        closeButton={false}
+        closeOnClick
+        pauseOnHover={false}
+        draggable={false}
+        toastStyle={{
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            color: "#374151",
+            borderRadius: "12px",
+            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+            fontSize: "14px",
+            padding: "12px 16px",
+            minHeight: "48px",
+            display: "flex",
+            alignItems: "center",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+            margin: "0 0 16px 0",
+        }}
+      />
       <div
         className="bg-white p-10 rounded-lg w-full max-w-4xl shadow-xl relative"
         style={{ backgroundColor: "#f9f9f9" }}
@@ -268,9 +312,25 @@ const ViewEvent: React.FC<ViewEventProps> = ({ close, event, orgName, canComment
                                 />
                                 <button
                                     type="submit"
-                                    className="bg-[#8736EA] text-white py-2 px-4 rounded-md hover:bg-purple-700 transition duration-200"
+                                    disabled={isSubmitting}
+                                    className="bg-[#8736EA] text-white py-2 px-4 rounded-md hover:bg-purple-700 
+                                        transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Add Comment
+                                    {isSubmitting ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
+                                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" 
+                                                    stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" 
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                                </path>
+                                            </svg>
+                                            Adding comment...
+                                        </span>
+                                    ) : (
+                                        "Add Comment"
+                                    )}
                                 </button>
                             </form>
                             )}

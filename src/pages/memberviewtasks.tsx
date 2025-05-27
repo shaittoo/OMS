@@ -21,6 +21,8 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface Task {
 	id: string;
@@ -50,6 +52,8 @@ const MemberViewTasks: React.FC = () => {
 		priority: "Medium",
 	});
 	const [formError, setFormError] = useState<string | null>(null);
+	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+	const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
 	const fetchTasks = async () => {
 		setLoading(true);
@@ -317,15 +321,54 @@ const MemberViewTasks: React.FC = () => {
 			};
 
 	const handleDeleteTask = async (taskId: string) => {
-		if (!window.confirm("Are you sure you want to delete this task?")) return;
-		try {
-			await deleteDoc(doc(db, "tasks", taskId));
-			// Refresh tasks
-			setTasks(tasks.filter((t) => t.id !== taskId));
-		} catch (err) {
-			alert("Error deleting task.");
-		}
+		setTaskToDelete(taskId);
+		setDeleteModalOpen(true);
 	};
+
+	const confirmDelete = async () => {
+  if (!taskToDelete) return;
+  
+  try {
+    await deleteDoc(doc(db, "tasks", taskToDelete));
+    setTasks(tasks.filter((t) => t.id !== taskToDelete));
+    toast.success("Task deleted successfully", {
+      style: {
+        backgroundColor: "rgba(243, 232, 255, 0.95)",
+        color: "#374151",
+        borderRadius: "12px",
+        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+        fontSize: "14px",
+        padding: "12px 16px",
+        minHeight: "48px",
+        display: "flex",
+        alignItems: "center",
+        border: "1px solid rgba(0, 0, 0, 0.05)",
+        margin: "0 0 16px 0",
+      },
+      icon: false,
+    });
+  } catch (err) {
+    toast.error("Failed to delete task", {
+      style: {
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        color: "#DC2626", // Red text for error
+        borderRadius: "12px",
+        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+        fontSize: "14px",
+        padding: "12px 16px",
+        minHeight: "48px",
+        display: "flex",
+        alignItems: "center",
+        border: "1px solid rgba(0, 0, 0, 0.05)",
+        margin: "0 0 16px 0",
+      },
+      icon: false,
+    });
+  } finally {
+    setDeleteModalOpen(false);
+    setTaskToDelete(null);
+  }
+};
 
 	if (loading) {
 		return (
@@ -337,6 +380,28 @@ const MemberViewTasks: React.FC = () => {
 
 	return (
 		<div className="min-h-screen bg-white">
+			<ToastContainer
+			position="bottom-right"
+			autoClose={2000}
+			hideProgressBar
+			closeButton={false}
+			closeOnClick
+			pauseOnHover={false}
+			draggable={false}
+			toastStyle={{
+			backgroundColor: "rgba(255, 255, 255, 0.95)",
+			color: "#374151",
+			borderRadius: "12px",
+			boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+			fontSize: "14px",
+			padding: "12px 16px",
+			minHeight: "48px",
+			display: "flex",
+			alignItems: "center",
+			border: "1px solid rgba(0, 0, 0, 0.05)",
+			margin: "0 0 16px 0",
+			}}
+			/>
 			<MemberSidebar />
 			<main className="ml-64 p-8">
 				{/* Back to Dashboard Link */}
@@ -478,6 +543,35 @@ const MemberViewTasks: React.FC = () => {
 					</div>
 				</Modal>
 
+				{/* Modal for Delete Confirmation */}
+				<Modal
+					open={deleteModalOpen}
+					onClose={() => setDeleteModalOpen(false)}
+				>
+					<div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex justify-center items-center z-50">
+						<div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+							<h2 className="text-xl font-semibold mb-4">Delete Task</h2>
+							<p className="text-gray-600 mb-6">Are you sure you want to delete this task?</p>
+							<div className="flex justify-end space-x-3">
+								<button
+									onClick={() => setDeleteModalOpen(false)}
+									className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 
+										hover:bg-gray-50 transition-colors duration-200"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={confirmDelete}
+									className="px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium 
+										hover:bg-red-600 transition-colors duration-200"
+								>
+									Delete
+								</button>
+							</div>
+						</div>
+					</div>
+				</Modal>
+
 				<div className="bg-white rounded-lg shadow-lg p-6">
 					<div className="flex justify-between items-center mb-6">
 						<h1 className="text-2xl font-bold text-purple-700">All Tasks</h1>
@@ -552,16 +646,26 @@ const MemberViewTasks: React.FC = () => {
 												<Button
 													size="small"
 													color="primary"
+													sx={{
+														textTransform: 'none',
+														backgroundColor: '#9333ea',
+														'&:hover': { backgroundColor: '#7e22ce' }
+													}}
 													onClick={() => handleOpenModal(task)}
-													className="!bg-purple-600 !text-white !px-4 !py-1 !rounded hover:!bg-purple-700 transition-colors duration-200"
+													className="!text-white !px-4 !py-1 !rounded transition-colors duration-200"
 												>
 													Edit
 												</Button>
 												<Button
 													size="small"
 													color="error"
+													sx={{
+														textTransform: 'none',
+														backgroundColor: '#ef4444',
+														'&:hover': { backgroundColor: '#dc2626' }
+													}}
 													onClick={() => handleDeleteTask(task.id)}
-													className="!bg-red-500 !text-white !px-4 !py-1 !rounded hover:!bg-red-600 transition-colors duration-200"
+													className="!text-white !px-4 !py-1 !rounded transition-colors duration-200"
 												>
 													Delete
 												</Button>

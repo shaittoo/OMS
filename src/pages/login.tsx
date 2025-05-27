@@ -1,21 +1,22 @@
 import React, { useState, FormEvent } from "react";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
 import { auth } from "../firebaseConfig";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { useRouter } from "next/router";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "@fortawesome/fontawesome-free/css/all.min.css"; // Import FontAwesome CSS
 
 function Login() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+	setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("User logged in successfully");
@@ -42,11 +43,27 @@ function Login() {
         router.push("/restrictedpage");
       }
 
-      toast.success("User logged in successfully", { position: "top-center" });
+      toast.success("Successfully signed in", {
+        style: {
+          color: "#7E22CE",
+          backgroundColor: "rgba(243, 232, 255, 0.95)", // lighter purple with transparency
+          fontWeight: 500,
+        },
+        icon: false
+      });
     } catch (error: any) {
       console.log(error.message);
-      toast.error(error.message, { position: "bottom-center" });
-    }
+      toast.error("Invalid email or password", {
+        style: {
+          color: "#DC2626",
+          backgroundColor: "rgba(254, 226, 226, 0.95)", // lighter red with transparency
+          fontWeight: 500,
+        },
+        icon: false
+      });
+    } finally{
+		setLoading(false);
+	}
   };
 
   const handleGoogleSignUp = async () => {
@@ -77,7 +94,28 @@ function Login() {
 
   return (
 		<div className="bg-gradient-to-tr from-purple-400 via-fuchsia-500 to-indigo-700 min-h-screen flex items-center justify-center">
-			<ToastContainer />
+			<ToastContainer
+  position="bottom-right"
+  autoClose={2000}
+  hideProgressBar
+  closeButton={false}
+  closeOnClick
+  pauseOnHover={false}
+  draggable={false}
+  toastStyle={{
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    color: "#374151",
+    borderRadius: "12px",
+    boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+    fontSize: "14px",
+    padding: "12px 16px",
+    minHeight: "48px",
+    display: "flex",
+    alignItems: "center",
+    border: "1px solid rgba(0, 0, 0, 0.05)",
+    margin: "0 0 16px 0",
+  }}
+/>
 			<div className="flex w-[60%] max-w-7xl bg-white shadow-md rounded-xl overflow-hidden">
 				{/* Left Side (Logo and Welcome) */}
 				<div className="w-1/2 bg-gradient-to-tr from-purple-200 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
@@ -148,16 +186,27 @@ function Login() {
 						</div>
 						<div className="d-grid">
 						<button
-						type="submit"
-						className="w-full h-[55px] relative
-							font-sans font-semibold text-base text-white
-							cursor-pointer border-none rounded-[3px]
-							bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
-							bg-[length:300%_100%] bg-left hover:bg-right
-							transition-[background-position] duration-500 ease-in-out
-							focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
+							type="submit"
+							disabled={loading}
+							className="w-full h-[55px] relative
+											font-sans font-semibold text-base text-white
+											cursor-pointer border-none rounded-[3px]
+											bg-gradient-to-r from-purple-600 via-blue-500 via-purple-600 to-blue-700
+											bg-[length:300%_100%] bg-left hover:bg-right
+											transition-[background-position] duration-500 ease-in-out
+											focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"
 						>
-						<span className="relative z-10">Submit</span>
+							{loading ? (
+							<span className="flex items-center justify-center">
+								<svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+								<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+								Signing in...
+							</span>
+							) : (
+							"Submit"
+							)}
 						</button>
 						</div>
 					</form>
