@@ -5,18 +5,18 @@ const Choose: React.FC = () => {
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-tr from-purple-400 via-fuchsia-500 to-indigo-700">
       {/* Glass Container */}
-      <div className="w-full max-w-3xl mx-4 p-8 rounded-2xl backdrop-blur-md bg-white/70 shadow-2xl">
+      <div className="w-full max-w-3xl mx-4 p-8 rounded-2xl backdrop-blur-md bg-gradient-to-tr from-purple-100 via-fuchsia-200 to-indigo-300 shadow-2xl">
         {/* Logo and Header */}
-        <div className="flex flex-col items-center mb-12">
+        <div className="flex flex-col items-center mb-10">
           <img
             src="/assets/OMSLOGO.png"
             alt="OMS Logo"
-            className="h-32 mb-8 drop-shadow-2xl transform hover:scale-105 transition-transform duration-300"
+            className="h-32 mb-3 drop-shadow-2xl transform hover:scale-105 transition-transform duration-300"
           />
-          <h1 className="text-4xl font-bold mb-1 text-purple-800 text-center tracking-wide">
+          <h1 className="text-4xl font-bold mb-5 text-purple-800 text-center tracking-wide">
             Welcome to OMS
           </h1>
-          <p className="text-xl text-purple-800  text-center font-light max-w-md">
+          <p className="text-xl text-purple-800 mb-[-20px] text-center font-light max-w-md">
             Choose your registration type to get started
           </p>
         </div>
@@ -25,7 +25,7 @@ const Choose: React.FC = () => {
         <div className="flex flex-col space-y-6 max-w-lg mx-auto mb-12">
           <Link
             href="/registerorg"
-            className="group relative px-8 py-4 overflow-hidden
+            className="group mb-[-10px] relative px-8 py-4 overflow-hidden
               bg-gradient-to-r from-[#D848EF] to-[#4838CB]
               hover:shadow-lg hover:shadow-purple-500/30
               transform hover:translate-y-[-2px] 

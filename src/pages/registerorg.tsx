@@ -5,8 +5,9 @@ import { setDoc, doc, where, collection, query, getDocs } from "firebase/firesto
 import { v4 as uuidv4 } from "uuid";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { S3Client } from "@aws-sdk/client-s3";
-import { toast } from "react-hot-toast";
+import { toast, ToastContainer } from "react-toastify";
 import { useRouter } from "next/router";
+
 import AWS from "aws-sdk";
 
 function RegisterOrg() {
@@ -359,11 +360,10 @@ function RegisterOrg() {
 				</div>
 
 				{/* Right Side - OMS Welcome Section */}
-	<div className="hidden md:flex md:w-1/2 bg-gradient-to-r from-purple-600/30 to-indigo-600/30 
+	<div className="hidden md:flex md:w-1/2 bg-gradient-to-tr from-purple-100 via-fuchsia-200 to-indigo-200
   backdrop-filter backdrop-blur-lg
   p-10 flex-col justify-center items-center">
-	<div className="bg-white/20 backdrop-blur-sm rounded-2xl p-8 w-full max-w-md 
-		shadow-xl border border-white/20">
+
           <img
             src="/assets/OMSLOGO.png"
             alt="OMS Logo"
@@ -378,7 +378,7 @@ function RegisterOrg() {
         </div>
       </div>
     </div>
-  </div>
+ 
 	);
 }
 

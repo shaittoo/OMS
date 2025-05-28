@@ -48,19 +48,79 @@ function RegisterMember() {
   // Input validation
   const validateInputs = (): boolean => {
     if (fname.trim().length < 2 || lname.trim().length < 2) {
-      toast.error("First and Last name must be at least 2 characters.");
+	  toast.error("First and Last name must be at least 2 characters.", {
+				style: {
+				  backgroundColor: "rgba(255, 255, 255, 0.95)",
+				  color: "#DC2626", // Red text for error
+				  borderRadius: "12px",
+				  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+				  fontSize: "14px",
+				  padding: "12px 16px",
+				  minHeight: "48px",
+				  display: "flex",
+				  alignItems: "center",
+				  border: "1px solid rgba(0, 0, 0, 0.05)",
+				  margin: "0 0 16px 0",
+				},
+				icon: false,
+				});
       return false;
     }
     if (!email.includes("@")) {
-      toast.error("Enter a valid email address.");
+      toast.error("Enter a valid email address.", {
+				style: {
+				  backgroundColor: "rgba(255, 255, 255, 0.95)",
+				  color: "#DC2626", // Red text for error
+				  borderRadius: "12px",
+				  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+				  fontSize: "14px",
+				  padding: "12px 16px",
+				  minHeight: "48px",
+				  display: "flex",
+				  alignItems: "center",
+				  border: "1px solid rgba(0, 0, 0, 0.05)",
+				  margin: "0 0 16px 0",
+				},
+				icon: false,
+				});
       return false;
     }
     if (!email.endsWith("@up.edu.ph")) {
-      toast.error("Only UP email addresses (@up.edu.ph) are allowed for registration.");
+	  toast.error("Only UP email addresses (@up.edu.ph) are allowed for registration.", {
+				style: {
+				  backgroundColor: "rgba(255, 255, 255, 0.95)",
+				  color: "#DC2626", // Red text for error
+				  borderRadius: "12px",
+				  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+				  fontSize: "14px",
+				  padding: "12px 16px",
+				  minHeight: "48px",
+				  display: "flex",
+				  alignItems: "center",
+				  border: "1px solid rgba(0, 0, 0, 0.05)",
+				  margin: "0 0 16px 0",
+				},
+				icon: false,
+				});
       return false;
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters long.");
+	  toast.error("Password must be at least 6 characters long.", {
+				style: {
+				  backgroundColor: "rgba(255, 255, 255, 0.95)",
+				  color: "#DC2626", // Red text for error
+				  borderRadius: "12px",
+				  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+				  fontSize: "14px",
+				  padding: "12px 16px",
+				  minHeight: "48px",
+				  display: "flex",
+				  alignItems: "center",
+				  border: "1px solid rgba(0, 0, 0, 0.05)",
+				  margin: "0 0 16px 0",
+				},
+				icon: false,
+				});
       return false;
     }
     return true;
@@ -83,7 +143,22 @@ function RegisterMember() {
       // Check for email uniqueness
       const emailIsUnique = await isEmailUnique(email);
       if (!emailIsUnique) {
-        toast.error("Email already exists. Please choose another.");
+		toast.error("Email already exists. Please choose another.", {
+				style: {
+				  backgroundColor: "rgba(255, 255, 255, 0.95)",
+				  color: "#DC2626", // Red text for error
+				  borderRadius: "12px",
+				  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+				  fontSize: "14px",
+				  padding: "12px 16px",
+				  minHeight: "48px",
+				  display: "flex",
+				  alignItems: "center",
+				  border: "1px solid rgba(0, 0, 0, 0.05)",
+				  margin: "0 0 16px 0",
+				},
+				icon: false,
+				});
         setLoading(false);
         return;
       }
@@ -125,9 +200,22 @@ function RegisterMember() {
           role: "member",
         });
 
-        toast.success("User Registered Successfully!!", {
-          position: "top-center",
-        });
+        toast.success("Signed up successfully", {
+				  style: {
+					backgroundColor: "rgba(243, 232, 255, 0.95)",
+					color: "#374151",
+					borderRadius: "12px",
+					boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+					fontSize: "14px",
+					padding: "12px 16px",
+					minHeight: "48px",
+					display: "flex",
+					alignItems: "center",
+					border: "1px solid rgba(0, 0, 0, 0.05)",
+					margin: "0 0 16px 0",
+				  },
+				  icon: false,
+				  });
         setTimeout(() => (window.location.href = "/login"), 3000);
       }
     } catch (error) {
@@ -147,7 +235,7 @@ function RegisterMember() {
 			<ToastContainer /> {/* Added here for toasts to render */}
 			<div className="flex w-[60%] max-w-7xl bg-white shadow-md rounded-xl overflow-hidden">
 				{/* Left Side (Logo and Welcome) */}
-				<div className="w-1/2 bg-gradient-to-tr from-purple-200 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
+				<div className="w-1/2 bg-gradient-to-tr from-purple-100 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
 					<img
 						src="/assets/OMSLOGO.png"
 						alt="OMS Logo"
@@ -156,9 +244,9 @@ function RegisterMember() {
 					<h1 className="text-3xl font-bold mb-4 text-center text-purple-800 drop-shadow-lg">
 						Welcome to OMS
 					</h1>
-					<p className="text-lg text-center mb-1 text-purple-800 drop-shadow-lg">
+					{/* <p className="text-lg text-center mb-1 text-purple-800 drop-shadow-lg">
 						Sign up to continue access.
-					</p>
+					</p> */}
 
 					{/* Social Login Buttons */}
 					<div className="flex flex-col items-center">
@@ -318,6 +406,28 @@ function RegisterMember() {
 					</p>
 				</div>
 			</div>
+			 <ToastContainer
+							  position="bottom-right"
+							  autoClose={2000}
+							  hideProgressBar
+							  closeButton={false}
+							  closeOnClick
+							  pauseOnHover={false}
+							  draggable={false}
+							  toastStyle={{
+							  backgroundColor: "rgba(255, 255, 255, 0.95)",
+							  color: "#374151",
+							  borderRadius: "12px",
+							  boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+							  fontSize: "14px",
+							  padding: "12px 16px",
+							  minHeight: "48px",
+							  display: "flex",
+							  alignItems: "center",
+							  border: "1px solid rgba(0, 0, 0, 0.05)",
+							  margin: "0 0 16px 0",
+							  }}
+							  />
 		</div>
 	);
 }

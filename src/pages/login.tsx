@@ -129,18 +129,18 @@ function Login() {
 />
 			<div className="flex w-[60%] max-w-7xl bg-white shadow-md rounded-xl overflow-hidden">
 				{/* Left Side (Logo and Welcome) */}
-				<div className="w-1/2 bg-gradient-to-tr from-purple-200 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
+				<div className="w-1/2 bg-gradient-to-tr from-purple-100 via-fuchsia-200 to-indigo-300 text-white p-8 flex flex-col justify-center items-center">
 					<img
 						src="/assets/OMSLOGO.png"
 						alt="OMS Logo"
 						className="h-32 mb-4 mt-2"
 					/>
-					<h1 className="text-4xl font-bold mb-8 text-center text-purple-800 drop-shadow-lg">
+					<h1 className="text-4xl font-bold mb-8 text-center text-purple-900 drop-shadow-lg">
 						Welcome to OMS
 					</h1>
-					<p className="text-lg text-center mb-2 text-purple-800 drop-shadow-lg">
+					{/* <p className="text-lg text-center mb-2 text-purple-900 drop-shadow-lg">
 						Sign in to continue access.
-					</p>
+					</p> */}
 					<div className="flex flex-col items-center">
 						<button
 							onClick={handleGoogleSignUp}
