@@ -5,6 +5,7 @@ import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serv
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebaseConfig";
 import OfficerSidebar from "../components/officersidebar";
+import { toast, ToastContainer } from "react-toastify";
 
 const AcceptMembers: React.FC = () => {
   const [members, setMembers] = useState<
@@ -143,8 +144,24 @@ const AcceptMembers: React.FC = () => {
       setMembers((prevMembers) =>
         prevMembers.filter((member) => member.id !== memberId)
       );
-
-      alert(`Member has been ${newStatus}.`);
+      
+     toast.success("Member has been accepted.", {
+               style: {
+                 backgroundColor: "rgba(243, 232, 255, 0.95)",
+                 color: "#374151",
+                 borderRadius: "12px",
+                 boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                 fontSize: "14px",
+                 padding: "12px 16px",
+                 minHeight: "48px",
+                 display: "flex",
+                 alignItems: "center",
+                 border: "1px solid rgba(0, 0, 0, 0.05)",
+                 margin: "0 0 16px 0",
+               },
+               icon: false,
+               });
+      
     } catch (error) {
       console.error(`Error updating member status:`, error);
     }
@@ -209,7 +226,24 @@ const AcceptMembers: React.FC = () => {
       setShowRejectionReasonModal(false);
       setRejectionReason("");
       setRejectionDetails("");
-      alert("Member has been rejected.");
+      toast.success("Member has been rejected.", {
+               style: {
+                 backgroundColor: "rgba(243, 232, 255, 0.95)",
+                 color: "#374151",
+                 borderRadius: "12px",
+                 boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                 fontSize: "14px",
+                 padding: "12px 16px",
+                 minHeight: "48px",
+                 display: "flex",
+                 alignItems: "center",
+                 border: "1px solid rgba(0, 0, 0, 0.05)",
+                 margin: "0 0 16px 0",
+               },
+               icon: false,
+               });
+      
+
     } catch (error) {
       console.error(`Error rejecting member:`, error);
     }
@@ -362,6 +396,29 @@ const AcceptMembers: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ToastContainer
+                        position="bottom-right"
+                        autoClose={2000}
+                        hideProgressBar
+                        closeButton={false}
+                        closeOnClick
+                        pauseOnHover={false}
+                        draggable={false}
+                        toastStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        color: "#374151",
+                        borderRadius: "12px",
+                        boxShadow: "0 8px 16px rgba(0, 0, 0, 0.08)",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        minHeight: "48px",
+                        display: "flex",
+                        alignItems: "center",
+                        border: "1px solid rgba(0, 0, 0, 0.05)",
+                        margin: "0 0 16px 0",
+                        }}
+                        />
     </div>
   );
 };
