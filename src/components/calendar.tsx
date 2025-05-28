@@ -37,69 +37,73 @@ export default function Calendar({ organizationId }: CalendarProps) {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
-      setError("You must be logged in to view the calendar.");
       setLoading(false);
       return;
     }
 
-      try {
-        // Fetch user's calendar events
-        const userRef = doc(db, "Users", user.uid);
-        const userDoc = await getDoc(userRef);
-        const userData = userDoc.data();
-        const calendarEvents = userData?.calendarEvents || [];
+    try {
+      // Fetch user's calendar events
+      const userRef = doc(db, "Users", user.uid);
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      const calendarEvents = userData?.calendarEvents || [];
 
-        // Filter events based on organizationId if provided
-        let filteredEvents = organizationId 
-          ? calendarEvents.filter((event: CalendarEvent) => event.organizationId === organizationId)
-          : calendarEvents;
+      // Filter events based on organizationId if provided
+      let filteredEvents = organizationId 
+        ? calendarEvents.filter((event: CalendarEvent) => event.organizationId === organizationId)
+        : calendarEvents;
 
-        // Fetch tasks based on organizationId
-        let tasksQuery;
-        if (organizationId) {
-          // If organizationId is provided, only fetch tasks for that organization
-          tasksQuery = query(
-            collection(db, "tasks"),
-            where("organizationId", "==", organizationId)
-          );
-        } else {
-          // If no organizationId, fetch tasks from all organizations the user is a member of
-          const membersRef = collection(db, "Members");
-          const membersQuery = query(
-            membersRef,
-            where("uid", "==", user.uid),
-            where("status", "==", "approved")
-          );
-          const membersSnapshot = await getDocs(membersQuery);
-          const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
-          
+      // Fetch tasks based on organizationId
+      let tasksQuery;
+      if (organizationId) {
+        // If organizationId is provided, only fetch tasks for that organization
+        tasksQuery = query(
+          collection(db, "tasks"),
+          where("organizationId", "==", organizationId)
+        );
+      } else {
+        // If no organizationId, fetch tasks from all organizations the user is a member of
+        const membersRef = collection(db, "Members");
+        const membersQuery = query(
+          membersRef,
+          where("uid", "==", user.uid),
+          where("status", "==", "approved")
+        );
+        const membersSnapshot = await getDocs(membersQuery);
+        const userOrganizations = membersSnapshot.docs.map(doc => doc.data().organizationId);
+        
+        if (userOrganizations.length > 0) {
           tasksQuery = query(
             collection(db, "tasks"),
             where("organizationId", "in", userOrganizations)
           );
         }
+      }
+
+      if (tasksQuery) {
         const tasksSnapshot = await getDocs(tasksQuery);
-
-      const tasksList = tasksSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: data.taskName,
-          start: new Date(data.dueDate.seconds * 1000).toISOString(),
-          isTask: true,
-          organizationId: data.organizationId,
-          backgroundColor: '#FF5733',
-          borderColor: '#FF5733',
-          textColor: 'white',
-          display: 'block'
-        };
-      });
-
-      setTasks(tasksList);
-      setLoading(false);
+        const tasksList = tasksSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: data.taskName,
+            start: new Date(data.dueDate.seconds * 1000).toISOString(),
+            isTask: true,
+            organizationId: data.organizationId,
+            backgroundColor: '#FF5733',
+            borderColor: '#FF5733',
+            textColor: 'white',
+            display: 'block'
+          };
+        });
+        setTasks(tasksList);
+      } else {
+        setTasks([]);
+      }
     } catch (error) {
       console.error("Error fetching tasks:", error);
-      setError("Error fetching tasks");
+      setTasks([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -109,7 +113,6 @@ export default function Calendar({ organizationId }: CalendarProps) {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
-      setError("You must be logged in to view the calendar.");
       setLoading(false);
       return;
     }
@@ -135,11 +138,13 @@ export default function Calendar({ organizationId }: CalendarProps) {
         }));
 
         setEvents(updatedEvents);
-        setLoading(false);
+      } else {
+        setEvents([]);
       }
+      setLoading(false);
     }, (error) => {
       console.error("Error in calendar events listener:", error);
-      setError("Error loading calendar events");
+      setEvents([]);
       setLoading(false);
     });
 
@@ -156,16 +161,8 @@ export default function Calendar({ organizationId }: CalendarProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">{error}</p>
       </div>
     );
   }
