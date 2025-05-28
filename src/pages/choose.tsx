@@ -13,10 +13,10 @@ const Choose: React.FC = () => {
             alt="OMS Logo"
             className="h-32 mb-3 drop-shadow-2xl transform hover:scale-105 transition-transform duration-300"
           />
-          <h1 className="text-4xl font-bold mb-5 text-purple-800 text-center tracking-wide">
+          <h1 className="text-4xl font-bold mb-5 text-purple-900 text-center tracking-wide">
             Welcome to OMS
           </h1>
-          <p className="text-xl text-purple-800 mb-[-20px] text-center font-light max-w-md">
+          <p className="text-xl text-purple-900 mb-[-20px] text-center font-light max-w-md">
             Choose your registration type to get started
           </p>
         </div>

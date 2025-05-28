@@ -241,7 +241,7 @@ function RegisterMember() {
 						alt="OMS Logo"
 						className="h-32 mb-4"
 					/>
-					<h1 className="text-3xl font-bold mb-4 text-center text-purple-800 drop-shadow-lg">
+					<h1 className="text-3xl font-bold mb-4 text-center text-purple-900 drop-shadow-lg">
 						Welcome to OMS
 					</h1>
 					{/* <p className="text-lg text-center mb-1 text-purple-800 drop-shadow-lg">
@@ -260,7 +260,7 @@ function RegisterMember() {
 							<i className="fab fa-facebook-f mr-2"></i> Sign in with Facebook
 						</button>
 					</div>
-					<p className="text-center mt-8 text-sm text-purple-800 drop-shadow-lg">
+					<p className="text-center mt-8 text-sm text-purple-900 drop-shadow-lg">
 						www.organizationmanagementsystem.com
 					</p>
 				</div>
