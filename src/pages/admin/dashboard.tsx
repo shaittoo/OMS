@@ -228,7 +228,9 @@ const AdminDashboard = () => {
       }
 
       const updateData = {
-        status: newStatus,
+        ...(activeTab === 'organizations'
+          ? { status: newStatus }
+          : { approvalStatus: newStatus }),
         ...(rejectionReason && { rejectionReason }),
         ...(newStatus === 'accepted' && { 
           organizationVerified: true,
