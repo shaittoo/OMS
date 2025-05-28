@@ -262,7 +262,9 @@ const MembersPageOfficerView: React.FC = () => {
             yearLevel: memberUserData.yearLevel || "Unknown",
             contactNumber: memberUserData.contactNumber || "Unknown",
             email: memberUserData.email || "Unknown",
-            joinedAt: memberData.joinedAt || "N/A",
+            joinedAt: memberData.joinedAt
+            ? new Date(memberData.joinedAt).toLocaleString()
+            : "N/A",
             role: memberData.role || "Member",
             position: position,
           };
