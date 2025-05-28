@@ -32,6 +32,9 @@ const MemberOwnTasks: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("All");
   const [displayedTasks, setDisplayedTasks] = useState<Task[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const tasksPerPage = 4;
+
 
   useEffect(() => {
     const fetchMemberTasks = async () => {
@@ -121,15 +124,28 @@ const MemberOwnTasks: React.FC = () => {
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
     const filteredTasks = tasks.filter((task) => {
-      if (activeTab === "All") return true;
-      if (activeTab === "Completed") return task.completed;
-      if (activeTab === "Not Completed") return !task.completed;
-      return true;
+        if (activeTab === "All") return true;
+        if (activeTab === "Completed") return task.completed;
+        if (activeTab === "Not Completed") return !task.completed;
+        return true;
     });
-    setDisplayedTasks(filteredTasks.slice(0, 4)); // Display only the first 4 tasks
-  }, [activeTab, tasks]);
+
+    const startIdx = (currentPage - 1) * tasksPerPage;
+    const endIdx = startIdx + tasksPerPage;
+
+    setDisplayedTasks(filteredTasks.slice(startIdx, endIdx));
+    }, [activeTab, tasks, currentPage]);
+
+    const filteredTasks = tasks.filter((task) => {
+        if (activeTab === "All") return true;
+        if (activeTab === "Completed") return task.completed;
+        if (activeTab === "Not Completed") return !task.completed;
+        return true;
+        });
+        const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+
 
   const noTasksMessage = () => {
     if (loading) return null;
@@ -252,14 +268,85 @@ const MemberOwnTasks: React.FC = () => {
         </div>
 
         {/* View More Link */}
-        {tasks.length > 4 && (
-          <div className="mt-4 text-right">
-            <Link href="/memberowntasksall">
-              <p className="text-sm text-purple-700 hover:text-purple-900 cursor-pointer">
-                View More
-              </p>
-            </Link>
-          </div>
+        {!loading && !error && totalPages > 1 && (
+            <div className="mt-6 flex flex-wrap justify-center items-center gap-2">
+                {/* Previous Button */}
+                <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className={`px-4 py-1 border rounded-md font-semibold transition ${
+                    currentPage === 1
+                    ? "text-purple-300 border-purple-300 cursor-not-allowed"
+                    : "text-purple-700 border-purple-700 hover:bg-purple-50"
+                }`}
+                >
+                Previous
+                </button>
+
+                {/* Leading Ellipsis if needed */}
+                {currentPage > 2 && totalPages > 3 && (
+                <>
+                    <button
+                    onClick={() => setCurrentPage(1)}
+                    className={`w-9 h-9 text-sm font-medium rounded-md text-purple-700 border border-purple-700 bg-white hover:bg-purple-50`}
+                    >
+                    1
+                    </button>
+                    <span className="text-purple-500 font-semibold px-1">...</span>
+                </>
+                )}
+
+                {/* Dynamic Page Buttons */}
+                {Array.from({ length: 3 }, (_, i) => {
+                const startPage = Math.min(
+                    Math.max(currentPage - 1, 1),
+                    totalPages - 2
+                );
+                const pageNumber = startPage + i;
+
+                if (pageNumber > totalPages) return null;
+
+                return (
+                    <button
+                    key={pageNumber}
+                    onClick={() => setCurrentPage(pageNumber)}
+                    className={`w-9 h-9 text-sm font-medium rounded-md transition ${
+                        pageNumber === currentPage
+                        ? "bg-purple-700 text-white border-2 border-blue-300"
+                        : "text-purple-700 border border-purple-700 bg-white hover:bg-purple-50"
+                    }`}
+                    >
+                    {pageNumber}
+                    </button>
+                );
+                })}
+
+                {/* Trailing Ellipsis if needed */}
+                {currentPage < totalPages - 1 && totalPages > 3 && (
+                <>
+                    <span className="text-purple-500 font-semibold px-1">...</span>
+                    <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className={`w-9 h-9 text-sm font-medium rounded-md text-purple-700 border border-purple-700 bg-white hover:bg-purple-50`}
+                    >
+                    {totalPages}
+                    </button>
+                </>
+                )}
+
+                {/* Next Button */}
+                <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className={`px-4 py-1 border rounded-md font-semibold transition ${
+                    currentPage === totalPages
+                    ? "text-purple-300 border-purple-300 cursor-not-allowed"
+                    : "text-purple-700 border-purple-700 hover:bg-purple-50"
+                }`}
+                >
+                Next
+                </button>
+            </div>
         )}
       </main>
     </div>
