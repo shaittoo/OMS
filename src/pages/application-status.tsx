@@ -140,8 +140,8 @@ const ApplicationStatus: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <main className="ml-64 p-6">
-        <div className="p-6">
+      <main className="ml-64 p-4">
+        <div className="p-4">
           <div className="mt-1">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Your Application Status</h2>

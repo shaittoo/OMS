@@ -45,13 +45,6 @@ const Header: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-200">
       <div>
-        <Link
-            href="/memberpage"
-            className="flex items-center space-x-1 mb-3 text-gray-600 hover:text-gray-800"
-          >
-          <ArrowBackIcon className="text-gray-500 hover:text-gray-700" />
-          <span>Back to Dashboard</span>
-          </Link>
         <h1 className="text-3xl font-semibold text-gray-800">
           Organization Events
         </h1>

@@ -73,7 +73,9 @@ const AcceptMembers: React.FC = () => {
           id: memberDoc.id,
           uid: memberId,
           fullName,
-          joinedAt: memberData.joinedAt || "N/A",
+          joinedAt: memberData.joinedAt
+            ? new Date(memberData.joinedAt).toLocaleString()
+            : "N/A",
           status: memberData.status || "pending",
         };
       });
@@ -227,11 +229,11 @@ const AcceptMembers: React.FC = () => {
         <OfficerSidebar />
       </div>
       <div className="flex flex-col bg-[#F3E8FF] min-h-screen w-full bg-white">
-        <header className="bg-white p-7 text-black flex items-center">
+        <header className="bg-white p-10 text-black flex items-center">
           <h1 className="text-3xl font-bold">Manage Member Requests</h1>
         </header>
 
-        <main className="p-6 flex flex-col gap-6">
+        <main className="p-10 flex flex-col">
           <section className="bg-white shadow rounded p-6">
             <h2 className="text-2xl font-semibold text-purple-700">Pending Members</h2>
             {members.filter((member) => member.status === "pending").length > 0 ? (

@@ -91,7 +91,7 @@ const MemberOrg: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <MemberSidebar />
-      <main className="ml-64 p-8">
+      <main className="ml-64 p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
           {/* Main Content - Events */}
           <div className="w-full flex flex-col h-full">
